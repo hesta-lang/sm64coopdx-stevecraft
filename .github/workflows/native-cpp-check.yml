@@ -27,3 +27,12 @@ jobs:
             -o native-pose-test
       - name: Run model and animation tests
         run: ./native-pose-test
+      - name: Compile the camera and physics runtime
+        run: |
+          c++ -std=c++11 -Wall -Wextra -Werror -pedantic \
+            native/stevecraft_minecraft_camera.cpp \
+            native/stevecraft_minecraft_physics.cpp \
+            native/tests/test_camera_physics.cpp \
+            -o native-camera-physics-test
+      - name: Run camera and physics tests
+        run: ./native-camera-physics-test
