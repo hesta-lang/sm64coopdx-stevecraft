@@ -316,7 +316,17 @@ void setup_pose(const SteveMcHumanoidState &state, Pose &pose) {
             0.3f * std::cos(animation_position * 0.33333334f));
     }
 
-    (void)state.age_in_ticks; /* idle arm bob is added with the remaining AnimationUtils slice */
+    /* AnimationUtils.bobModelPart from Minecraft 1.21.11. */
+    const float right_bob = 1.0f;
+    const float left_bob = -1.0f;
+    pose.part[STEVE_MC_RIGHT_ARM].rotation.z += right_bob
+        * (std::cos(state.age_in_ticks * 0.09f) * 0.05f + 0.05f);
+    pose.part[STEVE_MC_RIGHT_ARM].rotation.x += right_bob
+        * std::sin(state.age_in_ticks * 0.067f) * 0.05f;
+    pose.part[STEVE_MC_LEFT_ARM].rotation.z += left_bob
+        * (std::cos(state.age_in_ticks * 0.09f) * 0.05f + 0.05f);
+    pose.part[STEVE_MC_LEFT_ARM].rotation.x += left_bob
+        * std::sin(state.age_in_ticks * 0.067f) * 0.05f;
 }
 
 Matrix4 sm64_basis() {
