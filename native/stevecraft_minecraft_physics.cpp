@@ -89,8 +89,7 @@ void jump_from_ground(
     if (!input.jump_pressed || !input.on_ground) return;
 
     const float jump_power =
-        input.jump_strength * (input.block_jump_factor > 0.0f
-            ? input.block_jump_factor : 1.0f) + input.jump_boost;
+        input.jump_strength * input.block_jump_factor + input.jump_boost;
     if (jump_power <= 1.0e-5f) return;
 
     state.velocity[1] = std::max(state.velocity[1], jump_power);
@@ -136,6 +135,8 @@ extern "C" void steve_mc_physics_begin_step(
     }
 
     jump_from_ground(*state, *input);
+    /* LivingEntity.travelInFluid captures this before movement/drag. */
+    state->was_falling = state->velocity[1] <= 0.0f;
     add_movement_input(*state, *input);
 
     for (int axis = 0; axis < 3; ++axis) {
@@ -184,7 +185,7 @@ extern "C" void steve_mc_physics_end_step(
         state->velocity[1] *= 0.8f;
         apply_fluid_fall_adjustment(
             input->gravity,
-            state->velocity[1] <= 0.0f,
+            state->was_falling != 0,
             input->sprinting,
             &state->velocity[1]
         );
@@ -202,7 +203,7 @@ extern "C" void steve_mc_physics_end_step(
             state->velocity[2] *= 0.5f;
             apply_fluid_fall_adjustment(
                 input->gravity,
-                state->velocity[1] <= 0.0f,
+                state->was_falling != 0,
                 input->sprinting,
                 &state->velocity[1]
             );
