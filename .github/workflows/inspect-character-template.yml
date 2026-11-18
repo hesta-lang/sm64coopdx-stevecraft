@@ -1,0 +1,55 @@
+name: Inspect SM64 character template
+
+on:
+  push:
+    paths:
+      - "tools/inspect_character_template.py"
+      - ".github/workflows/inspect-character-template.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl xz-utils libxrender1 libxi6 libxkbcommon0 libsm6 libgl1
+
+      - name: Download Blender 3.6 LTS
+        run: |
+          curl -fL --retry 3 \
+            https://download.blender.org/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz \
+            -o blender.tar.xz
+          tar -xf blender.tar.xz
+          echo "$PWD/blender-3.6.23-linux-x64" >> "$GITHUB_PATH"
+
+      - name: Download official SM64CoopDX character template
+        run: |
+          mkdir -p build
+          curl -fL --retry 3 \
+            "https://raw.githubusercontent.com/coop-deluxe/character-template/main/Mario%20Coop%20Model%20Template.blend" \
+            -o build/mario-template.blend
+          test -s build/mario-template.blend
+
+      - name: Inspect armature and bone groups
+        env:
+          STEVE_REPORT: ${{ github.workspace }}/build/template-report.json
+        run: |
+          blender -b build/mario-template.blend --python tools/inspect_character_template.py
+          test -s build/template-report.json
+
+      - name: Upload template inspection report
+        uses: actions/upload-artifact@v4
+        with:
+          name: stevecraft-character-template-report
+          path: build/template-report.json
+          if-no-files-found: error
+          retention-days: 14
