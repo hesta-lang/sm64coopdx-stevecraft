@@ -420,13 +420,9 @@ def write_first_person_hand_actor(actor_root):
 def apply_steve_primitive_colors(actor_dir):
     model_path = actor_dir / "model.inc.c"
     source = model_path.read_text(encoding="utf-8")
+    # Only the optional Metal Mario variant still uses primitive colours.
+    # The normal Steve model now uses the full Minecraft skin textures.
     colors = {
-        "Shirt": (0, 156, 168),
-        "Skin": (184, 125, 82),
-        "Hair": (56, 28, 14),
-        "Eyes": (9, 6, 5),
-        "Pants": (31, 64, 158),
-        "Shoes": (41, 24, 14),
         "Metal": (158, 173, 186),
     }
     old_combiner = (
