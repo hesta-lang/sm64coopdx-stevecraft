@@ -18,6 +18,17 @@ local function first_person_hand_init(o)
     o.oGravity = 0
 end
 
+-- Behavior registration must happen while the Lua mod is loading.
+-- hook_behavior() is not permitted from HOOK_UPDATE or other runtime callbacks.
+HAND_BEHAVIOR = hook_behavior(
+    nil,
+    OBJ_LIST_DEFAULT,
+    true,
+    first_person_hand_init,
+    first_person_hand_loop,
+    "bhvSteveFirstPersonHand"
+)
+
 local function first_person_hand_loop(o)
     if not get_first_person_enabled() then
         o.oPosY = -10000
@@ -98,17 +109,6 @@ local function ensure_first_person_hand()
             return
         end
         handModelId = modelId
-    end
-
-    if HAND_BEHAVIOR == nil then
-        HAND_BEHAVIOR = hook_behavior(
-            nil,
-            OBJ_LIST_DEFAULT,
-            true,
-            first_person_hand_init,
-            first_person_hand_loop,
-            "bhvSteveFirstPersonHand"
-        )
     end
 
     handObject = spawn_non_sync_object(HAND_BEHAVIOR, handModelId, 0, 0, 0, nil)
