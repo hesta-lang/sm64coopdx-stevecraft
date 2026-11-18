@@ -29,7 +29,7 @@ def write_actor(output: Path) -> None:
     tex_defs = []
     for face in FACES:
         tex_defs.append(
-            'Texture steve_arm_' + face + '[] = { "actors/steve_hand/arm_' + face + '.png" };'
+            'Texture steve_arm_' + face + '[] = { "steve_hand/arm_' + face + '.png" };'
         )
 
     vertices = []

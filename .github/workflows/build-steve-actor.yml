@@ -86,6 +86,11 @@ jobs:
           test -s build/actor/actors/steve_hand/model.inc.c
           test -s build/actor/actors/steve_hand/geo_header.h
           test -s build/actor/actors/steve_hand/arm_front.png
+          if grep -n '"actors/steve_hand/' build/actor/actors/steve_hand/model.inc.c; then
+            echo "Texture paths must be relative to the actors directory"
+            exit 1
+          fi
+          grep -q '"steve_hand/arm_back.png"' build/actor/actors/steve_hand/model.inc.c
 
       - name: Copy generated actor source into the mod
         run: |

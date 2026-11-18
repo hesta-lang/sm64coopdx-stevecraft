@@ -1,11 +1,11 @@
 // Classic Minecraft Steve right arm viewmodel.
 // 4x12x4 geometry; six face textures use original classic-skin UV regions.
-Texture steve_arm_top[] = { "actors/steve_hand/arm_top.png" };
-Texture steve_arm_bottom[] = { "actors/steve_hand/arm_bottom.png" };
-Texture steve_arm_right[] = { "actors/steve_hand/arm_right.png" };
-Texture steve_arm_front[] = { "actors/steve_hand/arm_front.png" };
-Texture steve_arm_left[] = { "actors/steve_hand/arm_left.png" };
-Texture steve_arm_back[] = { "actors/steve_hand/arm_back.png" };
+Texture steve_arm_top[] = { "steve_hand/arm_top.png" };
+Texture steve_arm_bottom[] = { "steve_hand/arm_bottom.png" };
+Texture steve_arm_right[] = { "steve_hand/arm_right.png" };
+Texture steve_arm_front[] = { "steve_hand/arm_front.png" };
+Texture steve_arm_left[] = { "steve_hand/arm_left.png" };
+Texture steve_arm_back[] = { "steve_hand/arm_back.png" };
 
 const Vtx steve_hand_vertices[] = {
     {{12, -2, -2}, 0, {0, 0}, {255, 255, 255, 255}},
