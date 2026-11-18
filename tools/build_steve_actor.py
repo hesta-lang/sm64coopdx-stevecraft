@@ -276,7 +276,9 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank,
         # vertical/side/depth axes, preserving the armature's existing origins.
         corner_indices = []
         for mc_x, mc_y, mc_z in mc_points:
-            point = (1.0 - mc_y / 16.0 - coordinate_offset[0],\n                     -mc_x / 16.0 - coordinate_offset[1],\n                     -mc_z / 16.0 - coordinate_offset[2])
+            point = (1.0 - mc_y / 16.0 - coordinate_offset[0],
+                     -mc_x / 16.0 - coordinate_offset[1],
+                     -mc_z / 16.0 - coordinate_offset[2])
             key = (cube["group"], tuple(round(value, 6) for value in point))
             vertex_index = vertex_map.get(key)
             if vertex_index is None:
