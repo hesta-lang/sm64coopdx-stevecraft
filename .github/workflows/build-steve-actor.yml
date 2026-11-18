@@ -91,6 +91,8 @@ jobs:
             exit 1
           fi
           grep -q '"steve_hand/arm_back.png"' build/actor/actors/steve_hand/model.inc.c
+          grep -q 'gsDPSetTextureFilter(G_TF_POINT)' build/actor/actors/steve_hand/model.inc.c
+          grep -q 'GEO_SCALE(LAYER_FORCE, 163840)' build/actor/actors/steve_hand/geo.inc.c
 
       - name: Copy generated actor source into the mod
         run: |

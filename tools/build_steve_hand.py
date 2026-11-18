@@ -25,6 +25,13 @@ FACES = {
     "back": [(12,2,-2),(12,-2,-2),(0,-2,-2),(0,2,-2)],
 }
 
+# Reflect the arm along its length: the skin/hand end points toward the screen
+# center, while the turquoise shoulder/sleeve remains at the lower-right edge.
+FACES = {
+    name: [(12 - x, y, z) for (x, y, z) in corners]
+    for name, corners in FACES.items()
+}
+
 def write_actor(output: Path) -> None:
     tex_defs = []
     for face in FACES:
@@ -44,6 +51,7 @@ def write_actor(output: Path) -> None:
     gfx = [
         "const Gfx steve_hand_dl[] = {",
         "    gsDPPipeSync(),",
+        "    gsDPSetTextureFilter(G_TF_POINT),",
         "    gsSPClearGeometryMode(G_LIGHTING | G_CULL_BACK),",
         "    gsDPSetCombineMode(G_CC_DECALRGBA, G_CC_DECALRGBA),",
         "    gsSPTexture(0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON),",
@@ -65,7 +73,8 @@ def write_actor(output: Path) -> None:
 
     model = [
         "// Classic Minecraft Steve right arm viewmodel.",
-        "// 4x12x4 geometry; six face textures use original classic-skin UV regions.",
+        "// 4x12x4 geometry; longitudinal direction is reflected for the first-person pose.",
+        "// G_TF_POINT keeps every skin texel sharp without interpolation.",
         *tex_defs,
         "",
         "const Vtx steve_hand_vertices[] = {",
@@ -82,7 +91,7 @@ def write_actor(output: Path) -> None:
         "    GEO_OPEN_NODE(),\n"
         "        GEO_CULLING_RADIUS(2000),\n"
         "        GEO_OPEN_NODE(),\n"
-        "            GEO_SCALE(LAYER_FORCE, 196608),\n"
+        "            GEO_SCALE(LAYER_FORCE, 163840),\n"
         "            GEO_OPEN_NODE(),\n"
         "                GEO_DISPLAY_LIST(LAYER_OPAQUE, steve_hand_dl),\n"
         "            GEO_CLOSE_NODE(),\n"

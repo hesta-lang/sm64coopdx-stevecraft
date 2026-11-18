@@ -66,3 +66,10 @@ The generator extracts six separate face textures from the classic UV layout:
 Each face is a small PNG so the N64 renderer does not need to load the entire 64×64 atlas into TMEM. DynOS resolves the PNGs using the texture names declared in actors/steve_hand/model.inc.c. The viewmodel keeps the Gun Mod camera-relative transform in first_person_hand.lua.
 
 The source skin has a transparent outer-arm/sleeve overlay region. The generated arm therefore uses the complete base skin layer, which already contains the classic turquoise sleeve and skin pixels. Geometry and UVs follow Minecraft's classic arm layout, while rendering remains in SM64CoopDX's N64-style pipeline.
+
+
+## First-person arm corrections (0.5.1-alpha)
+
+The arm cuboid is reflected along its 12-unit axis so the hand end points toward the screen center and the turquoise shoulder/sleeve sits at the lower-right edge, matching the first-person pose. The actor scale is 2.5× rather than 3×, and the camera-relative anchor has been shifted farther right and lower.
+
+The display list explicitly selects `gsDPSetTextureFilter(G_TF_POINT)`. The Android DynOS parser exposes this symbol through `gfx_symbols.h`, and the OpenGL renderer maps the non-linear sampler option to `GL_NEAREST`. This prevents bilinear interpolation from softening the 4×4 and 4×12 skin face textures.

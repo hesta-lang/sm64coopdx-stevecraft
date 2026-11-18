@@ -4,7 +4,7 @@ Mod modular para **sm64coopdx**, orientado al fork Android de ManIsCat2. Convier
 
 ## Versión
 
-**0.5.0-alpha** — brazo de primera persona con proporciones 4×12×4 y textura clásica de Steve 64×64.
+**0.5.1-alpha** — brazo de primera persona con proporciones 4×12×4 y textura clásica de Steve 64×64.
 
 ## Estado
 
@@ -12,7 +12,7 @@ Mod modular para **sm64coopdx**, orientado al fork Android de ManIsCat2. Convier
 - El cuerpo de Steve usa geometría cúbica y el esqueleto de jugador de SM64CoopDX.
 - Los brazos del cuerpo tienen manga turquesa y mano color piel en piezas separadas.
 - Un actor DynOS independiente, `steve_hand_geo`, dibuja el brazo clásico de Minecraft de 4×12×4 unidades. Sus seis caras se texturizan desde las regiones UV originales del brazo derecho de la skin clásica de Steve 64×64.
-- El brazo sigue la orientación de `gFirstPersonCamera`, usa el transform de viewmodel de Gun Mod y tiene balanceo al caminar.
+- El brazo sigue la orientación de `gFirstPersonCamera`, usa el transform de viewmodel de Gun Mod y tiene balanceo al caminar. La orientación longitudinal se corrigió para dejar la mano hacia el centro y la manga hacia la esquina inferior derecha; el modelo se redujo a 2.5× y se acercó ligeramente al encuadre.
 - El cuerpo sigue usando las animaciones estándar del motor. Las animaciones completas de Minecraft y la física/construcción de bloques aún no están implementadas.
 - El brazo es un objeto 3D unido a la cámara, no una pasada HUD independiente; la escala, posición y apariencia final siguen necesitando validación visual en Android.
 
@@ -55,7 +55,7 @@ En multijugador, instala el mod en cada cliente que deba mostrar a Steve.
 
 ## Compatibilidad DynOS
 
-El exportador elimina los `CUSTOM_CMD()` vacíos que Fast64 añade y que el parser GeoLayout del fork Android no reconoce. El generador del brazo recorta seis PNG pequeños desde la skin clásica de Steve 64×64 en lugar de cargar el atlas completo de una vez. El registro Lua rechaza tanto `E_MODEL_NONE` como `E_MODEL_ERROR_MODEL`.
+El exportador elimina los `CUSTOM_CMD()` vacíos que Fast64 añade y que el parser GeoLayout del fork Android no reconoce. El generador del brazo recorta seis PNG pequeños desde la skin clásica de Steve 64×64 en lugar de cargar el atlas completo de una vez, refleja la orientación longitudinal del brazo para el punto de vista en primera persona y fuerza `G_TF_POINT` para evitar interpolación de texeles. El registro Lua rechaza tanto `E_MODEL_NONE` como `E_MODEL_ERROR_MODEL`.
 
 ## Validación
 

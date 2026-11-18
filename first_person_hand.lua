@@ -33,12 +33,12 @@ local function hand_viewmodel_loop(o)
     local pitch = fp.pitch
 
     -- Gun Mod camera-relative transform, with a lower Minecraft-style arm position.
-    o.oPosX = camera.curPos.x - 35 * coss(pitch) * sins(yaw)
-    o.oPosY = camera.curPos.y - 35 * sins(pitch) - 20
-    o.oPosZ = camera.curPos.z - 35 * coss(pitch) * coss(yaw)
+    o.oPosX = camera.curPos.x - 30 * coss(pitch) * sins(yaw)
+    o.oPosY = camera.curPos.y - 30 * sins(pitch) - 32
+    o.oPosZ = camera.curPos.z - 30 * coss(pitch) * coss(yaw)
 
-    o.oPosX = o.oPosX + sins(yaw + 0x4000) * 30
-    o.oPosZ = o.oPosZ + coss(yaw + 0x4000) * 30
+    o.oPosX = o.oPosX + sins(yaw + 0x4000) * 46
+    o.oPosZ = o.oPosZ + coss(yaw + 0x4000) * 46
 
     o.oFaceAnglePitch = 0
     o.oFaceAngleYaw = yaw + 0x4000
