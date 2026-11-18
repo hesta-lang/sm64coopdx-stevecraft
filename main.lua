@@ -8,6 +8,6 @@
 SteveCraft = SteveCraft or {}
 
 SteveCraft.name = "SteveCraft 64"
-SteveCraft.version = "0.4.0-alpha"
+SteveCraft.version = "0.5.0-alpha"
 
 print("[SteveCraft 64] " .. SteveCraft.version .. " loaded")
