@@ -13,6 +13,7 @@ typedef enum SteveMcMovementMedium {
 
 typedef struct SteveMcPhysicsState {
     float velocity[3];
+    int was_falling;
 } SteveMcPhysicsState;
 
 typedef struct SteveMcPhysicsInput {
