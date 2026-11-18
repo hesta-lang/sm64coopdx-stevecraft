@@ -46,34 +46,61 @@ def create_color_material(owner, key, color):
     material.f3d_update_flag = False
     return material
 
-def add_box(vertices, faces, face_materials, weights, center, size, group, materials):
+def add_box(vertices, faces, face_materials, weights, center, size, group, materials,
+            vertex_map, weighted_vertices, omit_faces=()):
     cx, cy, cz = center
     hx, hy, hz = (size[0] / 2, size[1] / 2, size[2] / 2)
-    base = len(vertices)
-    vertices.extend([
+    corners = [
         (cx-hx, cy-hy, cz-hz), (cx+hx, cy-hy, cz-hz),
         (cx+hx, cy+hy, cz-hz), (cx-hx, cy+hy, cz-hz),
         (cx-hx, cy-hy, cz+hz), (cx+hx, cy-hy, cz+hz),
         (cx+hx, cy+hy, cz+hz), (cx-hx, cy+hy, cz+hz),
-    ])
-    definitions = [
-        ("front",  (base+4, base+5, base+6, base+7)),
-        ("back",   (base+0, base+3, base+2, base+1)),
-        ("top",    (base+1, base+2, base+6, base+5)),
-        ("bottom", (base+0, base+4, base+7, base+3)),
-        ("left",   (base+0, base+1, base+5, base+4)),
-        ("right",  (base+3, base+7, base+6, base+2)),
     ]
+
+    # Reuse coincident vertices only inside the same rigid vertex group.
+    # Steve's sleeve and hand are one rigid arm, so their seam can be welded
+    # without changing animation weights or merging independently moving bones.
+    corner_indices = []
+    for point in corners:
+        key = (group, tuple(round(component, 6) for component in point))
+        vertex_index = vertex_map.get(key)
+        if vertex_index is None:
+            vertex_index = len(vertices)
+            vertices.append(point)
+            vertex_map[key] = vertex_index
+        corner_indices.append(vertex_index)
+        weight_key = (vertex_index, group)
+        if weight_key not in weighted_vertices:
+            weights.append(weight_key)
+            weighted_vertices.add(weight_key)
+
+    c = corner_indices
+    definitions = [
+        ("front",  (c[4], c[5], c[6], c[7])),
+        ("back",   (c[0], c[3], c[2], c[1])),
+        ("top",    (c[1], c[2], c[6], c[5])),
+        ("bottom", (c[0], c[4], c[7], c[3])),
+        ("left",   (c[0], c[1], c[5], c[4])),
+        ("right",  (c[3], c[7], c[6], c[2])),
+    ]
+    omitted = set(omit_faces)
     for face_name, face in definitions:
+        if face_name in omitted:
+            continue
         faces.append(face)
         face_materials.append(materials.get(face_name, materials["default"]))
-    weights.extend((i, group) for i in range(base, base + 8))
 
 def build_mesh(target, blocks, required_groups, material_bank):
     vertices, faces, face_materials, weights = [], [], [], []
+    vertex_map = {}
+    weighted_vertices = set()
+    omitted_faces = 0
     for block in blocks:
+        block_omissions = block.get("omit_faces", ())
+        omitted_faces += len(block_omissions)
         add_box(vertices, faces, face_materials, weights,
-                block["center"], block["size"], block["group"], block["materials"])
+                block["center"], block["size"], block["group"], block["materials"],
+                vertex_map, weighted_vertices, block_omissions)
     mesh = bpy.data.meshes.new(target.name + " Steve Mesh")
     mesh.from_pydata(vertices, [], faces)
     mesh.update()
@@ -91,7 +118,12 @@ def build_mesh(target, blocks, required_groups, material_bank):
         groups[group_name].add([vertex_index], 1.0, "REPLACE")
     if old_data and old_data.users == 0:
         bpy.data.meshes.remove(old_data)
-    return {"vertices": len(vertices), "faces": len(faces), "groups": required_groups}
+    return {
+        "vertices": len(vertices),
+        "faces": len(faces),
+        "omitted_faces": omitted_faces,
+        "groups": required_groups,
+    }
 
 def body_blocks(materials, metal=False):
     skin, hair, shirt, pants, eyes, shoes, metal_name = (
@@ -112,13 +144,13 @@ def body_blocks(materials, metal=False):
         # Arms are 4x12x4. The upper 8 pixels are the turquoise sleeve,
         # and the lower 4 pixels are the skin-coloured hand.
         {"center": (0.75, -0.375, 0.0), "size": (0.50, 0.25, 0.25), "group": "Left Arm Color",
-         "materials": {"default": shirt}},
+         "materials": {"default": shirt}, "omit_faces": ("bottom",)},
         {"center": (0.375, -0.375, 0.0), "size": (0.25, 0.25, 0.25), "group": "Left Arm Color",
-         "materials": {"default": skin}},
+         "materials": {"default": skin}, "omit_faces": ("top",)},
         {"center": (0.75, 0.375, 0.0), "size": (0.50, 0.25, 0.25), "group": "Right Arm Color",
-         "materials": {"default": shirt}},
+         "materials": {"default": shirt}, "omit_faces": ("bottom",)},
         {"center": (0.375, 0.375, 0.0), "size": (0.25, 0.25, 0.25), "group": "Right Arm Color",
-         "materials": {"default": skin}},
+         "materials": {"default": skin}, "omit_faces": ("top",)},
         {"center": (-0.125, -0.125, 0.0), "size": (0.75, 0.25, 0.25), "group": "Left Thigh Color",
          "materials": {"default": pants, "bottom": shoes}},
         {"center": (-0.125, 0.125, 0.0), "size": (0.75, 0.25, 0.25), "group": "Right Thigh Color",
