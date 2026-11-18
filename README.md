@@ -4,17 +4,17 @@ Mod modular para **sm64coopdx**, orientado al fork Android de ManIsCat2. Convier
 
 ## Versión
 
-**0.5.1-alpha** — brazo de primera persona con proporciones 4×12×4 y textura clásica de Steve 64×64.
+**0.6.0-alpha** — brazo de primera persona con proporciones 4×12×4 y textura clásica de Steve 64×64.
 
 ## Estado
 
-- La cámara permanente en primera persona existente se conserva.
+- La cámara empieza en primera persona, pero ahora permite alternar a tercera persona con la cruceta arriba (`U_JPAD`).
 - El cuerpo de Steve usa geometría cúbica y el esqueleto de jugador de SM64CoopDX.
 - Los brazos del cuerpo tienen manga turquesa y mano color piel en piezas separadas.
 - Un actor DynOS independiente, `steve_hand_geo`, dibuja el brazo clásico de Minecraft de 4×12×4 unidades. Sus seis caras se texturizan desde las regiones UV originales del brazo derecho de la skin clásica de Steve 64×64.
 - El brazo sigue la orientación de `gFirstPersonCamera`, usa el transform de viewmodel de Gun Mod y tiene balanceo al caminar. La orientación longitudinal se corrigió para dejar la mano hacia el centro y la manga hacia la esquina inferior derecha; el modelo se redujo a 2.5× y se acercó ligeramente al encuadre.
 - El cuerpo sigue usando las animaciones estándar del motor. Las animaciones completas de Minecraft y la física/construcción de bloques aún no están implementadas.
-- El brazo es un objeto 3D unido a la cámara, no una pasada HUD independiente; la escala, posición y apariencia final siguen necesitando validación visual en Android.
+- El brazo 3D solo se muestra en primera persona; al pasar a tercera persona se elimina.\n- La tercera persona usa la cámara nativa `CAMERA_MODE_FREE_ROAM` de SM64CoopDX, con órbita y prevención de colisiones del motor. La vista frontal independiente de Minecraft aún no está implementada.
 
 ## Estructura
 
