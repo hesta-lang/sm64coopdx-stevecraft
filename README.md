@@ -6,6 +6,10 @@ Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jug
 
 **0.10.0-alpha** — conversión del modelo PlayerModel de Minecraft Java 1.21.11 a geometría DynOS compatible con el esqueleto de jugador de SM64CoopDX.
 
+## Native C++ port
+
+The next stage is documented in [ENGINE_REVERSE_ENGINEERING.md](ENGINE_REVERSE_ENGINEERING.md). It defines the limited Minecraft model/animation/camera code slice to port into the Android SM64CoopDX engine as native C++, rather than attempting to translate the entire game or placing non-compilable C++ files in a Lua mod.
+
 ## Cámara
 
 - Y alterna entre primera y tercera persona.
