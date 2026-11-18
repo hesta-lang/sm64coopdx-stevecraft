@@ -2,15 +2,16 @@
 
 ## Minecraft Java Edition
 
-The camera behavior was studied from a decompiled Minecraft Java Edition 1.21.1 source tree:
+The camera behavior was checked against decompiled Minecraft Java Edition sources. The latest reference used for this implementation is 1.21.11:
 
-- `net.minecraft.client.render.Camera`: https://github.com/Soumeh/1.21.1-Deobfuscated/blob/main/minecraft/src/net/minecraft/client/render/Camera.java
-- `net.minecraft.client.MinecraftClient`: https://github.com/Soumeh/1.21.1-Deobfuscated/blob/main/minecraft/src/net/minecraft/client/MinecraftClient.java
-- Yarn's mapped Camera API for a current 1.21.x reference: https://maven.fabricmc.net/docs/yarn-1.21.11+build.3/net/minecraft/client/render/Camera.html
+- `net.minecraft.client.Camera` (1.21.11): https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/Camera.java
+- `net.minecraft.client.Minecraft` perspective cycling (1.21.11): https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/Minecraft.java
+- `net.minecraft.client.Options` and default F5 binding (1.21.11): https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/Options.java
+- Earlier 1.21.1 decompiled reference: https://github.com/Soumeh/1.21.1-Deobfuscated/blob/main/minecraft/src/net/minecraft/client/render/Camera.java
 
-The Minecraft camera implementation follows the focused entity, starts from its interpolated position/eye height, and in third person moves backward by 4 blocks. For front-facing third person it rotates yaw by 180 degrees and negates pitch. Its `clipToSpace` routine checks eight rays from slight offsets around the camera origin and shortens the desired distance to the nearest collision.
+The Minecraft 1.21.11 camera starts from the focused entity's interpolated position plus interpolated eye height. In detached/third-person mode it moves backward by a default 4.0 units (or the entity's camera-distance attribute). For front-facing third person it rotates yaw by 180 degrees and negates pitch. Its `getMaxZoom` routine checks eight rays from slight offsets around the camera origin and shortens the desired distance to the nearest block collision.
 
-The perspective key handler advances the `Perspective` enum to the next value, which cycles first person, third person back, and third person front.
+The perspective key handler advances the camera-type enum, cycling first person, third person back, and third person front. In the source examined, F5 is the default perspective-toggle key.
 
 ## SteveCraft / SM64CoopDX adaptation
 
