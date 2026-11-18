@@ -93,7 +93,9 @@ def build_mesh(target, blocks, required_groups, material_bank):
     return {"vertices": len(vertices), "faces": len(faces), "groups": required_groups}
 
 def body_blocks(materials, metal=False):
-    skin, hair, shirt, pants, eyes, shoes, metal_name = materials
+    skin, hair, shirt, pants, eyes, shoes, metal_name = (
+        materials[key] for key in ("skin", "hair", "shirt", "pants", "eyes", "shoes", "metal")
+    )
     if metal:
         skin = hair = shirt = pants = eyes = shoes = metal_name
     blocks = [
