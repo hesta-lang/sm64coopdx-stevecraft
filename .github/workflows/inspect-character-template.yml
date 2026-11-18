@@ -39,9 +39,17 @@ jobs:
             -o build/mario-template.blend
           test -s build/mario-template.blend
 
-      - name: Inspect armature and bone groups
+      - name: Download Fast64-Gart
+        run: |
+          curl -fL --retry 3 https://codeload.github.com/ManIsCat2/Fast64-Gart/zip/refs/heads/main -o fast64.zip
+          mkdir -p build/fast64
+          unzip -q fast64.zip -d build/fast64
+          mv build/fast64/Fast64-Gart-main build/fast64/fast64_gart
+
+      - name: Inspect armature, materials and bone groups
         env:
           STEVE_REPORT: ${{ github.workspace }}/build/template-report.json
+          FAST64_ADDON: ${{ github.workspace }}/build/fast64
         run: |
           blender -b build/mario-template.blend --python tools/inspect_character_template.py
           test -s build/template-report.json

@@ -1,9 +1,66 @@
 import bpy
 import json
 import os
+from mathutils import Vector
 
 def vec(v):
     return [round(float(x), 6) for x in v]
+
+def primitive(value):
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    try:
+        return [primitive(v) for v in value]
+    except Exception:
+        return str(value)
+
+def props_of(pg):
+    result = {}
+    if not hasattr(pg, "bl_rna"):
+        return result
+    for prop in pg.bl_rna.properties:
+        name = prop.identifier
+        if name == "rna_type" or prop.is_readonly:
+            continue
+        try:
+            value = getattr(pg, name)
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                result[name] = value
+            elif prop.type == "FLOAT" and prop.array_length:
+                result[name] = primitive(value)
+            elif prop.type == "ENUM":
+                result[name] = str(value)
+        except Exception:
+            pass
+    return result
+
+def mesh_bounds_in_armature(obj):
+    if not obj.bound_box:
+        return None
+    transform = obj.parent.matrix_world.inverted() @ obj.matrix_world if obj.parent and obj.parent.type == "ARMATURE" else obj.matrix_world
+    pts = [transform @ Vector(c) for c in obj.bound_box]
+    return {
+        "min": [round(min(p[i] for p in pts), 6) for i in range(3)],
+        "max": [round(max(p[i] for p in pts), 6) for i in range(3)],
+    }
+
+def vertex_group_bounds(obj):
+    if obj.type != "MESH" or obj.parent is None or obj.parent.type != "ARMATURE":
+        return {}
+    transform = obj.parent.matrix_world.inverted() @ obj.matrix_world
+    result = {}
+    for group in obj.vertex_groups:
+        indices = []
+        for v in obj.data.vertices:
+            if any(a.group == group.index and a.weight > 0.001 for a in v.groups):
+                indices.append(transform @ v.co)
+        if indices:
+            result[group.name] = {
+                "min": [round(min(p[i] for p in indices), 6) for i in range(3)],
+                "max": [round(max(p[i] for p in indices), 6) for i in range(3)],
+                "count": len(indices),
+            }
+    return result
 
 def object_info(obj):
     data = {
@@ -20,6 +77,8 @@ def object_info(obj):
         data["polygons"] = len(obj.data.polygons)
         data["vertex_groups"] = [g.name for g in obj.vertex_groups]
         data["materials"] = [m.name if m else None for m in obj.data.materials]
+        data["bounds_in_armature"] = mesh_bounds_in_armature(obj)
+        data["group_bounds"] = vertex_group_bounds(obj)
     if obj.type == "ARMATURE":
         data["bones"] = []
         for bone in obj.data.bones:
@@ -33,7 +92,28 @@ def object_info(obj):
             }
             if hasattr(bone, "geo_cmd"):
                 item["geo_cmd"] = bone.geo_cmd
+            if hasattr(bone, "switch_options"):
+                item["switch_options"] = [
+                    {
+                        "switchType": option.switchType,
+                        "optionArmature": option.optionArmature.name if option.optionArmature else None,
+                    }
+                    for option in bone.switch_options
+                ]
             data["bones"].append(item)
+    return data
+
+def material_info(material):
+    data = {
+        "name": material.name,
+        "use_nodes": material.use_nodes,
+        "nodes": [
+            {"name": n.name, "type": n.type, "image": n.image.name if hasattr(n, "image") and n.image else None}
+            for n in (material.node_tree.nodes if material.node_tree else [])
+        ],
+    }
+    if hasattr(material, "f3d_mat"):
+        data["f3d"] = props_of(material.f3d_mat)
     return data
 
 output = os.environ.get("STEVE_REPORT", "template-report.json")
@@ -41,12 +121,9 @@ report = {
     "blender_version": bpy.app.version_string,
     "scene": bpy.context.scene.name,
     "objects": [object_info(o) for o in bpy.data.objects],
+    "materials": [material_info(m) for m in bpy.data.materials],
     "actions": [
-        {
-            "name": a.name,
-            "frame_range": [float(a.frame_range[0]), float(a.frame_range[1])],
-            "fcurves": len(a.fcurves),
-        }
+        {"name": a.name, "frame_range": [float(a.frame_range[0]), float(a.frame_range[1])], "fcurves": len(a.fcurves)}
         for a in bpy.data.actions
     ],
 }
