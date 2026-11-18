@@ -1,17 +1,18 @@
--- SteveCraft 64 - Animation system
+-- SteveCraft 64 - Player animation support
 --
--- Planned clips:
---   idle, walk, run, jump, fall, land, hurt, death
+-- The generated Steve actor keeps the SM64CoopDX player skeleton and bone
+-- names. This lets the engine's existing player animation set drive Steve:
+-- idle, walk, run, jump, fall, land, hurt and death.
 --
--- The character must use a SM64-compatible player armature. The engine's
--- standard player animation set can then animate that armature. Custom
--- Minecraft-style clips will be added after the exported Steve rig is tested.
+-- Custom Minecraft-specific animation clips are not registered yet. They
+-- will be introduced separately after the model is checked in Android.
 
 SteveCraft = SteveCraft or {}
 
 SteveCraft.animations = {
-    ready = false,
-    rig = "SM64 player-compatible armature",
+    ready = true,
+    source = "SM64CoopDX built-in player animation set",
+    customClipsReady = false,
     clips = {
         "idle",
         "walk",

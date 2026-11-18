@@ -1,44 +1,40 @@
 # Steve model and animation pipeline
 
-## Why the OBJ is not loaded directly
+## Export result
 
-The Lua player-model example in SM64CoopDX registers an exported GeoLayout with `smlua_model_util_get_id()`, then applies the resulting extended model ID to the player's Mario object. The sample actor is supplied as a DynOS `.bin` resource under `actors/`.
+The model source is exported by the GitHub Actions workflow **Build Steve DynOS character**. It downloads the official SM64CoopDX player template, opens it with Blender 3.6.23 and Fast64-Gart, replaces the visible meshes with Steve's cuboid body and exports the actor GeoLayout.
 
-SM64CoopDX does not treat an arbitrary OBJ as a player model. The reference OBJ in this repository is only the six-part source mesh.
+Generated files are stored in `actors/steve/`:
+- `geo.inc.c`
+- `model.inc.c`
+- `geo_header.h`
 
-## Required conversion
+SM64CoopDX/DynOS is responsible for producing the runtime `steve_geo` model resource from the actor files when the game loads the mod. The runtime model is requested by Lua as `smlua_model_util_get_id("steve_geo")`.
 
-1. Open the SM64CoopDX character template in Blender with the Fast64-Gart add-on.
-2. Preserve the template's SM64-compatible player armature and its required bone hierarchy.
-3. Replace its mesh with the six Steve cuboids from `assets/steve/steve_reference.obj`.
-4. Bind the head, torso, arms and legs to the matching armature groups. The rig specification is in `assets/steve/steve_rig_spec.json`.
-5. Export the actor GeoLayout to the mod's `actors/` resource location using the name `steve_geo`.
-6. Build and test the exported resource in the target SM64CoopDX build.
-7. Only after verifying the generated `actors/steve_geo.bin` in Android should `character.lua` register it and apply the model to player objects.
+## Rig
 
-The armature is important: merely exporting six unrigged cuboids would create a static character, not an animated player model.
+The source actor keeps the official SM64 player armature and required bone groups. The six main body parts are assigned to the matching groups:
 
-## Animation plan
+- Head: `Head DL`
+- Torso: `Torso`
+- Left and right arms: `Left Arm Color`, `Right Arm Color`
+- Left and right legs: `Left Thigh Color`, `Right Thigh Color`
 
-First reuse the standard SM64 player animation set with the compatible Steve rig. Then replace or register custom clips for:
-- Idle
-- Walk
-- Run
-- Jump
-- Fall
-- Land
-- Hurt
-- Death
+Mario's hand switches, wing branches and held-object branch are ignored for the Steve actor. Capless and metal model variants are also replaced so they do not restore the original Mario geometry.
 
-The engine's animation system animates the expected armature bones. A custom animation file is not useful until the exported model has the corresponding rig and bone ordering.
+## Animation
 
-## Validation gates
+Because the original SM64 player skeleton is preserved, the actor can use the engine's standard player animation set. This includes the game's standing, walking, running, jumping, falling, landing and damage/death motions.
 
-- [ ] GeoLayout resource loads without a model lookup error.
-- [ ] Six cuboids are visible on a remote or third-person player.
-- [ ] Head, torso, arms and legs follow the player skeleton correctly.
-- [ ] Walking, jumping, falling and landing animations do not deform the model.
-- [ ] Multiplayer synchronization is correct.
-- [ ] First-person camera remains functional on Android.
+Minecraft-specific animations have not been authored yet. The next animation pass should add blocky arm/leg timing and an appropriate idle stance without changing the compatible bone names or order.
 
-Do not enable model registration until the binary asset passes these checks.
+## Runtime checks still required
+
+- [ ] Actor is compiled and `steve_geo` resolves to a model ID on Android.
+- [ ] Steve is visible on the local player and remote players.
+- [ ] The head, torso, arms and legs rotate at the intended joints.
+- [ ] Default player animations do not deform the cubes.
+- [ ] First-person camera remains functional.
+- [ ] Multiplayer sync is correct when SteveCraft is installed by all clients.
+
+A successful GitHub export only validates the source generation. It does not prove that the target Android build can load or render the actor.

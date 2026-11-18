@@ -1,19 +1,21 @@
 # SteveCraft 64
 
-Mod modular para **sm64coopdx**, probado inicialmente en el fork Android de ManIsCat2. El proyecto busca convertir la experiencia de Mario en una experiencia inspirada en Minecraft: personaje cúbico, animaciones propias, físicas y mecánicas de bloques.
+Mod modular para **sm64coopdx**, probado inicialmente en el fork Android de ManIsCat2. El proyecto transforma al jugador en Steve, con cuerpo cúbico y una base preparada para incorporar las físicas, construcción y destrucción de bloques de Minecraft.
 
 ## Versión
 
-**0.2.0-alpha** — refactor modular y preparación de los recursos del personaje.
+**0.3.0-alpha** — primer modelo de Steve exportado a DynOS y registrado como personaje de jugador.
 
 ## Estado de esta versión
 
-- La cámara en primera persona continúa activa; es la implementación probada en 0.1.0-alpha.
-- El código ahora está separado por sistemas Lua.
-- Se incluye una malla OBJ de referencia de Steve formada por seis piezas cúbicas.
-- Se documenta el flujo necesario para convertir esa geometría a un modelo de jugador compatible con SM64CoopDX.
-- El modelo jugable y las animaciones propias todavía no están activos.
-- Las físicas de Minecraft y las mecánicas de bloques todavía no están implementadas.
+- La cámara en primera persona continúa activa.
+- El mod está separado por sistemas Lua.
+- Se genera un modelo de Steve a partir de seis piezas cúbicas principales.
+- El modelo conserva el esqueleto compatible con SM64CoopDX.
+- El jugador usa el conjunto de animaciones integrado del motor: caminar, correr, saltar, caer, aterrizar, daño y muerte.
+- El modelo se registra con `smlua_model_util_get_id("steve_geo")` y se aplica con `obj_set_model_extended`.
+- Las animaciones personalizadas de Minecraft, físicas y mecánicas de bloques todavía no están implementadas.
+- El modelo exportado necesita validación visual dentro del juego Android.
 
 ## Estructura
 
@@ -25,42 +27,47 @@ sm64coopdx-stevecraft/
 ├── animations.lua
 ├── physics.lua
 ├── blocks.lua
+├── actors/
+│   └── steve/
+│       ├── geo.inc.c
+│       ├── geo_header.h
+│       ├── model.inc.c
+│       └── README.md
 ├── assets/
 │   └── steve/
 │       ├── steve_reference.obj
 │       ├── steve_reference.mtl
-│       ├── steve_rig_spec.json
-│       └── README.md
-├── .github/
-│   └── workflows/
-│       └── lua-check.yml
-└── MODEL_PIPELINE.md
+│       └── steve_rig_spec.json
+├── tools/
+│   └── build_steve_actor.py
+└── .github/workflows/
+    ├── lua-check.yml
+    └── build-steve-actor.yml
 ```
-
-SM64CoopDX admite mods organizados en carpetas con varios scripts Lua, siempre que la carpeta tenga un archivo `main.lua`. Los recursos de actores se colocan en `actors/`.
 
 ## Instalación
 
 1. Descarga el repositorio como ZIP desde GitHub.
 2. Extrae la carpeta `sm64coopdx-stevecraft`.
-3. Copia la carpeta dentro de la carpeta `mods` que utiliza tu instalación de sm64coopdx.
-4. Comprueba que el archivo quede en `mods/sm64coopdx-stevecraft/main.lua`.
-5. Inicia el juego y comprueba la cámara dentro de un nivel.
+3. Copia la carpeta completa dentro de la carpeta `mods` utilizada por tu instalación de sm64coopdx.
+4. Comprueba que la estructura incluya `main.lua` y `actors/steve/geo.inc.c`.
+5. Inicia el juego. SM64CoopDX debe reconocer y compilar el actor DynOS antes de poder mostrarlo.
+6. Entra en un nivel y comprueba Steve y la cámara en primera persona.
 
-La ubicación exacta de `mods` depende de cómo esté empaquetada la versión Android. Usa la carpeta de mods que exponga tu APK/launcher; no copies el archivo dentro del APK.
+Instala SteveCraft en cada cliente que vaya a mostrar el modelo en una partida multijugador. La ubicación exacta de `mods` depende de cómo esté empaquetada la versión Android.
 
-## Requisitos del modelo
+## Modelo y animaciones
 
-Un archivo `.obj` no puede asignarse directamente como modelo de jugador. SM64CoopDX utiliza recursos de geometría DynOS, como `actors/steve_geo.bin`, registrados con `smlua_model_util_get_id("steve_geo")`.
+El actor se exporta con Fast64-Gart desde la plantilla oficial de personaje de SM64CoopDX. Se conserva el armature de jugador y se sustituyen los modelos visibles por piezas cúbicas de Steve. El archivo OBJ de referencia es una fuente geométrica; el juego utiliza los archivos DynOS generados bajo `actors/steve/`.
 
-La malla OBJ incluida es la fuente geométrica de seis piezas, no el recurso binario final. Consulta [MODEL_PIPELINE.md](MODEL_PIPELINE.md) antes de intentar activarlo.
+La versión actual reutiliza las animaciones integradas del esqueleto de jugador. No son todavía las animaciones originales de Minecraft.
 
 ## Compatibilidad
 
 La cámara utiliza `gFirstPersonCamera.enabled`, `set_first_person_enabled` y los eventos `HOOK_UPDATE`, `HOOK_ON_LEVEL_INIT` y `HOOK_ON_WARP`.
 
-El motor puede cancelar temporalmente la vista en primera persona durante ciertas acciones o secuencias. El mod mantiene activada la configuración, pero no fuerza la cámara contra todas las cancelaciones internas del juego.
+El registro del modelo espera a que `steve_geo` esté disponible. Si el actor DynOS no se compila o no se carga, el mod no aplica `MODEL_NONE`.
 
 ## Validación
 
-El workflow **Lua syntax check** comprueba la sintaxis de todos los archivos Lua en cada push y pull request. Una validación sintáctica correcta no sustituye la prueba dentro del juego Android.
+GitHub Actions valida la sintaxis Lua y exporta los archivos fuente DynOS con Blender 3.6 y Fast64-Gart. Eso no sustituye la prueba dentro de SM64CoopDX Android: hay que comprobar la carga del actor, las articulaciones, las animaciones y la cámara en el juego real.
