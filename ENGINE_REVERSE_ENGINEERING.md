@@ -52,6 +52,20 @@ The useful dependency slice is:
 - Reuse SM64CoopDX's level collision/raycast and Android touch input where possible. Port the camera rules and coordinate transforms, not an entire second world collision engine.
 - Treat the first-person arm as a separate camera-attached viewmodel with its own swing and movement offsets, not as a normal world-space arm.
 
+## Native C++ prototype now in the repository
+
+The branch now contains a standalone native prototype:
+- `native/stevecraft_minecraft_player.h`: C-compatible interface for the C game code to request the player matrices.
+- `native/stevecraft_minecraft_player.cpp`: C++11 implementation of hierarchical `ModelPart`-style transforms and the current humanoid pose slice.
+- `native/tests/test_minecraft_player.cpp`: regression checks for overlay inheritance, coordinate conversion, opposite limb swing, and crouch transform.
+- `.github/workflows/native-cpp-check.yml`: host compiler/test workflow.
+
+The prototype currently translates the exact 1.21.11 model-part matrix order (translation, then Z-Y-X rotation) and the base humanoid equations for head orientation, walk swing, passenger pose, crouch, swimming stroke, the common item/block/bow/spyglass/horn/brush poses, the WHACK attack swing, and idle arm bob. Its 13 transform outputs cover head/hat, body/jacket, both arms/sleeves, and both legs/pants. The output is converted into the axis convention used by the existing actor builder.
+
+**Important limitation:** this is compiled as a standalone host-side C++ test, not yet into the Android APK. It proves the C++ logic can compile and its math tests can run; it does not yet render Steve in SM64CoopDX. The target Android engine source remains in `ManIsCat2/sm64coopdx`, where the connected GitHub account has read-only access. The engine integration requires a writable fork and an Android NDK APK build.
+
+Not yet ported in this prototype: every item-specific animation edge case (especially spear and crossbow state), the complete attack-animation catalogue, first-person item/viewmodel state, the Minecraft camera's full orientation/interpolation and eight-ray collision routine, and the final engine renderer adapter. These are explicit next slices, not claims of a complete Minecraft port.
+
 ## Proposed target architecture
 
 | Layer | Responsibility | Implementation |
