@@ -8,7 +8,7 @@ local HAND_GEO_NAME = "steve_hand_geo"
 local HAND_BEHAVIOR = nil
 local handModelId = nil
 local handObject = nil
-local shouldSpawnHand = false
+local shouldSpawnHand = true
 local modelRetry = 0
 
 local function first_person_hand_init(o)
@@ -55,8 +55,8 @@ local function first_person_hand_loop(o)
     local punching = (mario.action == ACT_PUNCHING or mario.action == ACT_MOVE_PUNCHING)
     local punch = punching and 1 or 0
 
-    local forwardOffset = 82 - punch * 20 + walkSway * 2
-    local rightOffset = -12 + walkSway * 2
+    local forwardOffset = 82 + punch * 18 + walkSway * 2
+    local rightOffset = 14 + walkSway * 2
     local downOffset = 38 + bob - punch * 8
 
     local cx = camera.curPos.x
