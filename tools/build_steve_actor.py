@@ -438,7 +438,9 @@ def apply_steve_primitive_colors(actor_dir):
         marker = "Gfx mat_steve_Steve_" + material_name + "[] = {"
         start = source.find(marker)
         if start < 0:
-            raise RuntimeError("Missing Steve F3D material: " + material_name)
+            # The textured Minecraft PlayerModel no longer uses the old
+            # primitive palette; keep the patch optional for absent variants.
+            continue
         end = source.find("\n};", start)
         if end < 0:
             raise RuntimeError("Unterminated Steve F3D material: " + material_name)
