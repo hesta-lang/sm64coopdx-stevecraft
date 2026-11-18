@@ -6,9 +6,19 @@ Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jug
 
 **0.10.0-alpha** — conversión del modelo PlayerModel de Minecraft Java 1.21.11 a geometría DynOS compatible con el esqueleto de jugador de SM64CoopDX.
 
-## Native C++ port
+## Ingeniería inversa de cámara y físicas
 
-The next stage is documented in [ENGINE_REVERSE_ENGINEERING.md](ENGINE_REVERSE_ENGINEERING.md). It defines the limited Minecraft model/animation/camera code slice to port into the Android SM64CoopDX engine as native C++, rather than attempting to translate the entire game or placing non-compilable C++ files in a Lua mod.
+La investigación de la cámara y el movimiento está documentada en [CAMERA_PHYSICS_REVERSE_ENGINEERING.md](CAMERA_PHYSICS_REVERSE_ENGINEERING.md). El prototipo incluye:
+
+- [stevecraft_minecraft_camera.cpp](native/stevecraft_minecraft_camera.cpp): interpolación de posición y altura de ojos, primera persona, tercera persona trasera/frontal y cálculo de distancia con ocho rayos.
+- [stevecraft_minecraft_physics.cpp](native/stevecraft_minecraft_physics.cpp): aceleración relativa al yaw, salto, impulso al correr, gravedad y resistencia de aire/agua/lava.
+- [test_camera_physics.cpp](native/tests/test_camera_physics.cpp): pruebas nativas de perspectiva, colisión de cámara, movimiento, salto y fluidos.
+
+El código usa un callback para que el motor SM64 proporcione los resultados de sus colisiones de escenario. No sustituye la colisión triangular de SM64 por una colisión voxel de Minecraft.
+
+**Límite actual:** estas piezas C++ pasan pruebas de host cuando el workflow está verde, pero todavía no están integradas en el APK Android. La entrada táctil y los callbacks de raycast deben conectarse en un fork escribible del motor SM64CoopDX y recompilarse con el NDK.
+
+El port de modelo y animaciones continúa documentado en [ENGINE_REVERSE_ENGINEERING.md](ENGINE_REVERSE_ENGINEERING.md).
 
 ## Estado del port nativo
 
