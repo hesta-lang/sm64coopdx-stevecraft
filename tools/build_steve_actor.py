@@ -147,6 +147,20 @@ def hide_mario_extras(armature):
             ignored.append(name)
     return ignored
 
+def freeze_steve_eye_switches():
+    # The original template's seven eye-material branches point to Mario
+    # textures. Steve's eyes are geometry/material blocks, so keep one static
+    # head branch instead of exporting those Mario eye-state branches.
+    changed = []
+    for armature in bpy.data.objects:
+        if armature.type != "ARMATURE":
+            continue
+        for bone in armature.data.bones:
+            if "Eye State Switch" in bone.name and getattr(bone, "geo_cmd", None) == "Switch":
+                bone.geo_cmd = "Start"
+                changed.append(armature.name + ":" + bone.name)
+    return changed
+
 def main():
     scene = bpy.context.scene
     mario = obj("Mario", "ARMATURE")
@@ -194,6 +208,7 @@ def main():
         ["Capless Head"], [mats["metal"]]
     )
 
+    static_eye_switches = freeze_steve_eye_switches()
     disabled = {"Mario": hide_mario_extras(mario),
                 "Metal Mario": hide_mario_extras(metal_arm)}
 
@@ -246,6 +261,7 @@ def main():
         "files": sorted(p.name for p in actor_dir.iterdir() if p.is_file()),
         "mesh_counts": meshes,
         "disabled_vanilla_branches": disabled,
+        "static_eye_switches": static_eye_switches,
         "export_result": list(result),
     }
     with open(os.environ.get("STEVE_BUILD_REPORT", "steve-build-report.json"), "w", encoding="utf-8") as f:
