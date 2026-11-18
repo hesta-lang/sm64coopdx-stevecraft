@@ -59,7 +59,7 @@ int main() {
     state.walk_animation_speed = 0.8f;
     steve_mc_build_sm64_matrices(&state, matrices);
     assert(std::fabs(at(matrices[STEVE_MC_LEFT_LEG], 1, 2)
-                   + at(matrices[STEVE_MC_RIGHT_LEG], 1, 2)) > 0.0001f);
+                   - at(matrices[STEVE_MC_RIGHT_LEG], 1, 2)) > 0.0001f);
 
     /* Crouch changes the torso and shifts the head/limb pivots. */
     identity_state(state);
