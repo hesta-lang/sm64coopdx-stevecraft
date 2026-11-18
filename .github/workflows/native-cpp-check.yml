@@ -1,0 +1,29 @@
+name: Native C++ pose runtime check
+
+on:
+  push:
+    paths:
+      - "native/**"
+      - ".github/workflows/native-cpp-check.yml"
+  pull_request:
+    paths:
+      - "native/**"
+      - ".github/workflows/native-cpp-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile the C++ runtime
+        run: |
+          c++ -std=c++11 -Wall -Wextra -Werror -pedantic \
+            native/stevecraft_minecraft_player.cpp \
+            native/tests/test_minecraft_player.cpp \
+            -o native-pose-test
+      - name: Run model and animation tests
+        run: ./native-pose-test
