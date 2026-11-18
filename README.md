@@ -10,6 +10,16 @@ Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jug
 
 The next stage is documented in [ENGINE_REVERSE_ENGINEERING.md](ENGINE_REVERSE_ENGINEERING.md). It defines the limited Minecraft model/animation/camera code slice to port into the Android SM64CoopDX engine as native C++, rather than attempting to translate the entire game or placing non-compilable C++ files in a Lua mod.
 
+## Estado del port nativo
+
+- El generador DynOS ya exporta las 12 piezas del PlayerModel de Minecraft Java, las texturas por cubo y el brazo independiente de primera persona.
+- La cabeza normal y la variante sin gorro superan una comprobación automática de alineación: sus límites XYZ coinciden exactamente en el export.
+- Hay un prototipo C++11 con matrices jerárquicas y una primera parte de las poses humanoides de Minecraft. Sus pruebas nativas de compilación y matemáticas pasan.
+- **El C++ todavía no está compilado dentro del APK Android.** Para eso hace falta integrar el módulo en un fork escribible del motor SM64CoopDX y reconstruir el APK con el NDK. Una carpeta de mod Lua/DynOS no puede añadir por sí sola código C++ al ejecutable instalado.
+- La validación visual final en el dispositivo Android sigue pendiente.
+
+La arquitectura, las clases de Minecraft estudiadas, los límites del port y los siguientes pasos están en [ENGINE_REVERSE_ENGINEERING.md](ENGINE_REVERSE_ENGINEERING.md).
+
 ## Cámara
 
 - Y alterna entre primera y tercera persona.
