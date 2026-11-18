@@ -1,0 +1,142 @@
+# SteveCraft 64 - six-part Steve reference mesh
+# Source geometry only; not a compiled SM64CoopDX actor.
+mtllib steve_reference.mtl
+s off
+
+o Steve_Head
+g Steve_Head
+v -0.25000 1.50000 -0.25000
+v 0.25000 1.50000 -0.25000
+v 0.25000 2.00000 -0.25000
+v -0.25000 2.00000 -0.25000
+v -0.25000 1.50000 0.25000
+v 0.25000 1.50000 0.25000
+v 0.25000 2.00000 0.25000
+v -0.25000 2.00000 0.25000
+usemtl SteveSkin
+f 1 2 3 4
+usemtl SteveHair
+f 5 8 7 6
+usemtl SteveHair
+f 1 4 8 5
+usemtl SteveHair
+f 2 6 7 3
+usemtl SteveSkin
+f 1 5 6 2
+usemtl SteveHair
+f 4 3 7 8
+
+o Steve_Torso
+g Steve_Torso
+v -0.25000 0.75000 -0.12500
+v 0.25000 0.75000 -0.12500
+v 0.25000 1.50000 -0.12500
+v -0.25000 1.50000 -0.12500
+v -0.25000 0.75000 0.12500
+v 0.25000 0.75000 0.12500
+v 0.25000 1.50000 0.12500
+v -0.25000 1.50000 0.12500
+usemtl SteveShirt
+f 9 10 11 12
+usemtl SteveShirt
+f 13 16 15 14
+usemtl SteveShirt
+f 9 12 16 13
+usemtl SteveShirt
+f 10 14 15 11
+usemtl SteveShirt
+f 9 13 14 10
+usemtl SteveShirt
+f 12 11 15 16
+
+o Steve_LeftArm
+g Steve_LeftArm
+v -0.50000 0.75000 -0.12500
+v -0.25000 0.75000 -0.12500
+v -0.25000 1.50000 -0.12500
+v -0.50000 1.50000 -0.12500
+v -0.50000 0.75000 0.12500
+v -0.25000 0.75000 0.12500
+v -0.25000 1.50000 0.12500
+v -0.50000 1.50000 0.12500
+usemtl SteveSleeves
+f 17 18 19 20
+usemtl SteveSleeves
+f 21 24 23 22
+usemtl SteveSleeves
+f 17 20 24 21
+usemtl SteveSleeves
+f 18 22 23 19
+usemtl SteveSkin
+f 17 21 22 18
+usemtl SteveSleeves
+f 20 19 23 24
+
+o Steve_RightArm
+g Steve_RightArm
+v 0.25000 0.75000 -0.12500
+v 0.50000 0.75000 -0.12500
+v 0.50000 1.50000 -0.12500
+v 0.25000 1.50000 -0.12500
+v 0.25000 0.75000 0.12500
+v 0.50000 0.75000 0.12500
+v 0.50000 1.50000 0.12500
+v 0.25000 1.50000 0.12500
+usemtl SteveSleeves
+f 25 26 27 28
+usemtl SteveSleeves
+f 29 32 31 30
+usemtl SteveSleeves
+f 25 28 32 29
+usemtl SteveSleeves
+f 26 30 31 27
+usemtl SteveSkin
+f 25 29 30 26
+usemtl SteveSleeves
+f 28 27 31 32
+
+o Steve_LeftLeg
+g Steve_LeftLeg
+v -0.25000 0.00000 -0.12500
+v 0.00000 0.00000 -0.12500
+v 0.00000 0.75000 -0.12500
+v -0.25000 0.75000 -0.12500
+v -0.25000 0.00000 0.12500
+v 0.00000 0.00000 0.12500
+v 0.00000 0.75000 0.12500
+v -0.25000 0.75000 0.12500
+usemtl StevePants
+f 33 34 35 36
+usemtl StevePants
+f 37 40 39 38
+usemtl StevePants
+f 33 36 40 37
+usemtl StevePants
+f 34 38 39 35
+usemtl StevePants
+f 33 37 38 34
+usemtl StevePants
+f 36 35 39 40
+
+o Steve_RightLeg
+g Steve_RightLeg
+v 0.00000 0.00000 -0.12500
+v 0.25000 0.00000 -0.12500
+v 0.25000 0.75000 -0.12500
+v 0.00000 0.75000 -0.12500
+v 0.00000 0.00000 0.12500
+v 0.25000 0.00000 0.12500
+v 0.25000 0.75000 0.12500
+v 0.00000 0.75000 0.12500
+usemtl StevePants
+f 41 42 43 44
+usemtl StevePants
+f 45 48 47 46
+usemtl StevePants
+f 41 44 48 45
+usemtl StevePants
+f 42 46 47 43
+usemtl StevePants
+f 41 45 46 42
+usemtl StevePants
+f 44 43 47 48

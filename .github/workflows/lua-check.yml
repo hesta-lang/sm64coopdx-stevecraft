@@ -1,0 +1,28 @@
+name: Lua syntax check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    name: Validate Lua scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Lua
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4
+
+      - name: Check all Lua files
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            luac5.4 -p "$file"
+          done < <(find . -type f -name '*.lua' -print0)

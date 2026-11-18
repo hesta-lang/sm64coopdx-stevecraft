@@ -1,17 +1,43 @@
 # SteveCraft 64
 
-Mod Lua para **sm64coopdx** que establece la cámara en primera persona como perspectiva predeterminada.
+Mod modular para **sm64coopdx**, probado inicialmente en el fork Android de ManIsCat2. El proyecto busca convertir la experiencia de Mario en una experiencia inspirada en Minecraft: personaje cúbico, animaciones propias, físicas y mecánicas de bloques.
 
 ## Versión
 
-**0.1.0-alpha** — primera implementación experimental de cámara.
+**0.2.0-alpha** — refactor modular y preparación de los recursos del personaje.
 
-## Estado actual
+## Estado de esta versión
 
-- Activa la primera persona al cargar el mod.
-- Comprueba cada frame que el ajuste siga habilitado.
-- Vuelve a habilitarlo después de inicializar un nivel o completar un warp.
-- Todavía no incluye el personaje Steve, físicas de Minecraft, bloques ni inventario.
+- La cámara en primera persona continúa activa; es la implementación probada en 0.1.0-alpha.
+- El código ahora está separado por sistemas Lua.
+- Se incluye una malla OBJ de referencia de Steve formada por seis piezas cúbicas.
+- Se documenta el flujo necesario para convertir esa geometría a un modelo de jugador compatible con SM64CoopDX.
+- El modelo jugable y las animaciones propias todavía no están activos.
+- Las físicas de Minecraft y las mecánicas de bloques todavía no están implementadas.
+
+## Estructura
+
+```text
+sm64coopdx-stevecraft/
+├── main.lua
+├── camera.lua
+├── character.lua
+├── animations.lua
+├── physics.lua
+├── blocks.lua
+├── assets/
+│   └── steve/
+│       ├── steve_reference.obj
+│       ├── steve_reference.mtl
+│       ├── steve_rig_spec.json
+│       └── README.md
+├── .github/
+│   └── workflows/
+│       └── lua-check.yml
+└── MODEL_PIPELINE.md
+```
+
+SM64CoopDX admite mods organizados en carpetas con varios scripts Lua, siempre que la carpeta tenga un archivo `main.lua`. Los recursos de actores se colocan en `actors/`.
 
 ## Instalación
 
@@ -23,12 +49,18 @@ Mod Lua para **sm64coopdx** que establece la cámara en primera persona como per
 
 La ubicación exacta de `mods` depende de cómo esté empaquetada la versión Android. Usa la carpeta de mods que exponga tu APK/launcher; no copies el archivo dentro del APK.
 
-## Compatibilidad y limitaciones
+## Requisitos del modelo
 
-Utiliza la API Lua documentada por el fork de ManIsCat2: `gFirstPersonCamera.enabled`, `set_first_person_enabled` y los eventos `HOOK_UPDATE`, `HOOK_ON_LEVEL_INIT` y `HOOK_ON_WARP`.
+Un archivo `.obj` no puede asignarse directamente como modelo de jugador. SM64CoopDX utiliza recursos de geometría DynOS, como `actors/steve_geo.bin`, registrados con `smlua_model_util_get_id("steve_geo")`.
 
-El motor puede cancelar temporalmente la vista en primera persona durante ciertas acciones o secuencias. El mod mantiene activada la configuración, pero no fuerza la cámara contra todas las cancelaciones internas del juego. Esto evita interferir agresivamente con cutscenes y estados especiales.
+La malla OBJ incluida es la fuente geométrica de seis piezas, no el recurso binario final. Consulta [MODEL_PIPELINE.md](MODEL_PIPELINE.md) antes de intentar activarlo.
 
-## Desarrollo
+## Compatibilidad
 
-Proyecto independiente para el primer paso de SteveCraft 64. Esta versión solo valida la cámara; el personaje y las mecánicas de Minecraft se desarrollarán después de comprobar esta base en Android.
+La cámara utiliza `gFirstPersonCamera.enabled`, `set_first_person_enabled` y los eventos `HOOK_UPDATE`, `HOOK_ON_LEVEL_INIT` y `HOOK_ON_WARP`.
+
+El motor puede cancelar temporalmente la vista en primera persona durante ciertas acciones o secuencias. El mod mantiene activada la configuración, pero no fuerza la cámara contra todas las cancelaciones internas del juego.
+
+## Validación
+
+El workflow **Lua syntax check** comprueba la sintaxis de todos los archivos Lua en cada push y pull request. Una validación sintáctica correcta no sustituye la prueba dentro del juego Android.
