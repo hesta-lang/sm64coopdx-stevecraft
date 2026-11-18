@@ -43,3 +43,12 @@ The previous `CAMERA_MODE_FREE_ROAM` view was too dependent on the default SM64 
 The camera is seeded with `set_camera_mode_fixed` and immediately switched to `CAMERA_MODE_ROM_HACK` with zero transition frames. The player remains controlled by the engine's camera-relative movement system.
 
 This approximates Minecraft's four-block distance and front/back perspectives. The fork's own ray-based collision and sliding code is used instead of copying the Minecraft implementation.
+
+
+## SteveCraft 0.7.0-alpha: ROM_HACK camera
+
+The third-person controller uses the target fork's exposed ROM_HACK camera API rather than its basic FREE_ROAM mode. It cycles with Y through first person, third-person back and third-person front. Third-person settings are 400 units for both zoom distances and 160 units for both heights, with D-pad orbit and collision checks enabled.
+
+The camera is seeded with `set_camera_mode_fixed` before setting `CAMERA_MODE_ROM_HACK` with zero transition frames. The ROM_HACK camera's own camera-mode transition function derives the orbital yaw from that seed, after which its built-in visibility/raycast solver adjusts around walls.
+
+Minecraft Java 1.21.11 uses an exact four-block camera distance and eight offset ray checks in `Camera.getMaxZoom`. SteveCraft uses the fork's existing collision solver; the two algorithms are similar in purpose but are not identical.

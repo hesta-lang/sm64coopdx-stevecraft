@@ -213,7 +213,7 @@ def set_steve_root_scale(actor_dir, scale_value=32768):
         raise RuntimeError("steve_geo root GeoLayout was not found")
     prefix, root = source[:start], source[start:]
     root, count = re.subn(
-        r"(GEO_SCALE\\(LAYER_FORCE,\\s*)16384(\\s*\\))",
+        r"(GEO_SCALE\(LAYER_FORCE,\s*)16384(\s*\))",
         lambda match: match.group(1) + str(scale_value) + match.group(2),
         root,
         count=1,

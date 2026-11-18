@@ -119,3 +119,8 @@ The ROM_HACK camera's collision solver checks visibility using level surface ray
 `animations.lua` reimplements the Minecraft Java 1.21.11 `HumanoidModel.setupAnim` walk-cycle and crouch-pose formulas. The body keeps the SM64-compatible player armature, which means existing SM64 animation clips still run.
 
 The formula helpers are not yet applied to the rendered bones: the exposed Lua bone-rotation fields are read-only, so the next stage is to bake the curves to SM64 animation value/index arrays with the exact 21-part skeleton order. This remains deliberately disabled until those arrays are validated; using a mismatched index table could corrupt the player pose.
+
+
+## Body proportions and scale update (0.7.0-alpha)
+
+The Blender actor builder now creates the classic Minecraft body proportions (head 8×8×8, torso 8×12×4, arms and legs 4×12×4) while keeping the SM64CoopDX player's named bone groups. After Fast64 export, the build script changes only the root `steve_geo` scale from 0.25 to 0.5. The build workflow checks the resulting GeoLayout scale.
