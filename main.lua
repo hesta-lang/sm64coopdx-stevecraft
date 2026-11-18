@@ -1,5 +1,5 @@
 -- SteveCraft 64
--- Version: 0.6.0-alpha
+-- Version: 0.7.0-alpha
 -- Entry point required by SM64CoopDX.
 --
 -- SM64CoopDX loads the additional Lua scripts in this mod folder too.
@@ -8,6 +8,6 @@
 SteveCraft = SteveCraft or {}
 
 SteveCraft.name = "SteveCraft 64"
-SteveCraft.version = "0.6.0-alpha"
+SteveCraft.version = "0.7.0-alpha"
 
 print("[SteveCraft 64] " .. SteveCraft.version .. " loaded")

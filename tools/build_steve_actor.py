@@ -99,47 +99,53 @@ def body_blocks(materials, metal=False):
     )
     if metal:
         skin = hair = shirt = pants = eyes = shoes = metal_name
+
+    # Classic Minecraft PlayerModel proportions expressed in the existing
+    # player-template coordinate system: head 8^3, torso 8x12x4,
+    # arms/legs 4x12x4. The player bone names are intentionally preserved.
     blocks = [
-        {"center": (1.20, 0.0, 0.0), "size": (0.60, 0.56, 0.56), "group": "Head DL",
+        {"center": (1.25, 0.0, 0.0), "size": (0.50, 0.50, 0.50), "group": "Head DL",
          "materials": {"default": skin, "front": skin, "back": hair, "top": hair,
                        "bottom": skin, "left": hair, "right": hair}},
-        {"center": (0.62, 0.0, 0.0), "size": (0.66, 0.56, 0.32), "group": "Torso",
+        {"center": (0.625, 0.0, 0.0), "size": (0.75, 0.50, 0.25), "group": "Torso",
          "materials": {"default": shirt}},
-        # Sleeve and hand are separate cubes but keep the original arm bone names.
-        {"center": (0.45, -0.415, 0.0), "size": (0.40, 0.22, 0.22), "group": "Left Arm Color",
+        # Arms are 4x12x4. The upper 8 pixels are the turquoise sleeve,
+        # and the lower 4 pixels are the skin-coloured hand.
+        {"center": (0.75, -0.375, 0.0), "size": (0.50, 0.25, 0.25), "group": "Left Arm Color",
          "materials": {"default": shirt}},
-        {"center": (0.77, -0.415, 0.0), "size": (0.24, 0.22, 0.22), "group": "Left Arm Color",
+        {"center": (0.375, -0.375, 0.0), "size": (0.25, 0.25, 0.25), "group": "Left Arm Color",
          "materials": {"default": skin}},
-        {"center": (0.45, 0.415, 0.0), "size": (0.40, 0.22, 0.22), "group": "Right Arm Color",
+        {"center": (0.75, 0.375, 0.0), "size": (0.50, 0.25, 0.25), "group": "Right Arm Color",
          "materials": {"default": shirt}},
-        {"center": (0.77, 0.415, 0.0), "size": (0.24, 0.22, 0.22), "group": "Right Arm Color",
+        {"center": (0.375, 0.375, 0.0), "size": (0.25, 0.25, 0.25), "group": "Right Arm Color",
          "materials": {"default": skin}},
-        {"center": (0.00, -0.15, 0.0), "size": (0.62, 0.25, 0.28), "group": "Left Thigh Color",
+        {"center": (-0.125, -0.125, 0.0), "size": (0.75, 0.25, 0.25), "group": "Left Thigh Color",
          "materials": {"default": pants, "bottom": shoes}},
-        {"center": (0.00, 0.15, 0.0), "size": (0.62, 0.25, 0.28), "group": "Right Thigh Color",
+        {"center": (-0.125, 0.125, 0.0), "size": (0.75, 0.25, 0.25), "group": "Right Thigh Color",
          "materials": {"default": pants, "bottom": shoes}},
     ]
     if not metal:
         blocks.extend([
-            {"center": (1.425, -0.115, 0.292), "size": (0.065, 0.065, 0.018),
+            {"center": (1.25, -0.105, 0.262), "size": (0.055, 0.065, 0.018),
              "group": "Head DL", "materials": {"default": eyes}},
-            {"center": (1.425, 0.115, 0.292), "size": (0.065, 0.065, 0.018),
+            {"center": (1.25, 0.105, 0.262), "size": (0.055, 0.065, 0.018),
              "group": "Head DL", "materials": {"default": eyes}},
-            {"center": (1.485, 0.0, 0.292), "size": (0.09, 0.34, 0.018),
+            {"center": (1.48, 0.0, 0.262), "size": (0.045, 0.34, 0.018),
              "group": "Head DL", "materials": {"default": hair}},
         ])
     return blocks
 
+
 def head_blocks(group, head_x, skin, hair, eyes):
     return [
-        {"center": (head_x, 0.0, 0.0), "size": (0.60, 0.56, 0.56), "group": group,
+        {"center": (head_x, 0.0, 0.0), "size": (0.50, 0.50, 0.50), "group": group,
          "materials": {"default": skin, "front": skin, "back": hair, "top": hair,
                        "bottom": skin, "left": hair, "right": hair}},
-        {"center": (head_x + 0.225, -0.115, 0.292), "size": (0.065, 0.065, 0.018),
+        {"center": (head_x, -0.105, 0.262), "size": (0.055, 0.065, 0.018),
          "group": group, "materials": {"default": eyes}},
-        {"center": (head_x + 0.225, 0.115, 0.292), "size": (0.065, 0.065, 0.018),
+        {"center": (head_x, 0.105, 0.262), "size": (0.055, 0.065, 0.018),
          "group": group, "materials": {"default": eyes}},
-        {"center": (head_x + 0.285, 0.0, 0.292), "size": (0.09, 0.34, 0.018),
+        {"center": (head_x + 0.23, 0.0, 0.262), "size": (0.045, 0.34, 0.018),
          "group": group, "materials": {"default": hair}},
     ]
 
@@ -196,6 +202,26 @@ def write_first_person_hand_actor(actor_root):
         "texture_source": "assets/steve/steve_skin.png",
         "generator": "tools/build_steve_hand.py",
     }
+
+
+def set_steve_root_scale(actor_dir, scale_value=32768):
+    geo_path = actor_dir / "geo.inc.c"
+    source = geo_path.read_text(encoding="utf-8")
+    marker = "const GeoLayout steve_geo[] = {"
+    start = source.find(marker)
+    if start < 0:
+        raise RuntimeError("steve_geo root GeoLayout was not found")
+    prefix, root = source[:start], source[start:]
+    root, count = re.subn(
+        r"(GEO_SCALE\\(LAYER_FORCE,\\s*)16384(\\s*\\))",
+        lambda match: match.group(1) + str(scale_value) + match.group(2),
+        root,
+        count=1,
+    )
+    if count != 1:
+        raise RuntimeError("Could not set the Steve root GeoLayout scale")
+    geo_path.write_text(prefix + root, encoding="utf-8")
+    return scale_value
 
 
 def main():
@@ -284,6 +310,7 @@ def main():
         raise RuntimeError("Fast64 is missing exported actor files: " + ", ".join(missing))
 
     removed_custom_commands = sanitize_unsupported_geo_commands(actor_dir)
+    steve_root_scale = set_steve_root_scale(actor_dir, 32768)
     first_person_hand = write_first_person_hand_actor(actor_root)
 
     (actor_dir / "README.md").write_text(
@@ -306,6 +333,7 @@ def main():
         "disabled_vanilla_branches": disabled,
         "static_eye_switches": static_eye_switches,
         "unsupported_custom_commands_removed": removed_custom_commands,
+        "steve_root_scale": steve_root_scale,
         "first_person_hand": first_person_hand,
         "export_result": list(result),
     }

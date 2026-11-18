@@ -80,3 +80,42 @@ The display list explicitly selects `gsDPSetTextureFilter(G_TF_POINT)`. The Andr
 `camera.lua` no longer forces first person in every update. D-pad Up cycles between first person and the native SM64CoopDX third-person free-roam camera. The first-person hand script continues to check `get_first_person_enabled()`, so the viewmodel only exists in first-person mode.
 
 Reference notes and the Minecraft Java camera source links are recorded in `CAMERA_REFERENCE.md`.
+
+
+## Minecraft Java player model compatibility (0.7.0-alpha)
+
+The body builder now follows the classic `PlayerModel` part dimensions from Minecraft Java 1.21.11:
+- Head: 8×8×8
+- Body: 8×12×4
+- Both arms: 4×12×4
+- Both legs: 4×12×4
+
+The Fast64 output retains SM64CoopDX's required player bone names and hierarchy. The generated root scale is raised from 0.25 to 0.5 so the small normalized Blender source mesh is not rendered as a tiny point at the 4-block third-person camera distance.
+
+References:
+- `PlayerModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/player/PlayerModel.java
+- `HumanoidModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/HumanoidModel.java
+
+The geometry proportions are recreated from the source API; Minecraft assets or proprietary textures are not copied. The visible body still uses the SteveCraft material palette rather than the full original skin atlas.
+
+## Minecraft-style perspective controller (0.7.0-alpha)
+
+The perspective controller now cycles with the Y button:
+1. First person
+2. Third-person rear
+3. Third-person front
+
+Both third-person views use SM64CoopDX's `CAMERA_MODE_ROM_HACK` implementation rather than `CAMERA_MODE_FREE_ROAM`. The mod enables its vanilla-course override and collision checks, sets both zoom distances to 400 engine units and both camera heights to 160 units. Those settings approximate Minecraft's four-block rear camera and eye-level focus for the current SM64 world scale.
+
+D-pad controls while in third person:
+- Up: centre behind Steve
+- Left/Right: orbit around Steve
+- Down: snap the orbit angle to 45-degree steps
+
+The ROM_HACK camera's collision solver checks visibility using level surface raycasts and slides the camera toward a clear position. This is the fork's native solver, not a direct copy of Minecraft's eight-ray `Camera.getMaxZoom` implementation. Camera mode changes use zero transition frames and the fixed-camera seed resets interpolation before entering ROM_HACK.
+
+## Minecraft humanoid animation conversion status
+
+`animations.lua` reimplements the Minecraft Java 1.21.11 `HumanoidModel.setupAnim` walk-cycle and crouch-pose formulas. The body keeps the SM64-compatible player armature, which means existing SM64 animation clips still run.
+
+The formula helpers are not yet applied to the rendered bones: the exposed Lua bone-rotation fields are read-only, so the next stage is to bake the curves to SM64 animation value/index arrays with the exact 21-part skeleton order. This remains deliberately disabled until those arrays are validated; using a mismatched index table could corrupt the player pose.

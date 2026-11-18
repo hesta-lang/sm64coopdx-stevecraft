@@ -28,3 +28,18 @@ The native third-person system already supports following Mario, orbit input and
 - The distinct Minecraft third-person-front view is not included yet.
 - The third-person distance, orbit sensitivity and Android touch mapping still need device-side tuning.
 - GitHub Actions can validate Lua syntax; only in-game Android testing can confirm actual camera feel and wall behavior.
+
+
+## SM64CoopDX camera implementation selected for 0.7.0-alpha
+
+The previous `CAMERA_MODE_FREE_ROAM` view was too dependent on the default SM64 camera distance and produced a poor Minecraft-like framing. SteveCraft now uses the fork's `CAMERA_MODE_ROM_HACK` camera through its documented Lua configuration API:
+
+- `camera_set_romhack_override(RCO_ALL_INCLUDING_VANILLA)`
+- `camera_romhack_allow_dpad_usage(1)`
+- `camera_romhack_set_collisions(1)`
+- `camera_romhack_set_zoomed_in_dist(400)` and `camera_romhack_set_zoomed_out_dist(400)`
+- `camera_romhack_set_zoomed_in_height(160)` and `camera_romhack_set_zoomed_out_height(160)`
+
+The camera is seeded with `set_camera_mode_fixed` and immediately switched to `CAMERA_MODE_ROM_HACK` with zero transition frames. The player remains controlled by the engine's camera-relative movement system.
+
+This approximates Minecraft's four-block distance and front/back perspectives. The fork's own ray-based collision and sliding code is used instead of copying the Minecraft implementation.
