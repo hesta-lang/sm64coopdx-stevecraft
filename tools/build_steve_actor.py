@@ -217,7 +217,11 @@ def apply_steve_primitive_colors(actor_dir):
         "Shoes": (41, 24, 14),
         "Metal": (158, 173, 186),
     }
-    combiner = (
+    old_combiner = (
+        "gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, "
+        "0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),"
+    )
+    new_combiner = (
         "gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, "
         "0, 0, 0, PRIMITIVE, 0, 0, 0, 1),"
     )
@@ -227,32 +231,22 @@ def apply_steve_primitive_colors(actor_dir):
         start = source.find(marker)
         if start < 0:
             raise RuntimeError("Missing Steve F3D material: " + material_name)
-        end = source.find("\\n};", start)
+        end = source.find("\n};", start)
         if end < 0:
             raise RuntimeError("Unterminated Steve F3D material: " + material_name)
         block = source[start:end + 3]
-        block, combine_count = re.subn(
-            r"gsDPSetCombineLERP\\([^;]*?\\),",
-            combiner,
-            block,
-            count=1,
-        )
-        if combine_count != 1:
-            raise RuntimeError("Could not set primitive combiner: " + material_name)
+        if old_combiner not in block:
+            raise RuntimeError("Unexpected F3D combiner in material: " + material_name)
+        block = block.replace(old_combiner, new_combiner, 1)
+        pipe = "gsDPPipeSync(),"
+        if pipe not in block:
+            raise RuntimeError("Missing pipe sync in material: " + material_name)
         prim = "gsDPSetPrimColor(0, 0, {}, {}, {}, 255),".format(*rgb)
-        block, pipe_count = re.subn(
-            r"(gsDPPipeSync\\(\\),)",
-            r"\\1\\n\\t" + prim,
-            block,
-            count=1,
-        )
-        if pipe_count != 1:
-            raise RuntimeError("Could not set primitive color: " + material_name)
+        block = block.replace(pipe, pipe + "\n\t" + prim, 1)
         source = source[:start] + block + source[end + 3:]
         patched.append(material_name)
     model_path.write_text(source, encoding="utf-8")
     return patched
-
 
 
 def set_steve_root_scale(actor_dir, scale_value=65536):
