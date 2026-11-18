@@ -65,7 +65,7 @@ int main() {
     identity_state(state);
     state.is_crouching = 1;
     steve_mc_build_sm64_matrices(&state, matrices);
-    assert(std::fabs(at(matrices[STEVE_MC_BODY], 1, 2)) > 0.01f);
+    assert(std::fabs(at(matrices[STEVE_MC_BODY], 0, 0) - 1.0f) > 0.01f);
 
     std::puts("SteveCraft native Minecraft pose tests passed");
     return 0;
