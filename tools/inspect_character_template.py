@@ -24,9 +24,9 @@ def primitive(value):
     except Exception:
         return str(value)
 
-def props_of(pg):
+def props_of(pg, depth=0):
     result = {}
-    if not hasattr(pg, "bl_rna"):
+    if depth > 3 or not hasattr(pg, "bl_rna"):
         return result
     for prop in pg.bl_rna.properties:
         name = prop.identifier
@@ -34,12 +34,25 @@ def props_of(pg):
             continue
         try:
             value = getattr(pg, name)
-            if isinstance(value, (str, int, float, bool)) or value is None:
+            if value is None:
+                result[name] = None
+            elif isinstance(value, (str, int, float, bool)):
                 result[name] = value
             elif prop.type == "FLOAT" and prop.array_length:
                 result[name] = primitive(value)
             elif prop.type == "ENUM":
                 result[name] = str(value)
+            elif prop.type == "POINTER" and hasattr(value, "bl_rna"):
+                result[name] = props_of(value, depth + 1)
+            elif prop.type == "COLLECTION":
+                result[name] = [props_of(v, depth + 1) for v in value]
+            elif hasattr(value, "size") and hasattr(value, "filepath"):
+                result[name] = {
+                    "name": value.name,
+                    "size": primitive(value.size),
+                    "filepath": value.filepath,
+                    "packed": bool(value.packed_file),
+                }
         except Exception:
             pass
     return result
@@ -117,9 +130,10 @@ def material_info(material):
     data = {
         "name": material.name,
         "use_nodes": material.use_nodes,
-        "nodes": [
+        "texture_nodes": [
             {"name": n.name, "type": n.type, "image": n.image.name if hasattr(n, "image") and n.image else None}
             for n in (material.node_tree.nodes if material.node_tree else [])
+            if n.type == "TEX_IMAGE"
         ],
     }
     if hasattr(material, "f3d_mat"):
