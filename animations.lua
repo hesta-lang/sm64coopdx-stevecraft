@@ -402,6 +402,12 @@ local function apply_minecraft_animation(m)
     if active_clip_by_player[player_index] ~= clip_name
         or previous_base_animation_by_player[player_index] ~= base_animation_id then
         SET_ANIMATION(m.marioObj, clip_name)
+        -- Match mario_set_animation_internal(): the next engine update advances
+        -- from frame -1 to frame 0, even when the previous clip was longer.
+        info.animFrame = -1
+        info.prevAnimFrame = -1
+        info.animFrameAccelAssist = -0x10000
+        info.animAccel = 0x10000
         active_clip_by_player[player_index] = clip_name
     end
 
