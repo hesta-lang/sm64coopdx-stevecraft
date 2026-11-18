@@ -86,9 +86,9 @@ jobs:
           test -s build/actor/actors/steve/model.inc.c
           test -s build/actor/actors/steve/geo_header.h
           grep -q 'GEO_SCALE(LAYER_FORCE, 65536)' build/actor/actors/steve/geo.inc.c
-          grep -q 'gsDPSetPrimColor(0, 0, 0, 156, 168, 255)' build/actor/actors/steve/model.inc.c
-          grep -q 'gsDPSetPrimColor(0, 0, 184, 125, 82, 255)' build/actor/actors/steve/model.inc.c
-          grep -q 'gsDPSetCombineLERP(0, 0, 0, PRIMITIVE' build/actor/actors/steve/model.inc.c
+          grep -q 'G_IM_FMT_RGBA' build/actor/actors/steve/model.inc.c
+          grep -q 'G_TF_POINT' build/actor/actors/steve/model.inc.c
+          grep -q 'gsDPSetTextureImage' build/actor/actors/steve/model.inc.c
           if grep -R "CUSTOM_CMD" build/actor/actors/steve/geo.inc.c; then
             echo "Unsupported CUSTOM_CMD remains in generated GeoLayout"
             exit 1
