@@ -245,7 +245,7 @@ def _minecraft_face_uvs(u0, v0, u1, v1, crop_u, crop_v, crop_width, crop_height)
     ]
 
 
-def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank):
+def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank, coordinate_offset=(0.0, 0.0, 0.0)):
     vertices, faces, face_materials, face_uvs, weights = [], [], [], [], []
     vertex_map = {}
     weighted_vertices = set()
@@ -276,7 +276,7 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
         # vertical/side/depth axes, preserving the armature's existing origins.
         corner_indices = []
         for mc_x, mc_y, mc_z in mc_points:
-            point = (1.0 - mc_y / 16.0, -mc_x / 16.0, -mc_z / 16.0)
+            point = (1.0 - mc_y / 16.0 - coordinate_offset[0],\n                     -mc_x / 16.0 - coordinate_offset[1],\n                     -mc_z / 16.0 - coordinate_offset[2])
             key = (cube["group"], tuple(round(value, 6) for value in point))
             vertex_index = vertex_map.get(key)
             if vertex_index is None:
@@ -547,9 +547,24 @@ def main():
     capless_cuboids = minecraft_cube_materials(head_cuboids, skin_materials)
     for cube in capless_cuboids:
         cube["group"] = "Capless Head"
+
+    # The capless head is a separate armature whose display-list bone starts
+    # at its own origin. The normal Mario head is attached to the Head DL bone,
+    # whose rest pivot is offset in the main Mario armature. Convert the
+    # Minecraft root-space cuboids into the capless head's local pivot space.
+    mario_head_bone = mario.data.bones.get("Head DL")
+    capless_armature = capless.parent
+    capless_head_bone = capless_armature.data.bones.get("Capless Head")
+    if mario_head_bone is None or capless_head_bone is None:
+        raise RuntimeError("Could not resolve Mario Head DL / Capless Head rest pivots")
+    capless_pivot_offset = tuple(
+        float(mario_head_bone.head_local[i] - capless_head_bone.head_local[i])
+        for i in range(3)
+    )
     head_material_bank = [skin_materials["head_base"], skin_materials["head_hat"]]
     meshes[capless.name] = build_minecraft_player_mesh(
-        capless, capless_cuboids, ["Capless Head"], head_material_bank
+        capless, capless_cuboids, ["Capless Head"], head_material_bank,
+        coordinate_offset=capless_pivot_offset
     )
 
     metal_arm = obj("Metal Mario", "ARMATURE")
@@ -633,6 +648,7 @@ def main():
             "outer_layer_cuboids": sum(1 for cube in MINECRAFT_PLAYER_CUBOIDS if cube["outer"]),
             "skin_uv_manifest": skin_manifest["cubes"],
             "axes": "Minecraft XYZ mapped to the SM64 player armature axes",
+            "capless_head_pivot_offset": list(capless_pivot_offset),
         },
         "disabled_vanilla_branches": disabled,
         "static_eye_switches": static_eye_switches,
