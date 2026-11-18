@@ -489,7 +489,7 @@ def set_steve_root_scale(actor_dir, scale_value=65536):
 
 def read_vertex_bounds(model_source, array_name):
     declaration = re.search(
-        r"Vtx\\s+" + re.escape(array_name) + r"\\[\\d+\\]\\s*=\\s*\\{([\\s\\S]*?)\\n\\};",
+        r"Vtx\s+" + re.escape(array_name) + r"\[\d+\]\s*=\s*\{([\s\S]*?)\n\};",
         model_source,
     )
     if declaration is None:
@@ -497,7 +497,7 @@ def read_vertex_bounds(model_source, array_name):
     coordinates = [
         tuple(int(component) for component in match)
         for match in re.findall(
-            r"\\{\\{\\{\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\}",
+            r"\{\{\{\s*(-?\d+)\s*,\s*(-?\d+)\s*,\s*(-?\d+)\s*\}",
             declaration.group(1),
         )
     ]
