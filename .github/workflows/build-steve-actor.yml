@@ -1,0 +1,100 @@
+name: Build Steve DynOS character
+
+on:
+  push:
+    paths:
+      - "tools/build_steve_actor.py"
+      - ".github/workflows/build-steve-actor.yml"
+      - "assets/steve/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl xz-utils unzip libxrender1 libxi6 libxkbcommon0 libsm6 libgl1
+
+      - name: Download Blender 3.6 LTS
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://mirror.blender.org/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+            "https://mirror.freedif.org/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+            "https://mirror.nju.edu.cn/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+          )
+          downloaded=0
+          for url in "${urls[@]}"; do
+            echo "Trying $url"
+            rm -f blender.tar.xz
+            if curl -fL --retry 2 --connect-timeout 20 "$url" -o blender.tar.xz && tar -tJf blender.tar.xz >/dev/null 2>&1; then
+              downloaded=1
+              break
+            fi
+          done
+          test "$downloaded" -eq 1
+          tar -xf blender.tar.xz
+          echo "$PWD/blender-3.6.23-linux-x64" >> "$GITHUB_PATH"
+
+      - name: Download official character template and Fast64-Gart
+        run: |
+          mkdir -p build/fast64 build/actor/actors
+          curl -fL --retry 3 \
+            "https://raw.githubusercontent.com/coop-deluxe/character-template/main/Mario%20Coop%20Model%20Template.blend" \
+            -o build/mario-template.blend
+          curl -fL --retry 3 \
+            https://codeload.github.com/ManIsCat2/Fast64-Gart/zip/refs/heads/main \
+            -o fast64.zip
+          unzip -q fast64.zip -d build/fast64
+          mv build/fast64/Fast64-Gart-main build/fast64/fast64_gart
+          test -s build/mario-template.blend
+          test -f build/fast64/fast64_gart/__init__.py
+
+      - name: Build and export Steve actor
+        env:
+          FAST64_ADDON: ${{ github.workspace }}/build/fast64
+          STEVE_ACTOR_OUTPUT: ${{ github.workspace }}/build/actor/actors
+          STEVE_BUILD_REPORT: ${{ github.workspace }}/build/steve-build-report.json
+        run: |
+          blender -b build/mario-template.blend --python tools/build_steve_actor.py
+          test -s build/steve-build-report.json
+          test -s build/actor/actors/steve/geo.inc.c
+          test -s build/actor/actors/steve/model.inc.c
+          test -s build/actor/actors/steve/geo_header.h
+
+      - name: Copy generated actor source into the mod
+        run: |
+          mkdir -p actors
+          rm -rf actors/steve
+          cp -a build/actor/actors/steve actors/steve
+
+      - name: Upload generated actor and build report
+        uses: actions/upload-artifact@v4
+        with:
+          name: stevecraft-dynos-actor
+          path: |
+            build/actor/actors/steve/
+            build/steve-build-report.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit generated actor sources
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add actors/steve
+          if git diff --cached --quiet; then
+            echo "Generated actor is unchanged."
+          else
+            git commit -m "Add generated Steve DynOS player model"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
