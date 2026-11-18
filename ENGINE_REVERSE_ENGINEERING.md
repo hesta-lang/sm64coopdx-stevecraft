@@ -35,12 +35,16 @@ The useful dependency slice is:
 ### Model and skin
 - `PlayerModel`, `HumanoidModel`, `ModelPart`, `ModelPart.Cube`, `PartPose`, and `CubeListBuilder`.
 - Reproduce model-part parentage, pivots, per-part local cuboid coordinates, cube inflation, mirrored faces, skin UV rectangles, overlay visibility, and the 64x64 classic skin layout.
-- Do not map Minecraft's absolute model coordinates straight onto arbitrary SM64 vertex groups. Each model part must be transformed through its local pivot and the chosen SM64 bind-pose transform. The pivot hierarchy is the central missing validation step.
+- Minecraft's `ModelPart.translateAndRotate` first translates by the part pivot divided by 16, then applies its Z-Y-X Euler rotation. Rendering pushes this transform, draws the part, recursively renders its children, and then pops the transform. This hierarchical matrix stack is part of the model semantics, not just an implementation detail.
+- In `PlayerModel.createMesh`, jacket is a child of body; sleeves are children of the corresponding arms; pants are children of the corresponding legs. Their parent offsets and rotations are inherited.
+- The current builder contains flattened cube origins (the parent offsets have been folded into the cube coordinates) and groups the base/overlay cubes together. That can represent the static rest shape only if the coordinate transform and the SM64 bind pose match exactly. It does not by itself reproduce Minecraft's per-part hierarchy, child inheritance, or animated local pivots.
+- Do not map Minecraft's absolute model coordinates straight onto arbitrary SM64 vertex groups. For each node, calculate the full parent-to-child transform and convert it into the chosen SM64 bone's bind space. The pivot hierarchy is the central missing validation step.
 - Keep the N64/F3D texture-size, alpha, filtering, and display-list limits. Minecraft's modern rendering pipeline is not available in the target engine.
 
 ### Animation
-- `HumanoidModel.setupAnim`, `AnimationUtils`, `AnimationState`, `AnimationDefinition`, `AnimationChannel`, and `KeyframeAnimations`, plus the entity movement values that feed them.
-- Port the pose evaluation as original C++ code: hierarchical part transforms, interpolation, easing, limb swing, idle bob, crouch, swim, attack/use-item arm poses, and the first-person arm swing.
+- `HumanoidModel.setupAnim`, `AnimationUtils`, `AnimationState`, `AnimationDefinition`, `AnimationChannel`, and `KeyframeAnimations`, plus the entity render-state values that feed them.
+- `HumanoidModel.setupAnim` consumes more state than the current Lua port: head pitch/yaw, walk phase/speed, swimming/fall-flying, passenger pose, item-use and arm-pose selection, and attack animation state. The current Lua clips cover only selected idle/walk/run/crouch/swim approximations; they are not a complete humanoid pose port.
+- Port the pose evaluation as original C++ code: hierarchical part transforms, interpolation, easing, limb swing, idle bob, crouch, swim/fall-fly, passenger pose, item-use/arm poses, attack swing, and the first-person arm swing.
 - Translate the resulting pose into the SM64 actor's animation/GeoLayout nodes. Do not assume Minecraft's part order or local rotation axes match Mario's animation channel order.
 
 ### Camera and first-person view
