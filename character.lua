@@ -7,15 +7,22 @@ SteveCraft.character = SteveCraft.character or {
     geoName = "steve_geo",
     registered = false,
     ready = false,
-    modelId = MODEL_NONE,
+    modelId = E_MODEL_NONE,
 }
 
 local character = SteveCraft.character
 local missingModelLogged = false
+local lookupCooldown = 0
 
 local function resolve_steve_model()
+    if lookupCooldown > 0 then
+        lookupCooldown = lookupCooldown - 1
+        return false
+    end
+    lookupCooldown = 30
+
     local modelId = smlua_model_util_get_id(character.geoName)
-    if modelId == nil or modelId == MODEL_NONE then
+    if modelId == nil or modelId == E_MODEL_NONE or modelId == E_MODEL_ERROR_MODEL then
         if not missingModelLogged then
             print("[SteveCraft 64] Waiting for DynOS model '" .. character.geoName .. "'.")
             missingModelLogged = true
@@ -32,7 +39,7 @@ end
 
 local function apply_steve_model(m)
     -- DynOS actor resources may be built during game startup. Retry the lookup
-    -- until the GeoLayout is available instead of applying MODEL_NONE.
+    -- until the GeoLayout is available instead of applying an invalid model ID.
     if not character.registered and not resolve_steve_model() then
         return
     end

@@ -38,3 +38,14 @@ Minecraft-specific animations have not been authored yet. The next animation pas
 - [ ] Multiplayer sync is correct when SteveCraft is installed by all clients.
 
 A successful GitHub export only validates the source generation. It does not prove that the target Android build can load or render the actor.
+
+
+## First-person arm
+
+A second, standalone DynOS actor is generated at `actors/steve_hand/`. It contains two flat-shaded cuboids: a turquoise sleeve and a skin-tone hand. The Lua behavior positions this object relative to `gLakituState.curPos` using the same yaw and pitch values as the fork's first-person camera. It adds a walk sway and a forward punch pose.
+
+This is a camera-attached 3D world object, not a dedicated HUD render pass. It may still be affected by world depth/occlusion, so its scale, placement and visibility require Android gameplay validation.
+
+## DynOS parser compatibility
+
+Fast64-Gart currently exports `CUSTOM_CMD()` placeholders that the Android fork's DynOS GeoLayout parser does not recognize. The build script removes only those empty placeholder lines and fails the build if any `CUSTOM_CMD` token remains. DynOS reads the actor sources and creates the runtime `.bin` resources when the mod pack loads; no prebuilt binary files are needed.
