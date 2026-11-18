@@ -98,7 +98,7 @@ References:
 - `PlayerModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/player/PlayerModel.java
 - `HumanoidModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/HumanoidModel.java
 
-The geometry proportions are recreated from the source API; Minecraft assets or proprietary textures are not copied. The visible body still uses the SteveCraft material palette rather than the full original skin atlas.
+The PlayerModel body parts are now generated from the Minecraft Java model definitions, and the classic Steve skin is mapped through the matching Minecraft UV regions. The exact conversion is documented in the `Exact Minecraft Java PlayerModel conversion` section below.
 
 ## Minecraft-style perspective controller (0.7.0-alpha)
 
@@ -115,6 +115,28 @@ D-pad controls while in third person:
 - Down: snap the orbit angle to 45-degree steps
 
 The ROM_HACK camera's collision solver checks visibility using level surface raycasts and slides the camera toward a clear position. This is the fork's native solver, not a direct copy of Minecraft's eight-ray `Camera.getMaxZoom` implementation. Camera mode changes use zero transition frames and the fixed-camera seed resets interpolation before entering ROM_HACK.
+
+
+## Exact Minecraft Java PlayerModel conversion (0.10.0-alpha)
+
+The normal Steve actor is now generated from the actual model-part definitions in the community decompiled Minecraft Java 1.21.11 source:
+
+- `HumanoidModel.createMesh`: head, body, wide arms and legs.
+- `PlayerModel.createMesh`: jacket, sleeves and pants outer layers.
+- `ModelPart.Cube`: per-face vertex order, face UV rectangles, mirroring, and cube inflation.
+
+The generator creates all 12 PlayerModel cubes. Each part retains the corresponding Minecraft base/outer-layer UV region from the 64x64 Steve skin. `tools/build_steve_skin_textures.py` crops the exact UV rectangles into small per-cube PNGs so the model textures remain within the N64 renderer's texture-memory limits. Fully transparent outer-layer regions are valid and stay transparent; they are not replaced with opaque colours.
+
+Minecraft XYZ positions are mapped into the existing SM64CoopDX player armature's vertical/side/depth axes. Each cube is weighted to the matching existing head, torso, arm or leg group, so the game's player animation hierarchy, camera hooks, and network model selection remain intact. The normal player no longer uses the former simplified primitive-colour Steve body.
+
+The exporter still targets Fast64/DynOS rather than Minecraft's original Java rendering pipeline. Therefore, the base and overlay cuboids, their proportions and skin UV layout are being reproduced; Minecraft's own GPU renderer, lighting, and exact translucent-layer sorting are not transplanted into SM64CoopDX. Alpha/cutout behaviour is delegated to the N64/F3D material pipeline.
+
+Reference files:
+- `PlayerModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/player/PlayerModel.java
+- `HumanoidModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/HumanoidModel.java
+- `ModelPart.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/geom/ModelPart.java
+
+The source repository is a community-maintained decompilation mirror, not an official Mojang source release. The conversion is still an alpha until the DynOS build and Android in-game rendering pass.
 
 ## Minecraft humanoid animation port (0.9.0-alpha)
 
