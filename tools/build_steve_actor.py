@@ -487,6 +487,59 @@ def set_steve_root_scale(actor_dir, scale_value=65536):
     return scale_value
 
 
+def read_vertex_bounds(model_source, array_name):
+    declaration = re.search(
+        r"Vtx\\s+" + re.escape(array_name) + r"\\[\\d+\\]\\s*=\\s*\\{([\\s\\S]*?)\\n\\};",
+        model_source,
+    )
+    if declaration is None:
+        raise RuntimeError("Missing exported vertex array: " + array_name)
+    coordinates = [
+        tuple(int(component) for component in match)
+        for match in re.findall(
+            r"\\{\\{\\{\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*\\}",
+            declaration.group(1),
+        )
+    ]
+    if not coordinates:
+        raise RuntimeError("No vertex coordinates found in: " + array_name)
+    return {
+        "min": [min(point[axis] for point in coordinates) for axis in range(3)],
+        "max": [max(point[axis] for point in coordinates) for axis in range(3)],
+    }
+
+
+def validate_capless_head_alignment(actor_dir, tolerance=2):
+    model_source = (actor_dir / "model.inc.c").read_text(encoding="utf-8")
+    pairs = {
+        "head_base": (
+            "steve_Head_DL_mesh_layer_1_vtx_0",
+            "steve_Capless_Head_Switch_Option_Capless_Head_mesh_layer_1_vtx_0",
+        ),
+        "head_hat": (
+            "steve_Head_DL_mesh_layer_1_vtx_1",
+            "steve_Capless_Head_Switch_Option_Capless_Head_mesh_layer_1_vtx_1",
+        ),
+    }
+    report = {}
+    for layer, (normal_name, capless_name) in pairs.items():
+        normal = read_vertex_bounds(model_source, normal_name)
+        capless = read_vertex_bounds(model_source, capless_name)
+        deltas = {
+            "min": [capless["min"][i] - normal["min"][i] for i in range(3)],
+            "max": [capless["max"][i] - normal["max"][i] for i in range(3)],
+        }
+        largest_delta = max(abs(value) for values in deltas.values() for value in values)
+        report[layer] = {"normal": normal, "capless": capless, "delta": deltas}
+        if largest_delta > tolerance:
+            raise RuntimeError(
+                "Capless " + layer + " is not aligned with the normal head; "
+                "largest vertex-bound delta is " + str(largest_delta) +
+                " (tolerance " + str(tolerance) + ")"
+            )
+    return report
+
+
 def main():
     scene = bpy.context.scene
     mario = obj("Mario", "ARMATURE")
@@ -623,6 +676,7 @@ def main():
     primitive_materials = apply_steve_primitive_colors(actor_dir)
     steve_root_scale = set_steve_root_scale(actor_dir, 65536)
     first_person_hand = write_first_person_hand_actor(actor_root)
+    capless_alignment = validate_capless_head_alignment(actor_dir)
 
     (actor_dir / "README.md").write_text(
         "# SteveCraft 64 DynOS actor\\n\\n"
@@ -656,6 +710,7 @@ def main():
         "steve_root_scale": steve_root_scale,
         "metal_variant_primitive_materials": primitive_materials,
         "first_person_hand": first_person_hand,
+        "capless_head_alignment": capless_alignment,
         "export_result": list(result),
     }
     with open(os.environ.get("STEVE_BUILD_REPORT", "steve-build-report.json"), "w", encoding="utf-8") as f:
