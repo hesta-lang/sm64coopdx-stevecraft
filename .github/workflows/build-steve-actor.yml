@@ -5,6 +5,7 @@ on:
     paths:
       - "tools/build_steve_actor.py"
       - "tools/build_steve_hand.py"
+      - "tools/build_steve_skin_textures.py"
       - ".github/workflows/build-steve-actor.yml"
       - "assets/steve/**"
   workflow_dispatch:
@@ -55,10 +56,28 @@ jobs:
           test -s build/mario-template.blend
           test -f build/fast64/fast64_gart/__init__.py
 
+      - name: Set up Python and crop Minecraft PlayerModel skin UVs
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate per-cuboid Minecraft skin textures
+        run: |
+          python -m pip install --disable-pip-version-check Pillow==11.3.0
+          python tools/build_steve_skin_textures.py \
+            --skin assets/steve/steve_skin.png \
+            --output build/steve-skin-textures
+          test -s build/steve-skin-textures/manifest.json
+          test -s build/steve-skin-textures/head_base.png
+          test -s build/steve-skin-textures/head_hat.png
+          test -s build/steve-skin-textures/torso_jacket.png
+          test -s build/steve-skin-textures/left_arm_sleeve.png
+
       - name: Build and export Steve actor
         env:
           FAST64_ADDON: ${{ github.workspace }}/build/fast64
           STEVE_ACTOR_OUTPUT: ${{ github.workspace }}/build/actor/actors
+          STEVE_SKIN_TEXTURE_ROOT: ${{ github.workspace }}/build/steve-skin-textures
           STEVE_BUILD_REPORT: ${{ github.workspace }}/build/steve-build-report.json
         run: |
           blender -b build/mario-template.blend --python tools/build_steve_actor.py
@@ -75,14 +94,8 @@ jobs:
             exit 1
           fi
 
-      - name: Set up Python for skin UV processing
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - name: Generate classic Minecraft Steve first-person arm
         run: |
-          python -m pip install --disable-pip-version-check Pillow==11.3.0
           python tools/build_steve_hand.py \
             --skin assets/steve/steve_skin.png \
             --output build/actor/actors/steve_hand
