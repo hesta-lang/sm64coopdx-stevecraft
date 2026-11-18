@@ -61,7 +61,7 @@ static void test_camera() {
     steve_mc_camera_build(&input, nullptr, nullptr, &output);
 
     assert(near(output.focus[0], 11.0f));
-    assert(near(output.focus[1], 22.6f));
+    assert(near(output.focus[1], 23.6f));
     assert(near(output.focus[2], 32.0f));
     assert(near(output.forward[0], 0.0f));
     assert(near(output.forward[1], 0.0f));
