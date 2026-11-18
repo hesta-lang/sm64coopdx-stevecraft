@@ -1,10 +1,10 @@
 # SteveCraft 64
 
-Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jugador por Steve con geometría cúbica y una cámara en tercera persona controlada por el tacto.
+Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jugador por Steve con proporciones cúbicas de Minecraft y cámara en tercera persona controlada por el tacto.
 
 ## Versión
 
-**0.8.0-alpha** — cámara NEWCAM con giro táctil y materiales de Steve corregidos.
+**0.9.0-alpha** — primer port funcional de las curvas de animación humanoide de Minecraft Java y optimización de caras internas del modelo.
 
 ## Cámara
 
@@ -17,21 +17,39 @@ Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jug
 
 ## Modelo
 
-El actor usa las proporciones clásicas del modelo de Minecraft:
+El actor conserva las proporciones clásicas de Minecraft:
 - Cabeza: 8×8×8
 - Torso: 8×12×4
 - Brazos: 4×12×4
 - Piernas: 4×12×4
 
-Se mantiene la jerarquía de huesos de jugador de SM64CoopDX. La escala raíz es 1.0. El exportador establece colores primitivos independientes para piel, pelo, ojos, camiseta, pantalón, zapatos y variante metálica; esto evita que las superficies salgan blancas por depender de vértices `SHADE` que se exportan en blanco.
+Se mantiene la jerarquía de huesos compatible de SM64CoopDX. El exportador usa colores primitivos independientes para piel, pelo, ojos, camiseta, pantalón y zapatos.
+
+La geometría se ha reducido sin alterar la silueta: se eliminan las caras que quedan completamente ocultas entre la manga y la mano de cada brazo, y se comparten los vértices coincidentes de esa unión dentro del mismo grupo rígido. El exportador informa de los vértices, caras y caras omitidas. Se conserva la variante metálica por compatibilidad con el sistema de modelos del juego.
 
 La mano independiente de primera persona usa la skin clásica de Steve 64×64, recortada a seis texturas pequeñas con filtrado por punto.
 
 ## Animaciones
 
-Steve conserva el conjunto de animaciones de jugador compatible del motor. `animations.lua` reimplementa las fórmulas de marcha y agachado de `HumanoidModel.setupAnim` de Minecraft Java 1.21.11.
+`animations.lua` ahora registra clips en el formato nativo de animación de SM64CoopDX y los aplica únicamente a los jugadores que usan el modelo de Steve:
 
-Las curvas personalizadas aún no están horneadas en clips SM64. El API Lua expone las rotaciones de huesos del jugador como solo lectura; para aplicarlas es necesario generar arrays con el orden correcto de los 21 segmentos del esqueleto.
+- **Caminar:** curvas de brazos y piernas de `HumanoidModel.setupAnim`.
+- **Correr:** misma ecuación de marcha con una amplitud mayor, como hace Minecraft al elevar `walkAnimationSpeed`.
+- **Agacharse:** inclinación de torso de 0.5 radianes y +0.4 radianes en ambos brazos.
+- **Caminar agachado:** combina la marcha con la pose de agachado.
+- **Nadar:** ciclo de 26 unidades de fase, con la curva de brazos y el movimiento de piernas del código de Minecraft.
+- **Quieto, salto y caída normales:** pose humanoide neutra con el balanceo sutil de brazos de `AnimationUtils.bobModelPart`. Minecraft no tiene una animación corporal independiente para un salto normal; la pose de planeo con élitros sí inclina la cabeza.
+
+El port no es todavía una reproducción 100 % idéntica: SM64CoopDX no expone el mismo par dinámico `walkAnimationPos/walkAnimationSpeed`, así que caminar y correr usan intensidades fijas (0.60 y 1.00). La pose de agachado aplica las rotaciones, pero deja pendientes los pequeños desplazamientos locales de cabeza, torso, brazos y piernas porque las unidades y ejes del esqueleto SM64 necesitan validación visual. Los clips también usan el esqueleto compatible de SM64, no el esqueleto interno de Minecraft.
+
+## Referencia
+
+Las curvas se adaptaron de la implementación decompilada de Minecraft Java 1.21.11:
+- [HumanoidModel.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/HumanoidModel.java)
+- [AnimationUtils.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/AnimationUtils.java)
+- [PlayerModel.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/player/PlayerModel.java)
+
+El repositorio de referencia es una copia decompilada mantenida por la comunidad, no una publicación oficial del código fuente de Mojang.
 
 ## Instalación
 
@@ -40,6 +58,6 @@ Las curvas personalizadas aún no están horneadas en clips SM64. El API Lua exp
 3. Copia la carpeta del mod en el directorio `mods` de SM64CoopDX.
 4. Inicia un nivel. Pulsa Y para cambiar a tercera persona y arrastra sobre la zona derecha de la pantalla para girar la cámara.
 
-## Validación
+## Validación pendiente
 
-GitHub Actions valida la sintaxis Lua y genera los recursos DynOS. Eso no sustituye la comprobación dentro del juego Android. Siguen pendientes la confirmación visual del nuevo render, el tacto en el dispositivo y la ausencia de oclusión en todos los niveles.
+GitHub Actions puede comprobar la sintaxis Lua y regenerar los recursos DynOS, pero no demuestra por sí solo que las articulaciones se vean correctamente en Android. La validación final debe comprobar la marcha, el nado, el agachado, las transiciones de salto y que la cámara táctil y la mano en primera persona sigan funcionando.
