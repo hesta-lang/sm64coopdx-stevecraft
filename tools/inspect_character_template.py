@@ -1,7 +1,17 @@
 import bpy
 import json
 import os
+import sys
 from mathutils import Vector
+
+addon_dir = os.environ.get('FAST64_ADDON')
+if addon_dir:
+    sys.path.insert(0, addon_dir)
+    import fast64_gart
+    fast64_gart.register()
+    print('FAST64_GART_REGISTERED', fast64_gart.bl_info.get('version'))
+else:
+    print('FAST64_GART_NOT_LOADED')
 
 def vec(v):
     return [round(float(x), 6) for x in v]
