@@ -4,10 +4,17 @@ import os
 import sys
 from pathlib import Path
 
-ADDON_DIR = os.environ["FAST64_ADDON"]
+ADDON_PARENT = Path(os.environ["FAST64_ADDON"]).resolve()
+ADDON_ROOT = ADDON_PARENT / "fast64_gart"
+if not (ADDON_ROOT / "__init__.py").is_file():
+    ADDON_ROOT = ADDON_PARENT
 REPORT = os.environ.get("STEVE_BUILD_REPORT", "steve-build-report.json")
 ACTOR_ROOT = Path(os.environ.get("STEVE_ACTOR_OUTPUT", "build/actor/actors")).resolve()
-sys.path.insert(0, ADDON_DIR)
+
+# The add-on package itself is needed for fast64_internal imports, while its
+# parent directory is needed to import the top-level package as fast64_gart.
+sys.path.insert(0, str(ADDON_ROOT))
+sys.path.insert(0, str(ADDON_PARENT))
 
 import fast64_gart
 fast64_gart.register()
