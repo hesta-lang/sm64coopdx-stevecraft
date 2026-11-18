@@ -12,12 +12,6 @@ float lerp(float amount, float start, float end) {
     return start + (end - start) * amount;
 }
 
-float length3(const float value[3]) {
-    return std::sqrt(value[0] * value[0]
-                   + value[1] * value[1]
-                   + value[2] * value[2]);
-}
-
 void subtract_scaled(
     const float origin[3],
     const float direction[3],
