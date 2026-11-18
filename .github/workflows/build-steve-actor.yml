@@ -91,5 +91,7 @@ jobs:
             echo "Generated actor is unchanged."
           else
             git commit -m "Add generated Steve DynOS player model"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
