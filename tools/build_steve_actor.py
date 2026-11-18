@@ -545,6 +545,8 @@ def main():
     head_cuboids = [cube for cube in MINECRAFT_PLAYER_CUBOIDS
                     if cube["key"] in ("head_base", "head_hat")]
     capless_cuboids = minecraft_cube_materials(head_cuboids, skin_materials)
+    for cube in capless_cuboids:
+        cube["group"] = "Capless Head"
     head_material_bank = [skin_materials["head_base"], skin_materials["head_hat"]]
     meshes[capless.name] = build_minecraft_player_mesh(
         capless, capless_cuboids, ["Capless Head"], head_material_bank
