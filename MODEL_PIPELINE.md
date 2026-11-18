@@ -49,3 +49,20 @@ This is a camera-attached 3D world object, not a dedicated HUD render pass. It m
 ## DynOS parser compatibility
 
 Fast64-Gart currently exports `CUSTOM_CMD()` placeholders that the Android fork's DynOS GeoLayout parser does not recognize. The build script removes only those empty placeholder lines and fails the build if any `CUSTOM_CMD` token remains. DynOS reads the actor sources and creates the runtime `.bin` resources when the mod pack loads; no prebuilt binary files are needed.
+
+
+## Classic Minecraft first-person arm (0.5.0-alpha)
+
+The first-person arm uses the classic Steve right-arm proportions: 4×12×4. Its source texture is a 64×64 classic Steve skin at assets/steve/steve_skin.png.
+
+The generator extracts six separate face textures from the classic UV layout:
+- Top: (44,16)–(47,19)
+- Bottom: (48,16)–(51,19)
+- Right side: (40,20)–(43,31)
+- Front: (44,20)–(47,31)
+- Left side: (48,20)–(51,31)
+- Back: (52,20)–(55,31)
+
+Each face is a small PNG so the N64 renderer does not need to load the entire 64×64 atlas into TMEM. DynOS resolves the PNGs using the texture names declared in actors/steve_hand/model.inc.c. The viewmodel keeps the Gun Mod camera-relative transform in first_person_hand.lua.
+
+The source skin has a transparent outer-arm/sleeve overlay region. The generated arm therefore uses the complete base skin layer, which already contains the classic turquoise sleeve and skin pixels. Geometry and UVs follow Minecraft's classic arm layout, while rendering remains in SM64CoopDX's N64-style pipeline.

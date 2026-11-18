@@ -185,105 +185,16 @@ def sanitize_unsupported_geo_commands(actor_dir):
 def write_first_person_hand_actor(actor_root):
     hand_dir = actor_root / "steve_hand"
     hand_dir.mkdir(parents=True, exist_ok=True)
-
-    def box_vertices(x0, x1, half_y, half_z, colors):
-        faces = [
-            ("x_pos", [(x1, -half_y, -half_z), (x1, half_y, -half_z),
-                       (x1, half_y, half_z), (x1, -half_y, half_z)]),
-            ("x_neg", [(x0, -half_y, half_z), (x0, half_y, half_z),
-                       (x0, half_y, -half_z), (x0, -half_y, -half_z)]),
-            ("y_pos", [(x0, half_y, -half_z), (x0, half_y, half_z),
-                       (x1, half_y, half_z), (x1, half_y, -half_z)]),
-            ("y_neg", [(x0, -half_y, half_z), (x0, -half_y, -half_z),
-                       (x1, -half_y, -half_z), (x1, -half_y, half_z)]),
-            ("z_pos", [(x0, -half_y, half_z), (x1, -half_y, half_z),
-                       (x1, half_y, half_z), (x0, half_y, half_z)]),
-            ("z_neg", [(x1, -half_y, -half_z), (x0, -half_y, -half_z),
-                       (x0, half_y, -half_z), (x1, half_y, -half_z)]),
-        ]
-        lines = []
-        for face_name, positions in faces:
-            red, green, blue = colors[face_name]
-            for x, y, z in positions:
-                color = f"{red}, {green}, {blue}, 255"
-                lines.append(
-                    "    {{{" + f"{x}, {y}, {z}" +
-                    "}, 0, {0, 0}, {" + color + "}}},"
-                )
-        return "\n".join(lines)
-
-    sleeve_colors = {
-        "x_pos": (0, 120, 132), "x_neg": (0, 137, 150),
-        "y_pos": (8, 164, 178), "y_neg": (0, 96, 110),
-        "z_pos": (0, 145, 158), "z_neg": (0, 112, 126),
-    }
-    skin_colors = {
-        "x_pos": (164, 105, 68), "x_neg": (184, 126, 84),
-        "y_pos": (207, 153, 108), "y_neg": (145, 88, 58),
-        "z_pos": (190, 132, 90), "z_neg": (163, 105, 68),
-    }
-
-    model_lines = [
-        "// SteveCraft 64 - first-person block arm",
-        "// Flat-shaded cuboids; no texture dependency.",
-        "const Vtx steve_hand_sleeve_vtx[] = {",
-        box_vertices(22, 68, 8, 8, sleeve_colors),
-        "};",
-        "",
-        "const Vtx steve_hand_skin_vtx[] = {",
-        box_vertices(0, 22, 8, 8, skin_colors),
-        "};",
-        "",
-        "const Gfx steve_hand_dl[] = {",
-        "    gsDPPipeSync(),",
-        "    gsSPClearGeometryMode(G_LIGHTING),",
-        "    gsDPSetCombineMode(G_CC_SHADE, G_CC_SHADE),",
-        "    gsSPVertex(steve_hand_sleeve_vtx, 24, 0),",
-    ]
-    for face in range(6):
-        base = face * 4
-        model_lines.append(
-            f"    gsSP2Triangles({base}, {base + 1}, {base + 2}, 0, "
-            f"{base}, {base + 2}, {base + 3}, 0),"
-        )
-    model_lines.append("    gsSPVertex(steve_hand_skin_vtx, 24, 0),")
-    for face in range(6):
-        base = face * 4
-        model_lines.append(
-            f"    gsSP2Triangles({base}, {base + 1}, {base + 2}, 0, "
-            f"{base}, {base + 2}, {base + 3}, 0),"
-        )
-    model_lines.extend(["    gsSPEndDisplayList(),", "};", ""])
-    (hand_dir / "model.inc.c").write_text("\n".join(model_lines), encoding="utf-8")
-    (hand_dir / "geo.inc.c").write_text(
-        "const GeoLayout steve_hand_geo[] = {\n"
-        "    GEO_NODE_START(),\n"
-        "    GEO_OPEN_NODE(),\n"
-        "        GEO_CULLING_RADIUS(2000),\n"
-        "        GEO_OPEN_NODE(),\n"
-        "            GEO_SCALE(LAYER_FORCE, 32768),\n"
-        "            GEO_OPEN_NODE(),\n"
-        "                GEO_DISPLAY_LIST(LAYER_OPAQUE, steve_hand_dl),\n"
-        "            GEO_CLOSE_NODE(),\n"
-        "        GEO_CLOSE_NODE(),\n"
-        "    GEO_CLOSE_NODE(),\n"
-        "    GEO_END(),\n"
-        "};\n",
-        encoding="utf-8",
-    )
-    (hand_dir / "geo_header.h").write_text(
-        "extern const GeoLayout steve_hand_geo[];\n", encoding="utf-8"
-    )
     (hand_dir / "README.md").write_text(
-        "# SteveCraft first-person arm\n\n"
-        "Independent DynOS actor made from a turquoise sleeve and a skin-tone hand. "
-        "The Lua viewmodel positions this 3D model relative to the first-person camera.\n",
+        "# SteveCraft first-person arm\\n\\n"
+        "Generated from assets/steve/steve_skin.png by tools/build_steve_hand.py.\\n",
         encoding="utf-8",
     )
     return {
         "geo_name": "steve_hand_geo",
-        "vertices": 48,
-        "files": sorted(p.name for p in hand_dir.iterdir() if p.is_file()),
+        "dimensions": [4, 12, 4],
+        "texture_source": "assets/steve/steve_skin.png",
+        "generator": "tools/build_steve_hand.py",
     }
 
 

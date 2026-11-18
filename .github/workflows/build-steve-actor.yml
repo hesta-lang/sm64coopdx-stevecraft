@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "tools/build_steve_actor.py"
+      - "tools/build_steve_hand.py"
       - ".github/workflows/build-steve-actor.yml"
       - "assets/steve/**"
   workflow_dispatch:
@@ -65,12 +66,26 @@ jobs:
           test -s build/actor/actors/steve/geo.inc.c
           test -s build/actor/actors/steve/model.inc.c
           test -s build/actor/actors/steve/geo_header.h
-          test -s build/actor/actors/steve_hand/geo.inc.c
-          test -s build/actor/actors/steve_hand/model.inc.c
           if grep -R "CUSTOM_CMD" build/actor/actors/steve/geo.inc.c; then
             echo "Unsupported CUSTOM_CMD remains in generated GeoLayout"
             exit 1
           fi
+
+      - name: Set up Python for skin UV processing
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate classic Minecraft Steve first-person arm
+        run: |
+          python -m pip install --disable-pip-version-check Pillow==11.3.0
+          python tools/build_steve_hand.py \
+            --skin assets/steve/steve_skin.png \
+            --output build/actor/actors/steve_hand
+          test -s build/actor/actors/steve_hand/geo.inc.c
+          test -s build/actor/actors/steve_hand/model.inc.c
+          test -s build/actor/actors/steve_hand/geo_header.h
+          test -s build/actor/actors/steve_hand/arm_front.png
 
       - name: Copy generated actor source into the mod
         run: |
