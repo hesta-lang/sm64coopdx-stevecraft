@@ -212,7 +212,7 @@ MINECRAFT_PLAYER_CUBOIDS = [
 
 
 def create_minecraft_texture_material(owner, key, texture_path, outer_layer):
-    preset = "Shaded Texture Cutout" if outer_layer else "Shaded Texture"
+    preset = "sm64_shaded_texture_cutout" if outer_layer else "Shaded Texture"
     material = createF3DMat(owner, preset)
     material.name = "Minecraft " + key.replace("_", " ").title()
     image = bpy.data.images.load(str(texture_path), check_existing=True)
