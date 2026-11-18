@@ -197,7 +197,7 @@ MINECRAFT_PLAYER_CUBOIDS = [
     {"key": "right_arm_sleeve", "group": "Right Arm Color", "origin": (-8.0, 0.0, -2.0),
      "size": (4.0, 12.0, 4.0), "inflate": 0.25, "uv": (40, 32), "outer": True},
     {"key": "left_arm_base", "group": "Left Arm Color", "origin": (4.0, 0.0, -2.0),
-     "size": (4.0, 12.0, 4.0), "inflate": 0.0, "uv": (32, 48), "outer": False},
+     "size": (4.0, 12.0, 4.0), "inflate": 0.0, "uv": (32, 48), "outer": False, "mirror": True},
     {"key": "left_arm_sleeve", "group": "Left Arm Color", "origin": (4.0, 0.0, -2.0),
      "size": (4.0, 12.0, 4.0), "inflate": 0.25, "uv": (48, 48), "outer": True},
     {"key": "right_leg_base", "group": "Right Thigh Color", "origin": (-3.9, 12.0, -2.0),
@@ -205,7 +205,7 @@ MINECRAFT_PLAYER_CUBOIDS = [
     {"key": "right_leg_pants", "group": "Right Thigh Color", "origin": (-3.9, 12.0, -2.0),
      "size": (4.0, 12.0, 4.0), "inflate": 0.25, "uv": (0, 32), "outer": True},
     {"key": "left_leg_base", "group": "Left Thigh Color", "origin": (-0.1, 12.0, -2.0),
-     "size": (4.0, 12.0, 4.0), "inflate": 0.0, "uv": (16, 48), "outer": False},
+     "size": (4.0, 12.0, 4.0), "inflate": 0.0, "uv": (16, 48), "outer": False, "mirror": True},
     {"key": "left_leg_pants", "group": "Left Thigh Color", "origin": (-0.1, 12.0, -2.0),
      "size": (4.0, 12.0, 4.0), "inflate": 0.25, "uv": (0, 48), "outer": True},
 ]
@@ -259,6 +259,10 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
         max_x = x0 + width + grow
         max_y = y0 + height + grow
         max_z = z0 + depth + grow
+        if cube.get("mirror", False):
+            # Minecraft ModelPart.Cube swaps X bounds and reverses each
+            # polygon after UV remapping for CubeListBuilder.mirror().
+            min_x, max_x = max_x, min_x
 
         # Exact vertex order from Minecraft's ModelPart.Cube constructor.
         mc_points = [
@@ -309,12 +313,16 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
             ((l0, l1, l2, l3), (u3, v1, u4, v2)),   # SOUTH
         ]
         for face, rect in polygon_defs:
-            faces.append(face)
-            face_materials.append(cube["material"])
-            face_uvs.append(_minecraft_face_uvs(
+            uvs = _minecraft_face_uvs(
                 rect[0], rect[1], rect[2], rect[3],
                 u0, v0, crop_width, crop_height
-            ))
+            )
+            if cube.get("mirror", False):
+                face = tuple(reversed(face))
+                uvs = list(reversed(uvs))
+            faces.append(face)
+            face_materials.append(cube["material"])
+            face_uvs.append(uvs)
 
     mesh = bpy.data.meshes.new(target.name + " Minecraft PlayerModel Mesh")
     mesh.from_pydata(vertices, [], faces)
