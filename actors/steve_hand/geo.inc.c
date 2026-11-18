@@ -3,7 +3,7 @@ const GeoLayout steve_hand_geo[] = {
     GEO_OPEN_NODE(),
         GEO_CULLING_RADIUS(2000),
         GEO_OPEN_NODE(),
-            GEO_SCALE(LAYER_FORCE, 196608),
+            GEO_SCALE(LAYER_FORCE, 163840),
             GEO_OPEN_NODE(),
                 GEO_DISPLAY_LIST(LAYER_OPAQUE, steve_hand_dl),
             GEO_CLOSE_NODE(),
