@@ -1,5 +1,5 @@
 -- SteveCraft 64
--- Version: 0.2.0-alpha
+-- Version: 0.3.0-alpha
 -- Entry point required by SM64CoopDX.
 --
 -- SM64CoopDX loads the additional Lua scripts in this mod folder too.
