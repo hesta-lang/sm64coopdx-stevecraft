@@ -25,9 +25,22 @@ jobs:
 
       - name: Download Blender 3.6 LTS
         run: |
-          curl -fL --retry 3 \
-            https://download.blender.org/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz \
-            -o blender.tar.xz
+          set -euo pipefail
+          urls=(
+            "https://mirror.blender.org/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+            "https://mirror.freedif.org/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+            "https://mirror.nju.edu.cn/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+          )
+          downloaded=0
+          for url in "${urls[@]}"; do
+            echo "Trying $url"
+            rm -f blender.tar.xz
+            if curl -fL --retry 2 --connect-timeout 20 "$url" -o blender.tar.xz && tar -tJf blender.tar.xz >/dev/null 2>&1; then
+              downloaded=1
+              break
+            fi
+          done
+          test "$downloaded" -eq 1
           tar -xf blender.tar.xz
           echo "$PWD/blender-3.6.23-linux-x64" >> "$GITHUB_PATH"
 
