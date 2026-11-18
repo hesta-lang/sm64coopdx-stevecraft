@@ -1116,7 +1116,8 @@ Gfx steve_Metal_Mario_Switch_Option_Right_Thigh_Color_mesh_layer_1_tri_0[] = {
 Gfx mat_steve_Steve_Shirt[] = {
 	gsSPClearGeometryMode(G_LIGHTING),
 	gsDPPipeSync(),
-	gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, 0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),
+	gsDPSetPrimColor(0, 0, 0, 156, 168, 255),
+	gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, 0, 0, 0, PRIMITIVE, 0, 0, 0, 1),
 	gsDPSetAlphaDither(G_AD_NOISE),
 	gsSPTexture(65535, 65535, 0, 0, 1),
 	gsSPEndDisplayList(),
@@ -1132,7 +1133,8 @@ Gfx mat_revert_steve_Steve_Shirt[] = {
 Gfx mat_steve_Steve_Skin[] = {
 	gsSPClearGeometryMode(G_LIGHTING),
 	gsDPPipeSync(),
-	gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, 0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),
+	gsDPSetPrimColor(0, 0, 184, 125, 82, 255),
+	gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, 0, 0, 0, PRIMITIVE, 0, 0, 0, 1),
 	gsDPSetAlphaDither(G_AD_NOISE),
 	gsSPTexture(65535, 65535, 0, 0, 1),
 	gsSPEndDisplayList(),
@@ -1148,7 +1150,8 @@ Gfx mat_revert_steve_Steve_Skin[] = {
 Gfx mat_steve_Steve_Hair[] = {
 	gsSPClearGeometryMode(G_LIGHTING),
 	gsDPPipeSync(),
-	gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, 0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),
+	gsDPSetPrimColor(0, 0, 56, 28, 14, 255),
+	gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, 0, 0, 0, PRIMITIVE, 0, 0, 0, 1),
 	gsDPSetAlphaDither(G_AD_NOISE),
 	gsSPTexture(65535, 65535, 0, 0, 1),
 	gsSPEndDisplayList(),
@@ -1164,7 +1167,8 @@ Gfx mat_revert_steve_Steve_Hair[] = {
 Gfx mat_steve_Steve_Eyes[] = {
 	gsSPClearGeometryMode(G_LIGHTING),
 	gsDPPipeSync(),
-	gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, 0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),
+	gsDPSetPrimColor(0, 0, 9, 6, 5, 255),
+	gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, 0, 0, 0, PRIMITIVE, 0, 0, 0, 1),
 	gsDPSetAlphaDither(G_AD_NOISE),
 	gsSPTexture(65535, 65535, 0, 0, 1),
 	gsSPEndDisplayList(),
@@ -1180,7 +1184,8 @@ Gfx mat_revert_steve_Steve_Eyes[] = {
 Gfx mat_steve_Steve_Pants[] = {
 	gsSPClearGeometryMode(G_LIGHTING),
 	gsDPPipeSync(),
-	gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, 0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),
+	gsDPSetPrimColor(0, 0, 31, 64, 158, 255),
+	gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, 0, 0, 0, PRIMITIVE, 0, 0, 0, 1),
 	gsDPSetAlphaDither(G_AD_NOISE),
 	gsSPTexture(65535, 65535, 0, 0, 1),
 	gsSPEndDisplayList(),
@@ -1196,7 +1201,8 @@ Gfx mat_revert_steve_Steve_Pants[] = {
 Gfx mat_steve_Steve_Shoes[] = {
 	gsSPClearGeometryMode(G_LIGHTING),
 	gsDPPipeSync(),
-	gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, 0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),
+	gsDPSetPrimColor(0, 0, 41, 24, 14, 255),
+	gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, 0, 0, 0, PRIMITIVE, 0, 0, 0, 1),
 	gsDPSetAlphaDither(G_AD_NOISE),
 	gsSPTexture(65535, 65535, 0, 0, 1),
 	gsSPEndDisplayList(),
@@ -1212,7 +1218,8 @@ Gfx mat_revert_steve_Steve_Shoes[] = {
 Gfx mat_steve_Steve_Metal[] = {
 	gsSPClearGeometryMode(G_LIGHTING),
 	gsDPPipeSync(),
-	gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, 0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),
+	gsDPSetPrimColor(0, 0, 158, 173, 186, 255),
+	gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, 0, 0, 0, PRIMITIVE, 0, 0, 0, 1),
 	gsDPSetAlphaDither(G_AD_NOISE),
 	gsSPTexture(65535, 65535, 0, 0, 1),
 	gsSPEndDisplayList(),
