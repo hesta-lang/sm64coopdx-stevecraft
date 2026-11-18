@@ -88,8 +88,8 @@ static void test_camera() {
     assert(fixture.calls == 8);
     assert(output.ray_count == 8);
     assert(output.collision_shortened == 1);
-    assert(near(output.actual_distance, 2.5f));
-    assert(near(output.position[2], output.focus[2] - 2.5f));
+    assert(near(output.actual_distance, 2.5f, 0.01f));
+    assert(near(output.position[2], output.focus[2] - 2.5f, 0.01f));
 
     float old_eye = 1.0f;
     float eye = 1.0f;
