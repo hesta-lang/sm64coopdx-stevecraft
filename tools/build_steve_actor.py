@@ -332,7 +332,7 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
     for material in material_bank:
         mesh.materials.append(material)
 
-    uv_layer = mesh.uv_layers.new(name="MinecraftSkinUV")
+    uv_layer = mesh.uv_layers.new(name="UVMap")  # Fast64-Gart requires this exact layer name.
     for polygon, material_name, uvs in zip(mesh.polygons, face_materials, face_uvs):
         if material_name not in material_indices:
             raise RuntimeError("Missing Minecraft texture material: " + material_name)
