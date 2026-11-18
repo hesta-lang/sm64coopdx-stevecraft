@@ -124,3 +124,12 @@ The formula helpers are not yet applied to the rendered bones: the exposed Lua b
 ## Body proportions and scale update (0.7.0-alpha)
 
 The Blender actor builder now creates the classic Minecraft body proportions (head 8×8×8, torso 8×12×4, arms and legs 4×12×4) while keeping the SM64CoopDX player's named bone groups. After Fast64 export, the build script changes only the root `steve_geo` scale from 0.25 to 0.5. The build workflow checks the resulting GeoLayout scale.
+
+
+## Model material and scale corrections (0.8.0-alpha)
+
+The previous exported vertex arrays contain white RGBA values, while the `Shaded Solid` preset was emitting a combiner that read `SHADE`. That combination rendered the Steve pieces white rather than using their intended palette. The generator now patches each generated F3D material to use `PRIMITIVE` and emits `gsDPSetPrimColor` values for skin, hair, eyes, shirt, pants, shoes and metal.
+
+The root GeoLayout is now set to scale 1.0 (65536 in 16.16 format), preserving the 8×8×8 head and the 8×12×4 / 4×12×4 body proportions at the scale exported by Fast64.
+
+The workflow checks the final root scale and that the generated model contains the expected primitive-color setup.

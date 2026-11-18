@@ -52,3 +52,15 @@ The third-person controller uses the target fork's exposed ROM_HACK camera API r
 The camera is seeded with `set_camera_mode_fixed` before setting `CAMERA_MODE_ROM_HACK` with zero transition frames. The ROM_HACK camera's own camera-mode transition function derives the orbital yaw from that seed, after which its built-in visibility/raycast solver adjusts around walls.
 
 Minecraft Java 1.21.11 uses an exact four-block camera distance and eight offset ray checks in `Camera.getMaxZoom`. SteveCraft uses the fork's existing collision solver; the two algorithms are similar in purpose but are not identical.
+
+
+## Touch-controlled third-person camera (0.8.0-alpha)
+
+The third-person view now uses the target fork's native `CAMERA_MODE_NEWCAM` / Puppycam system. In the Android `TOUCH_CONTROLS` build, `newcam_rotate_button` reads `touch_x` and `touch_y` when mouse-look is enabled. The touchscreen controller feeds these deltas from its configured `TOUCH_MOUSE` region, which is the drag-to-look zone on the right side of the screen.
+
+SteveCraft enables:
+- `camera_config_enable_free_cam(true)`
+- `camera_config_enable_mouse_look(true)`
+- `camera_config_enable_collisions(true)`
+
+It disables the D-pad and analogue-stick camera input for this mode, sets touch sensitivity through the fork's camera settings, and restores the previous camera configuration when returning to first person.

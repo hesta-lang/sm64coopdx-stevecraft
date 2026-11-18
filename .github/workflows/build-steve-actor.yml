@@ -66,7 +66,7 @@ jobs:
           test -s build/actor/actors/steve/geo.inc.c
           test -s build/actor/actors/steve/model.inc.c
           test -s build/actor/actors/steve/geo_header.h
-          grep -q 'GEO_SCALE(LAYER_FORCE, 32768)' build/actor/actors/steve/geo.inc.c
+          grep -q 'GEO_SCALE(LAYER_FORCE, 65536)' build/actor/actors/steve/geo.inc.c
           if grep -R "CUSTOM_CMD" build/actor/actors/steve/geo.inc.c; then
             echo "Unsupported CUSTOM_CMD remains in generated GeoLayout"
             exit 1

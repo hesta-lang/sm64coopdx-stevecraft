@@ -204,7 +204,58 @@ def write_first_person_hand_actor(actor_root):
     }
 
 
-def set_steve_root_scale(actor_dir, scale_value=32768):
+
+def apply_steve_primitive_colors(actor_dir):
+    model_path = actor_dir / "model.inc.c"
+    source = model_path.read_text(encoding="utf-8")
+    colors = {
+        "Shirt": (0, 156, 168),
+        "Skin": (184, 125, 82),
+        "Hair": (56, 28, 14),
+        "Eyes": (9, 6, 5),
+        "Pants": (31, 64, 158),
+        "Shoes": (41, 24, 14),
+        "Metal": (158, 173, 186),
+    }
+    combiner = (
+        "gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, "
+        "0, 0, 0, PRIMITIVE, 0, 0, 0, 1),"
+    )
+    patched = []
+    for material_name, rgb in colors.items():
+        marker = "Gfx mat_steve_Steve_" + material_name + "[] = {"
+        start = source.find(marker)
+        if start < 0:
+            raise RuntimeError("Missing Steve F3D material: " + material_name)
+        end = source.find("\\n};", start)
+        if end < 0:
+            raise RuntimeError("Unterminated Steve F3D material: " + material_name)
+        block = source[start:end + 3]
+        block, combine_count = re.subn(
+            r"gsDPSetCombineLERP\\([^;]*?\\),",
+            combiner,
+            block,
+            count=1,
+        )
+        if combine_count != 1:
+            raise RuntimeError("Could not set primitive combiner: " + material_name)
+        prim = "gsDPSetPrimColor(0, 0, {}, {}, {}, 255),".format(*rgb)
+        block, pipe_count = re.subn(
+            r"(gsDPPipeSync\\(\\),)",
+            r"\\1\\n\\t" + prim,
+            block,
+            count=1,
+        )
+        if pipe_count != 1:
+            raise RuntimeError("Could not set primitive color: " + material_name)
+        source = source[:start] + block + source[end + 3:]
+        patched.append(material_name)
+    model_path.write_text(source, encoding="utf-8")
+    return patched
+
+
+
+def set_steve_root_scale(actor_dir, scale_value=65536):
     geo_path = actor_dir / "geo.inc.c"
     source = geo_path.read_text(encoding="utf-8")
     marker = "const GeoLayout steve_geo[] = {"
@@ -310,7 +361,8 @@ def main():
         raise RuntimeError("Fast64 is missing exported actor files: " + ", ".join(missing))
 
     removed_custom_commands = sanitize_unsupported_geo_commands(actor_dir)
-    steve_root_scale = set_steve_root_scale(actor_dir, 32768)
+    primitive_materials = apply_steve_primitive_colors(actor_dir)
+    steve_root_scale = set_steve_root_scale(actor_dir, 65536)
     first_person_hand = write_first_person_hand_actor(actor_root)
 
     (actor_dir / "README.md").write_text(
@@ -334,6 +386,7 @@ def main():
         "static_eye_switches": static_eye_switches,
         "unsupported_custom_commands_removed": removed_custom_commands,
         "steve_root_scale": steve_root_scale,
+        "primitive_materials": primitive_materials,
         "first_person_hand": first_person_hand,
         "export_result": list(result),
     }
