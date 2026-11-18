@@ -50,8 +50,12 @@ def main() -> None:
         crop = skin.crop(bounds)
         if crop.size != (crop_width, crop_height):
             raise SystemExit(f"Incorrect crop size for {name}: {crop.size}")
-        if crop.getchannel("A").getbbox() is None:
-            raise SystemExit(f"Skin UV region for {name} is fully transparent")
+        alpha_bounds = crop.getchannel("A").getbbox()
+        # Empty outer-layer regions are valid in Minecraft skins: a fully
+        # transparent hat/sleeve/jacket/pants cube is intentionally invisible.
+        # Base body UVs must still contain pixels.
+        if alpha_bounds is None and not outer:
+            raise SystemExit(f"Base skin UV region for {name} is fully transparent")
 
         output = args.output / f"{name}.png"
         crop.save(output, optimize=False)
@@ -62,6 +66,7 @@ def main() -> None:
             "image": output.name,
             "size": list(crop.size),
             "outer_layer": outer,
+            "fully_transparent": alpha_bounds is None,
         }
 
     (args.output / "manifest.json").write_text(
