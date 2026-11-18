@@ -1,3 +1,3 @@
 # SteveCraft first-person arm
 
-Independent DynOS actor made from a turquoise sleeve and a skin-tone hand. The Lua viewmodel positions this 3D model relative to the first-person camera.
+Classic Minecraft Steve right arm: 4x12x4 model proportions, with all six faces extracted from the 64x64 classic Steve skin UV layout.
