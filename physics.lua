@@ -156,7 +156,21 @@ local function before_physics_step(m, step_type, step_arg)
     update_horizontal_velocity(m, step_type, state)
 end
 
+local function after_mario_update(m)
+    if m == nil or m.playerIndex ~= 0 then return end
+    if not is_local_steve(m) then
+        states[0] = nil
+        return
+    end
+    -- Stationary Mario actions do not call perform_ground_step(), so clear
+    -- cached momentum here rather than carrying it into the next walk.
+    if not is_ground_action(m.action) and not is_air_action(m.action) then
+        states[0] = nil
+    end
+end
+
 hook_event(HOOK_BEFORE_PHYS_STEP, before_physics_step)
+hook_event(HOOK_MARIO_UPDATE, after_mario_update)
 hook_event(HOOK_ON_LEVEL_INIT, physics.reset)
 hook_event(HOOK_ON_WARP, physics.reset)
 
