@@ -34,7 +34,7 @@ jobs:
             "https://mirror.nju.edu.cn/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
           )
           downloaded=0
-          for url in "\${urls[@]}"; do
+          for url in "${urls[@]}"; do
             rm -f blender.tar.xz
             if curl -fL --retry 2 --connect-timeout 20 "$url" -o blender.tar.xz && tar -tJf blender.tar.xz >/dev/null 2>&1; then
               downloaded=1
@@ -56,10 +56,10 @@ jobs:
 
       - name: Validate AI scene and export DynOS actor
         env:
-          FAST64_ADDON: \${{ github.workspace }}/build/fast64
-          STEVE_ACTOR_OUTPUT: \${{ github.workspace }}/build/actor/actors
-          STEVE_SCENE_REPORT: \${{ github.workspace }}/build/ai-steve-scene-report.json
-          STEVE_EXPORT_REPORT: \${{ github.workspace }}/build/ai-steve-export-report.json
+          FAST64_ADDON: ${{ github.workspace }}/build/fast64
+          STEVE_ACTOR_OUTPUT: ${{ github.workspace }}/build/actor/actors
+          STEVE_SCENE_REPORT: ${{ github.workspace }}/build/ai-steve-scene-report.json
+          STEVE_EXPORT_REPORT: ${{ github.workspace }}/build/ai-steve-export-report.json
         run: |
           set -euo pipefail
           blender -b ai-model/steve_compatible.blend --python tools/validate_ai_steve_scene.py
