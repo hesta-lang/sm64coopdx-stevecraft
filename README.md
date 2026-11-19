@@ -8,11 +8,11 @@ Mod Lua para **SM64CoopDX Android** que sustituye al jugador por Steve de Minecr
 
 - Ejecuta [Prepare Steve AI model kit](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/prepare-steve-ai-model-kit.yml) para obtener el kit con el modelo fuente Java, la skin original y el template Blender de SM64CoopDX.
 - Sigue las instrucciones de [AI_MODEL_PROMPT.md](AI_MODEL_PROMPT.md) o la ruta web descrita en [AI_MODEL_PROMPT_WEB.md](AI_MODEL_PROMPT_WEB.md).
-
 - Para trabajar desde el navegador del teléfono, usa [AI_MODEL_PROMPT_WEB.md](AI_MODEL_PROMPT_WEB.md) y [AI 3D Editor](https://ai3deditor.com/); el archivo final debe ser `ai-model/steve_compatible.fbx`.
 - Para un agente que edite directamente escenas Blender, usa `AI_MODEL_PROMPT.md`; el archivo final debe ser `ai-model/steve_compatible.blend`.
-- El resultado debe subirse como `ai-model/steve_compatible.blend` a la rama `stevecraft-ai-model-pipeline-alpha`.
-- El workflow [Convert AI Steve Blender model to DynOS](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/convert-ai-steve-model.yml) valida la escena y exporta el actor.
+- La ruta web produce `ai-model/steve_compatible.fbx` y activa [Convert AI Steve FBX to DynOS](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/convert-ai-steve-fbx.yml).
+- La ruta Blender produce `ai-model/steve_compatible.blend` y activa [Convert AI Steve Blender model to DynOS](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/convert-ai-steve-model.yml).
+- Ambos archivos deben subirse a la rama `stevecraft-ai-model-pipeline-alpha`.
 
 El modelo 3D generado por IA todavía no está incluido. La exportación no se ejecutará hasta que se suba el archivo Blender compatible. El modelo anterior queda como provisional.
 
