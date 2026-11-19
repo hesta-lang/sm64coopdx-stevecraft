@@ -36,11 +36,15 @@ Para acciones de salto/caída ordinarias, Minecraft usa aceleración horizontal 
 
 ## Conversión temporal y espacial
 
-Minecraft simula a 20 ticks/s y el objetivo se actualiza a 30 frames/s. Se convierte el arrastre discreto con:
+Minecraft simula a 20 ticks/s y el objetivo se actualiza a 30 frames/s. El arrastre se convierte como:
 
 `dragFrame = dragTick^(20/30)`
 
-La escala del mundo se estima provisionalmente en `160 / 1.8` unidades SM64 por bloque, derivada de la conversión anterior del modelo Steve. Es necesario calibrarla en un nivel real antes de afirmar equivalencia exacta.
+La aceleración se escala además para conservar la velocidad terminal en unidades SM64 por frame:
+
+`accelFrame = accelTick × scale × (20/30) × (dragTick/dragFrame) × (1-dragFrame)/(1-dragTick)`
+
+La escala del mundo se estima provisionalmente en `160 / 1.8` unidades SM64 por bloque, derivada de la conversión anterior del modelo Steve. Es una aproximación y debe calibrarse en un nivel real antes de afirmar equivalencia exacta.
 
 ## Cámara
 
