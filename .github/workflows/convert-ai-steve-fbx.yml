@@ -1,0 +1,119 @@
+name: Convert AI Steve FBX to DynOS
+
+on:
+  push:
+    paths:
+      - "ai-model/steve_compatible.fbx"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout SteveCraft
+        uses: actions/checkout@v4
+
+      - name: Require AI-generated FBX
+        run: |
+          set -euo pipefail
+          if [ ! -s ai-model/steve_compatible.fbx ]; then
+            echo "::error::Missing ai-model/steve_compatible.fbx. Use AI_MODEL_PROMPT_WEB.md with the FBX from the Steve AI model kit."
+            exit 1
+          fi
+
+      - name: Download Blender 3.6 LTS
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://mirror.blender.org/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+            "https://mirror.freedif.org/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+            "https://mirror.nju.edu.cn/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+          )
+          downloaded=0
+          for url in "${urls[@]}"; do
+            rm -f blender.tar.xz
+            if curl -fL --retry 2 --connect-timeout 20 "$url" -o blender.tar.xz && tar -tJf blender.tar.xz >/dev/null 2>&1; then
+              downloaded=1
+              break
+            fi
+          done
+          test "$downloaded" -eq 1
+          tar -xf blender.tar.xz
+          echo "$PWD/blender-3.6.23-linux-x64" >> "$GITHUB_PATH"
+
+      - name: Download Fast64-Gart and official SM64CoopDX template
+        run: |
+          set -euo pipefail
+          mkdir -p build/fast64 build/actor/actors
+          curl -fL --retry 3 https://codeload.github.com/ManIsCat2/Fast64-Gart/zip/refs/heads/main -o fast64.zip
+          unzip -q fast64.zip -d build/fast64
+          mv build/fast64/Fast64-Gart-main build/fast64/fast64_gart
+          curl -fL --retry 3 "https://raw.githubusercontent.com/coop-deluxe/character-template/main/Mario%20Coop%20Model%20Template.blend" -o build/mario-template.blend
+          test -f build/fast64/fast64_gart/__init__.py
+          test -s build/mario-template.blend
+
+      - name: Import AI FBX into the original template and preserve its rigs
+        env:
+          FAST64_ADDON: ${{ github.workspace }}/build/fast64
+          STEVE_AI_FBX: ${{ github.workspace }}/ai-model/steve_compatible.fbx
+          STEVE_IMPORT_REPORT: ${{ github.workspace }}/build/ai-steve-fbx-import-report.json
+          STEVE_SCENE_OUTPUT: ${{ github.workspace }}/build/steve-ai-imported.blend
+        run: |
+          set -euo pipefail
+          blender -b build/mario-template.blend --python tools/import_ai_steve_fbx.py
+          test -s build/ai-steve-fbx-import-report.json
+          test -s build/steve-ai-imported.blend
+
+      - name: Validate and export the converted scene
+        env:
+          FAST64_ADDON: ${{ github.workspace }}/build/fast64
+          STEVE_ACTOR_OUTPUT: ${{ github.workspace }}/build/actor/actors
+          STEVE_SCENE_REPORT: ${{ github.workspace }}/build/ai-steve-scene-report.json
+          STEVE_EXPORT_REPORT: ${{ github.workspace }}/build/ai-steve-export-report.json
+        run: |
+          set -euo pipefail
+          blender -b build/steve-ai-imported.blend --python tools/validate_ai_steve_scene.py
+          test -s build/ai-steve-scene-report.json
+          blender -b build/steve-ai-imported.blend --python tools/export_ai_steve_actor.py
+          test -s build/ai-steve-export-report.json
+          test -s build/actor/actors/steve/geo.inc.c
+          test -s build/actor/actors/steve/model.inc.c
+          test -s build/actor/actors/steve/geo_header.h
+          grep -q 'GEO_SCALE(LAYER_FORCE, 65536)' build/actor/actors/steve/geo.inc.c
+          grep -q 'gsDPSetTextureImage' build/actor/actors/steve/model.inc.c
+          if grep -q 'CUSTOM_CMD' build/actor/actors/steve/geo.inc.c; then
+            echo "::error::Unsupported CUSTOM_CMD remains in GeoLayout"
+            exit 1
+          fi
+
+      - name: Upload converted DynOS actor and reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: stevecraft-ai-steve-fbx-dynos
+          path: |
+            build/actor/actors/steve/
+            build/ai-steve-fbx-import-report.json
+            build/ai-steve-scene-report.json
+            build/ai-steve-export-report.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit generated actor source
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p actors
+          rm -rf actors/steve
+          cp -a build/actor/actors/steve actors/steve
+          git add actors/steve
+          if git diff --cached --quiet; then
+            echo "Generated actor source is unchanged."
+          else
+            git commit -m "Convert AI Steve FBX to DynOS actor"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
