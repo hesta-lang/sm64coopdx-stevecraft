@@ -67,3 +67,8 @@ The former procedural mesh builder is retained only as a legacy/reference path. 
 The Minecraft texture is fetched into the Actions workspace and is not committed to this repository by the handoff workflow. Source and texture licensing remains with their respective owners.
 
 The AI model handoff and conversion are not yet a completed character conversion: the AI-generated `steve_compatible.blend` still has to be produced and uploaded. The old procedural model is not silently treated as the new model. An Actions export success is not an Android runtime test.
+
+
+## Browser-based FBX route
+
+The AI handoff kit also exports the official character template to FBX for browser-based prompt editors. The web prompt is `AI_MODEL_PROMPT_WEB.md`; upload the result as `ai-model/steve_compatible.fbx`. The FBX converter imports the edited geometry into a fresh copy of the original Blender template, keeps the original SM64CoopDX armatures and GeoLayout metadata, maps the FBX skin weights back to the template vertex groups, converts embedded image materials to Fast64 F3D textures, validates the scene, and exports the DynOS actor. It intentionally fails if the editor drops required armature weights, mesh groups, UVs or embedded textures.
