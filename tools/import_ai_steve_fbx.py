@@ -16,6 +16,7 @@ from fast64_internal.f3d.f3d_material import createF3DMat
 
 fbx_path = Path(os.environ.get("STEVE_AI_FBX", "ai-model/steve_compatible.fbx")).resolve()
 report_path = Path(os.environ.get("STEVE_IMPORT_REPORT", "build/ai-steve-fbx-import-report.json"))
+scene_output = Path(os.environ.get("STEVE_SCENE_OUTPUT", "build/steve-ai-imported.blend")).resolve()
 
 def fail(message):
     raise RuntimeError("AI Steve FBX import failed: " + message)
@@ -172,8 +173,17 @@ def main():
         "capless_head": head_report,
         "discarded_import_objects": imported_names,
     }
+    # Pack imported texture images so the validated scene is self-contained.
+    for image in bpy.data.images:
+        if image.source == "FILE" and not image.packed_file:
+            try:
+                image.pack()
+            except Exception as exc:
+                fail("could not pack texture image '{}': {}".format(image.name, exc))
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    scene_output.parent.mkdir(parents=True, exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=str(scene_output))
     print("AI_STEVE_FBX_IMPORT_BEGIN")
     print(json.dumps(report, indent=2))
     print("AI_STEVE_FBX_IMPORT_END")
