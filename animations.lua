@@ -391,6 +391,17 @@ local function apply_minecraft_animation(m)
     local base_animation_id = info.animID
     local clip_name = clip_by_mario_animation[base_animation_id]
 
+    -- Minecraft has no separate run key animation state: sprinting increases
+    -- the walk-cycle speed while retaining the same humanoid limb equation.
+    if m.playerIndex == 0
+        and ACT_WALKING ~= nil
+        and m.action == ACT_WALKING
+        and SteveCraft.physics ~= nil
+        and type(SteveCraft.physics.is_sprinting) == "function"
+        and SteveCraft.physics.is_sprinting() then
+        clip_name = "steve_mc_run"
+    end
+
     if clip_name == nil then
         active_clip_by_player[player_index] = nil
         previous_base_animation_by_player[player_index] = base_animation_id

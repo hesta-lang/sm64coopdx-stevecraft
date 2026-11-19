@@ -1,67 +1,73 @@
 # SteveCraft 64
 
-Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jugador por el modelo humanoide de Minecraft Java con su skin de Steve y cámara en tercera persona controlada por el tacto.
+Mod Lua para **SM64CoopDX Android** que sustituye al jugador por Steve de Minecraft Java 1.21.11, con modelo cúbico, skin clásica, animaciones adaptadas, cámara en primera/tercera persona y movimiento inspirado en Minecraft.
 
 ## Versión
 
-**0.10.0-alpha** — conversión del modelo PlayerModel de Minecraft Java 1.21.11 a geometría DynOS compatible con el esqueleto de jugador de SM64CoopDX.
+**0.13.0-alpha** — corrección de orientación/UV del modelo y salto estrictamente vertical, manteniendo el runtime Lua-only.
+
+## Correcciones de modelo y texturas
+
+- El generador ahora convierte las posiciones de Minecraft al espacio local de cada malla teniendo en cuenta la rotación de 90° del objeto de malla del template oficial de SM64CoopDX.
+- Esto evita intercambiar los ejes de anchura y profundidad, que colocaba las extremidades en el plano equivocado.
+- Las UV se siguen obteniendo de las regiones originales de la skin clásica 64×64 y se exportan usando el nombre de capa `UVMap` que exige Fast64.
+- Las capas base y externas de PlayerModel (cabeza, torso, brazos y piernas) siguen separadas por cubo/material para respetar el límite de memoria de texturas del renderizador.
+- El exportador DynOS conserva el esqueleto oficial del jugador; no se cambia la cámara para ocultar la orientación incorrecta.
+
+## Movimiento
+
+- **Correr:** doble toque hacia delante. Aplica el aumento de velocidad del 30% y activa la animación de correr.
+- **Saltar:** impulso y gravedad inspirados en Minecraft Java 1.21.11.
+- **Salto vertical:** al despegar se ponen a cero las velocidades horizontales X/Z, el avance y el deslizamiento. Durante toda la fase aérea no se aplica control horizontal. Esto también se aplica al saltar mientras corres.
+- **Doble/triple salto:** las transiciones nativas de Mario se convierten en salto normal.
+
+El salto ya no reproduce el impulso horizontal de 0.2 bloques/tick de Minecraft al saltar corriendo. Se omite deliberadamente porque el requisito actual es que Steve solo se desplace verticalmente al saltar.
+
+## FOV
+
+- Primera persona: modificador de sprint 1.15× con interpolación.
+- Tercera persona: preset nativo de 60° durante sprint. Es una aproximación, no una reproducción exacta de 1.15×; la API Lua del fork no expone un FOV arbitrario editable para LakituState.
 
 ## Cámara
 
-- Y alterna entre primera y tercera persona.
-- En tercera persona se utiliza `CAMERA_MODE_NEWCAM`, el sistema de cámara libre incluido en el fork.
-- Arrastra el dedo por la zona táctil derecha (`TOUCH_MOUSE`) para girar la cámara horizontal y verticalmente.
-- La cámara conserva colisiones de nivel para no atravesar paredes.
-- Las perspectivas trasera y frontal se recorren libremente girando alrededor de Steve; ya no requieren C-buttons ni cruceta.
-- Las opciones de cámara que estaban activas antes de entrar a SteveCraft se guardan y se restauran al volver a primera persona.
+Pulsa **Y** para alternar entre primera y tercera persona. En tercera persona, arrastra en la zona táctil derecha para orbitar alrededor de Steve.
 
-## Modelo
+La cámara no es una reimplementación completa de `net.minecraft.client.Camera`: la API Lua no permite escribir directamente `LakituState.pos/focus`. Se reutiliza NEWCAM para seguimiento, entrada táctil y prevención de clipping.
 
-El generador ya no construye el cuerpo usando cubos coloreados aproximados. Usa las dimensiones, posiciones, capas e instrucciones UV del modelo humanoide de Minecraft Java 1.21.11:
+## Modelo y skin
 
-- Cabeza base 8×8×8 y sombrero exterior con inflación de 0.5 píxeles.
-- Torso base 8×12×4 y chaqueta exterior con inflación de 0.25 píxeles.
-- Brazos anchos 4×12×4 y mangas exteriores.
-- Piernas 4×12×4 y pantalones exteriores.
+El generador utiliza las dimensiones, cubos, capas exteriores y UV del modelo PlayerModel de Minecraft Java 1.21.11: cabeza 8×8×8, torso 8×12×4, brazos y piernas 4×12×4. La skin 64×64 se divide en texturas por cubo para ajustarse a los límites del renderizador F3D/DynOS.
 
-Las 12 piezas cúbicas se asignan a los grupos de huesos compatibles de SM64CoopDX: cabeza, torso, brazos y piernas. El generador adapta los ejes XYZ de Minecraft a las coordenadas del esqueleto del jugador sin sustituir la jerarquía que necesita el motor.
+El render final sigue siendo el de SM64CoopDX. No se importa el renderizador Java de Minecraft.
 
-La skin clásica de Steve de 64×64 se recorta usando los rectángulos UV del código de Minecraft. Cada pieza recibe su textura pequeña para mantener los límites de memoria de texturas del renderizador N64. Se conservan los píxeles alfa de las capas externas: una capa totalmente transparente permanece invisible, igual que en Minecraft. El punto de filtrado evita difuminar los texeles.
+## Límites actuales
 
-La variante metálica de Mario se mantiene separada como variante especial del sistema de SM64CoopDX. El actor principal de Steve usa la skin, no la paleta de colores planos anterior.
+- La equivalencia entre bloques Minecraft y unidades SM64 sigue siendo provisional.
+- El doble toque se calcula desde la dirección del joystick táctil de SM64; no es el sistema original de teclado de Minecraft.
+- El salto es deliberadamente vertical y no tiene movimiento horizontal aéreo.
+- Las colisiones siguen siendo las de superficies SM64, no AABB/voxels de Minecraft.
+- Todavía no se implementan físicas de agua/lava, modificadores individuales de bloques ni paridad física multijugador.
+- Un build correcto de DynOS y un análisis sintáctico Lua no sustituyen la prueba del APK Android.
 
-## Animaciones
+## Referencia de ingeniería inversa
 
-`animations.lua` registra clips en el formato nativo de SM64CoopDX y los aplica únicamente a los jugadores que usan el modelo de Steve:
+La adaptación utiliza como referencia una decompilación comunitaria de Minecraft Java 1.21.11, no una publicación oficial del código de Mojang:
 
-- **Caminar:** curvas de brazos y piernas de `HumanoidModel.setupAnim`.
-- **Correr:** misma ecuación de marcha con una amplitud mayor.
-- **Agacharse:** inclinación de torso y brazos de Minecraft.
-- **Caminar agachado:** combina la marcha con la pose de agachado.
-- **Nadar:** curva de brazos y movimiento de piernas del código de Minecraft.
-- **Quieto, salto y caída normales:** pose humanoide neutra con el balanceo sutil de brazos. Minecraft no tiene una animación corporal independiente para un salto normal.
-
-El port de animaciones mantiene el esqueleto compatible de SM64CoopDX. Las intensidades de caminar y correr son fijas porque el hook del motor no expone el mismo par dinámico `walkAnimationPos/walkAnimationSpeed` de Minecraft. Los desplazamientos locales del agachado aún requieren validación de escala y ejes.
-
-## Referencia del modelo y las animaciones
-
-La geometría y las coordenadas UV se adaptan de:
+- [LivingEntity.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/world/entity/LivingEntity.java)
+- [LocalPlayer.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/player/LocalPlayer.java)
+- [AbstractClientPlayer.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/player/AbstractClientPlayer.java)
+- [Entity.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/world/entity/Entity.java)
+- [GameRenderer.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/renderer/GameRenderer.java)
 - [PlayerModel.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/player/PlayerModel.java)
 - [HumanoidModel.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/HumanoidModel.java)
-- [ModelPart.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/geom/ModelPart.java)
-
-Las animaciones se adaptan de:
-- [AnimationUtils.java](https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/AnimationUtils.java)
-
-El repositorio usado como referencia es una copia decompilada mantenida por la comunidad, no una publicación oficial del código fuente de Mojang.
 
 ## Instalación
 
 1. Descarga el repositorio como ZIP.
 2. Extrae la carpeta completa.
-3. Copia la carpeta del mod en el directorio `mods` de SM64CoopDX.
-4. Inicia un nivel. Pulsa Y para cambiar a tercera persona y arrastra sobre la zona derecha de la pantalla para girar la cámara.
+3. Copia la carpeta del mod en `mods` de SM64CoopDX.
+4. Inicia un nivel y selecciona Steve como modelo si no se activa automáticamente.
 
 ## Validación
 
-GitHub Actions debe completar la generación del actor DynOS con Blender/Fast64 y comprobar que las texturas del modelo se exportan. Aunque el exportador termine correctamente, todavía falta validar en SM64CoopDX Android que la skin, las capas transparentes, las articulaciones, la cámara táctil y la mano en primera persona se vean correctamente.
+GitHub Actions debe generar de nuevo los recursos DynOS y validar todos los scripts Lua. Después hace falta probar en SM64CoopDX Android: orientación vertical, visibilidad de brazos/piernas, detalles de la skin, doble toque de sprint, salto vertical sin deriva lateral, aterrizaje, colisiones y FOV.

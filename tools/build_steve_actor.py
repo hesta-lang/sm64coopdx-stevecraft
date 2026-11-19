@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sys
+from mathutils import Vector
 from pathlib import Path
 
 ADDON_PARENT = Path(os.environ["FAST64_ADDON"]).resolve()
@@ -26,6 +27,25 @@ def obj(name, kind):
     if value is None or value.type != kind:
         raise RuntimeError("Required " + kind + " object missing: " + name)
     return value
+
+def template_object_transform_info(value):
+    def matrix_rows(matrix):
+        return [[round(float(matrix[row][col]), 6) for col in range(4)] for row in range(4)]
+
+    return {
+        "name": value.name,
+        "type": value.type,
+        "parent": value.parent.name if value.parent else None,
+        "location": [round(float(v), 6) for v in value.location],
+        "rotation_euler": [round(float(v), 6) for v in value.rotation_euler],
+        "rotation_quaternion": [round(float(v), 6) for v in value.rotation_quaternion],
+        "rotation_mode": value.rotation_mode,
+        "scale": [round(float(v), 6) for v in value.scale],
+        "matrix_local": matrix_rows(value.matrix_local),
+        "matrix_world": matrix_rows(value.matrix_world),
+        "matrix_parent_inverse": matrix_rows(value.matrix_parent_inverse),
+    }
+
 
 def create_color_material(owner, key, color):
     material = createF3DMat(owner, "Shaded Solid")
@@ -251,6 +271,15 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
     weighted_vertices = set()
     material_indices = {material.name: i for i, material in enumerate(material_bank)}
 
+    # The official SM64 template stores player meshes with a +90-degree local
+    # X rotation relative to their armature. Fast64 exports the mesh-local
+    # vertex coordinates into DynOS, so authoring armature-space positions
+    # directly here swaps Minecraft's side/depth axes at runtime.
+    if target.parent is None or target.parent.type != "ARMATURE":
+        raise RuntimeError("Minecraft player mesh must be parented to its SM64 armature: " + target.name)
+    mesh_to_armature = target.parent.matrix_world.inverted() @ target.matrix_world
+    armature_to_mesh = mesh_to_armature.inverted()
+
     for cube in cuboids:
         x0, y0, z0 = cube["origin"]
         width, height, depth = cube["size"]
@@ -276,7 +305,13 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
         # vertical/side/depth axes, preserving the armature's existing origins.
         corner_indices = []
         for mc_x, mc_y, mc_z in mc_points:
-            point = (1.0 - mc_y / 16.0, -mc_x / 16.0, -mc_z / 16.0)
+            armature_point = Vector((
+                1.0 - mc_y / 16.0,
+                -mc_x / 16.0,
+                -mc_z / 16.0,
+            ))
+            mesh_point = armature_to_mesh @ armature_point
+            point = tuple(float(value) for value in mesh_point)
             key = (cube["group"], tuple(round(value, 6) for value in point))
             vertex_index = vertex_map.get(key)
             if vertex_index is None:
@@ -332,7 +367,8 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
     for material in material_bank:
         mesh.materials.append(material)
 
-    uv_layer = mesh.uv_layers.new(name="MinecraftSkinUV")
+    # Fast64's F3D exporter expects a UV layer with this exact name.
+    uv_layer = mesh.uv_layers.new(name="UVMap")
     for polygon, material_name, uvs in zip(mesh.polygons, face_materials, face_uvs):
         if material_name not in material_indices:
             raise RuntimeError("Missing Minecraft texture material: " + material_name)
@@ -428,16 +464,13 @@ def write_first_person_hand_actor(actor_root):
 def apply_steve_primitive_colors(actor_dir):
     model_path = actor_dir / "model.inc.c"
     source = model_path.read_text(encoding="utf-8")
-    # Only the optional Metal Mario variant still uses primitive colours.
-    # The normal Steve model now uses the full Minecraft skin textures.
+    # Only the optional Metal Mario variant uses primitive colour. Fast64
+    # versions may already export the PRIMITIVE combiner when Shaded Solid is
+    # configured, so accept either combiner and normalize the material safely.
     colors = {
         "Metal": (158, 173, 186),
     }
-    old_combiner = (
-        "gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, "
-        "0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),"
-    )
-    new_combiner = (
+    primitive_combiner = (
         "gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, "
         "0, 0, 0, PRIMITIVE, 0, 0, 0, 1),"
     )
@@ -446,26 +479,35 @@ def apply_steve_primitive_colors(actor_dir):
         marker = "Gfx mat_steve_Steve_" + material_name + "[] = {"
         start = source.find(marker)
         if start < 0:
-            # The textured Minecraft PlayerModel no longer uses the old
-            # primitive palette; keep the patch optional for absent variants.
             continue
         end = source.find("\n};", start)
         if end < 0:
             raise RuntimeError("Unterminated Steve F3D material: " + material_name)
         block = source[start:end + 3]
-        if old_combiner not in block:
-            raise RuntimeError("Unexpected F3D combiner in material: " + material_name)
-        block = block.replace(old_combiner, new_combiner, 1)
-        pipe = "gsDPPipeSync(),"
-        if pipe not in block:
-            raise RuntimeError("Missing pipe sync in material: " + material_name)
-        prim = "gsDPSetPrimColor(0, 0, {}, {}, {}, 255),".format(*rgb)
-        block = block.replace(pipe, pipe + "\n\t" + prim, 1)
+
+        # Replace whichever combiner Fast64 emitted; do not fail just because
+        # a newer exporter already selected PRIMITIVE.
+        combiner_pattern = r"gsDPSetCombineLERP\([^;]*?\),"
+        block, combine_count = re.subn(
+            combiner_pattern, primitive_combiner, block, count=1
+        )
+        if combine_count != 1:
+            raise RuntimeError("Missing F3D combiner in material: " + material_name)
+
+        # Keep an existing primitive colour line, or insert one after PipeSync.
+        prim_pattern = r"gsDPSetPrimColor\([^;]*?\),"
+        if re.search(prim_pattern, block) is None:
+            pipe = "gsDPPipeSync(),"
+            if pipe not in block:
+                raise RuntimeError("Missing pipe sync in material: " + material_name)
+            prim = "gsDPSetPrimColor(0, 0, {}, {}, {}, 255),".format(*rgb)
+            block = block.replace(pipe, pipe + "\n\t" + prim, 1)
+
         source = source[:start] + block + source[end + 3:]
         patched.append(material_name)
+
     model_path.write_text(source, encoding="utf-8")
     return patched
-
 
 def set_steve_root_scale(actor_dir, scale_value=65536):
     geo_path = actor_dir / "geo.inc.c"
@@ -627,6 +669,11 @@ def main():
         "geo_name": props.geo_name,
         "files": sorted(p.name for p in actor_dir.iterdir() if p.is_file()),
         "mesh_counts": meshes,
+        "template_object_transforms": {
+            name: template_object_transform_info(bpy.data.objects[name])
+            for name in ("Mario", "Mario Mesh", "Capless Head Mesh")
+            if bpy.data.objects.get(name) is not None
+        },
         "minecraft_player_model": {
             "source": "Minecraft Java 1.21.11 PlayerModel.createMesh / HumanoidModel.createMesh",
             "base_cuboids": sum(1 for cube in MINECRAFT_PLAYER_CUBOIDS if not cube["outer"]),
