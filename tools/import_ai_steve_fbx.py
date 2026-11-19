@@ -140,8 +140,11 @@ def main():
         fail("expected exactly one imported capless-head mesh with Capless Head group; found {}".format(len(head_candidates)))
 
     body_source = body_candidates[0]
+    head_source = head_candidates[0]
     if not any(mod.type == "ARMATURE" and mod.object for mod in body_source.modifiers):
         fail("main FBX body mesh lost its armature modifier; the AI editor must preserve the rig")
+    if head_source.parent is None or head_source.parent.type != "ARMATURE":
+        fail("capless head mesh is no longer parented to its separate head armature")
     body_target = bpy.data.objects.get("Mario Mesh")
     head_target = bpy.data.objects.get("Capless Head Mesh")
     mario = bpy.data.objects.get("Mario")
@@ -155,7 +158,7 @@ def main():
         "Main body"
     )
     head_report = copy_mesh_into_template(
-        head_candidates[0], head_target, ["Capless Head"], "Capless head"
+        head_source, head_target, ["Capless Head"], "Capless head"
     )
 
     # The imported FBX armatures are discarded. The template's original
