@@ -30,9 +30,10 @@ El render final sigue siendo el de SM64CoopDX. No se importa el renderizador Jav
 
 La capa Lua adapta parte de las fórmulas de movimiento de Minecraft:
 
-- Suelo: `movementSpeed * 0.21600002 / friction³` y arrastre `friction * 0.91`.
-- Aire: aceleración horizontal `0.02` y arrastre `0.91`.
-- Convierte los coeficientes de 20 ticks/segundo a 30 actualizaciones/segundo y a las unidades aproximadas de Steve.
+- Suelo: fórmula de Minecraft 1.21.11 `getSpeed() * 0.21600002 / friction³` y arrastre horizontal `friction * 0.91`.
+- Aire: velocidad de entrada normal `0.02` y arrastre horizontal `0.91`.
+- La entrada no nula incluye el factor `0.98` de `LocalPlayer.modifyInput()`.
+- Convierte la recurrencia de 20 ticks/segundo a 30 actualizaciones/segundo preservando la velocidad terminal y usando las unidades aproximadas de Steve.
 
 **Pendiente de calibración y validación:**
 - La equivalencia entre bloques Minecraft y unidades SM64 es provisional.
