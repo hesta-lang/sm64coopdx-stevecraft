@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sys
+from mathutils import Vector
 from pathlib import Path
 
 ADDON_PARENT = Path(os.environ["FAST64_ADDON"]).resolve()
@@ -270,6 +271,15 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
     weighted_vertices = set()
     material_indices = {material.name: i for i, material in enumerate(material_bank)}
 
+    # The official SM64 template stores player meshes with a +90-degree local
+    # X rotation relative to their armature. Fast64 exports the mesh-local
+    # vertex coordinates into DynOS, so authoring armature-space positions
+    # directly here swaps Minecraft's side/depth axes at runtime.
+    if target.parent is None or target.parent.type != "ARMATURE":
+        raise RuntimeError("Minecraft player mesh must be parented to its SM64 armature: " + target.name)
+    mesh_to_armature = target.parent.matrix_world.inverted() @ target.matrix_world
+    armature_to_mesh = mesh_to_armature.inverted()
+
     for cube in cuboids:
         x0, y0, z0 = cube["origin"]
         width, height, depth = cube["size"]
@@ -295,7 +305,13 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
         # vertical/side/depth axes, preserving the armature's existing origins.
         corner_indices = []
         for mc_x, mc_y, mc_z in mc_points:
-            point = (1.0 - mc_y / 16.0, -mc_x / 16.0, -mc_z / 16.0)
+            armature_point = Vector((
+                1.0 - mc_y / 16.0,
+                -mc_x / 16.0,
+                -mc_z / 16.0,
+            ))
+            mesh_point = armature_to_mesh @ armature_point
+            point = tuple(float(value) for value in mesh_point)
             key = (cube["group"], tuple(round(value, 6) for value in point))
             vertex_index = vertex_map.get(key)
             if vertex_index is None:
@@ -351,7 +367,8 @@ def build_minecraft_player_mesh(target, cuboids, required_groups, material_bank)
     for material in material_bank:
         mesh.materials.append(material)
 
-    uv_layer = mesh.uv_layers.new(name="MinecraftSkinUV")
+    # Fast64's F3D exporter expects a UV layer with this exact name.
+    uv_layer = mesh.uv_layers.new(name="UVMap")
     for polygon, material_name, uvs in zip(mesh.polygons, face_materials, face_uvs):
         if material_name not in material_indices:
             raise RuntimeError("Missing Minecraft texture material: " + material_name)
