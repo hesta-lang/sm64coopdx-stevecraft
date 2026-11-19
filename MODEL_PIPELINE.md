@@ -52,3 +52,18 @@ Because the original SM64 player skeleton is preserved, the actor can use the en
 - [ ] Android gameplay and multiplayer model selection are validated.
 
 A successful source export does not prove that the Android DynOS runtime renders the actor correctly.
+
+
+## AI-assisted source-model pipeline (0.14.0-alpha)
+
+The former procedural mesh builder is retained only as a legacy/reference path. The new target is an AI-edited Blender scene based on the official SM64CoopDX character template.
+
+1. Run **Prepare Steve AI model kit** in GitHub Actions. The workflow downloads the pinned Minecraft Java 1.21.11 `PlayerModel.java`, `HumanoidModel.java`, the original wide Steve 64×64 skin, and the official SM64CoopDX Mario character template. It packages these references with `AI_MODEL_PROMPT.md`.
+2. Give the kit to a 3D AI/editor. Paste `AI_MODEL_PROMPT.md` and require the result `steve_compatible.blend`.
+3. Upload the returned scene to `ai-model/steve_compatible.blend` on branch `stevecraft-ai-model-pipeline-alpha`.
+4. **Convert AI Steve Blender model to DynOS** validates the retained player armature, required mesh objects, vertex groups, UVMap and Fast64 materials. It then exports `actors/steve/geo.inc.c`, `model.inc.c` and `geo_header.h` using Fast64-Gart.
+5. The workflow uploads the converted actor and reports, then commits generated actor source only if validation and export checks pass.
+
+The Minecraft texture is fetched into the Actions workspace and is not committed to this repository by the handoff workflow. Source and texture licensing remains with their respective owners.
+
+The AI model handoff and conversion are not yet a completed character conversion: the AI-generated `steve_compatible.blend` still has to be produced and uploaded. The old procedural model is not silently treated as the new model. An Actions export success is not an Android runtime test.
