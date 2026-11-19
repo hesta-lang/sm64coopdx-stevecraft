@@ -17,13 +17,13 @@ permissions:
 jobs:
   prepare:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout SteveCraft
         uses: actions/checkout@v4
 
       - name: Check conversion Python syntax
-        run: python -m py_compile tools/validate_ai_steve_scene.py tools/export_ai_steve_actor.py
+        run: python -m py_compile tools/validate_ai_steve_scene.py tools/export_ai_steve_actor.py tools/export_template_fbx.py tools/import_ai_steve_fbx.py
 
       - name: Download original Minecraft Java 1.21.11 references
         env:
@@ -56,7 +56,7 @@ jobs:
             "https://mirror.nju.edu.cn/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
           )
           downloaded=0
-          for url in "\${urls[@]}"; do
+          for url in "${urls[@]}"; do
             rm -f blender.tar.xz
             if curl -fL --retry 2 --connect-timeout 20 "$url" -o blender.tar.xz && tar -tJf blender.tar.xz >/dev/null 2>&1; then
               downloaded=1
@@ -68,7 +68,7 @@ jobs:
 
       - name: Export SM64CoopDX template as FBX for web AI editor
         env:
-          STEVE_TEMPLATE_FBX: \${{ github.workspace }}/build/steve-ai-kit/reference/Mario Coop Model Template.fbx
+          STEVE_TEMPLATE_FBX: ${{ github.workspace }}/build/steve-ai-kit/reference/Mario Coop Model Template.fbx
         run: |
           set -euo pipefail
           ./blender-3.6.23-linux-x64/blender -b "build/steve-ai-kit/reference/Mario Coop Model Template.blend" --python tools/export_template_fbx.py
@@ -83,10 +83,9 @@ jobs:
           cat > build/steve-ai-kit/README.txt <<'EOF'
           SteveCraft AI model handoff kit
 
-          Attach the Blender template, PlayerModel.java, HumanoidModel.java,
-          steve.png and steve_rig_spec.json to your 3D AI/editor.
-          Paste AI_MODEL_PROMPT.md as the task prompt.
-          Required output: steve_compatible.blend.
+          For a Blender-capable AI agent, attach the .blend template and paste AI_MODEL_PROMPT.md.
+          For a browser AI editor, upload the .fbx template, attach the Java sources and Steve skin,
+          and paste AI_MODEL_PROMPT_WEB.md. Required output: steve_compatible.fbx.
 
           This kit is reference material for a personal modding workflow.
           Minecraft source and texture assets remain subject to their owners'
