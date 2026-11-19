@@ -6,7 +6,8 @@
 
 SteveCraft = SteveCraft or {}
 SteveCraft.PERSPECTIVE_FIRST_PERSON = 0
-SteveCraft.PERSPECTIVE_THIRD_PERSON = 1
+SteveCraft.PERSPECTIVE_THIRD_PERSON_BACK = 1
+SteveCraft.PERSPECTIVE_THIRD_PERSON_FRONT = 2
 SteveCraft.perspectiveMode = SteveCraft.perspectiveMode or SteveCraft.PERSPECTIVE_FIRST_PERSON
 
 local applyPerspectiveWhenReady = true
@@ -107,6 +108,19 @@ end
 local function apply_perspective(m)
     if m == nil or m.playerIndex ~= 0 then return end
 
+    -- The Android fork implements the actual Minecraft Camera runtime in C++.
+    -- Do not route this mode through NEWCAM: that would be SM64's camera, not
+    -- the reverse-ported Minecraft camera.
+    if stevecraft_camera_enable ~= nil and stevecraft_camera_set_perspective ~= nil then
+        stevecraft_camera_enable(true)
+        stevecraft_camera_set_perspective(SteveCraft.perspectiveMode)
+        set_first_person_enabled(false)
+        applyPerspectiveWhenReady = false
+        show_player_model(m)
+        return
+    end
+
+    -- Compatibility fallback for older builds without the native runtime.
     if SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON then
         enter_first_person(m)
         applyPerspectiveWhenReady = false
@@ -121,13 +135,13 @@ local function on_mario_update(m)
     -- Y toggles first/third person. In third person, use touch-drag to orbit
     -- freely through the rear and front views rather than a button preset.
     if m.controller ~= nil and (m.controller.buttonPressed & Y_BUTTON) ~= 0 then
-        SteveCraft.perspectiveMode = 1 - SteveCraft.perspectiveMode
+        SteveCraft.perspectiveMode = (SteveCraft.perspectiveMode + 1) % 3
         applyPerspectiveWhenReady = true
     end
 
     if applyPerspectiveWhenReady then
         apply_perspective(m)
-    elseif SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_THIRD_PERSON then
+    elseif SteveCraft.perspectiveMode ~= SteveCraft.PERSPECTIVE_FIRST_PERSON then
         show_player_model(m)
     end
 end

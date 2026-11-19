@@ -26,7 +26,9 @@ Mario's hand switches, wing branches and held-object branch are ignored for the 
 
 Because the original SM64 player skeleton is preserved, the actor can use the engine's standard player animation set. This includes the game's standing, walking, running, jumping, falling, landing and damage/death motions.
 
-Minecraft-specific animations have not been authored yet. The next animation pass should add blocky arm/leg timing and an appropriate idle stance without changing the compatible bone names or order.
+The Minecraft-style animation clips are now registered in the engine's native animation format by `animations.lua`. They are generated from the compatible player rig's 20 animated GeoLayout nodes; the animation data contains 63 three-axis channels, including the three unused root-translation slots required by SM64's format.
+
+The model remains on the SM64-compatible hierarchy so multiplayer, camera callbacks and the existing player systems continue to work. The new clips replace the stock pose only while the player is using Steve's model.
 
 ## Runtime checks still required
 
@@ -96,7 +98,7 @@ References:
 - `PlayerModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/player/PlayerModel.java
 - `HumanoidModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/HumanoidModel.java
 
-The geometry proportions are recreated from the source API; Minecraft assets or proprietary textures are not copied. The visible body still uses the SteveCraft material palette rather than the full original skin atlas.
+The PlayerModel body parts are now generated from the Minecraft Java model definitions, and the classic Steve skin is mapped through the matching Minecraft UV regions. The exact conversion is documented in the `Exact Minecraft Java PlayerModel conversion` section below.
 
 ## Minecraft-style perspective controller (0.7.0-alpha)
 
@@ -114,11 +116,50 @@ D-pad controls while in third person:
 
 The ROM_HACK camera's collision solver checks visibility using level surface raycasts and slides the camera toward a clear position. This is the fork's native solver, not a direct copy of Minecraft's eight-ray `Camera.getMaxZoom` implementation. Camera mode changes use zero transition frames and the fixed-camera seed resets interpolation before entering ROM_HACK.
 
-## Minecraft humanoid animation conversion status
 
-`animations.lua` reimplements the Minecraft Java 1.21.11 `HumanoidModel.setupAnim` walk-cycle and crouch-pose formulas. The body keeps the SM64-compatible player armature, which means existing SM64 animation clips still run.
+## Exact Minecraft Java PlayerModel conversion (0.10.0-alpha)
 
-The formula helpers are not yet applied to the rendered bones: the exposed Lua bone-rotation fields are read-only, so the next stage is to bake the curves to SM64 animation value/index arrays with the exact 21-part skeleton order. This remains deliberately disabled until those arrays are validated; using a mismatched index table could corrupt the player pose.
+The normal Steve actor is now generated from the actual model-part definitions in the community decompiled Minecraft Java 1.21.11 source:
+
+- `HumanoidModel.createMesh`: head, body, wide arms and legs.
+- `PlayerModel.createMesh`: jacket, sleeves and pants outer layers.
+- `ModelPart.Cube`: per-face vertex order, face UV rectangles, mirroring, and cube inflation.
+
+The generator creates all 12 PlayerModel cubes. Each part retains the corresponding Minecraft base/outer-layer UV region from the 64x64 Steve skin. `tools/build_steve_skin_textures.py` crops the exact UV rectangles into small per-cube PNGs so the model textures remain within the N64 renderer's texture-memory limits. Fully transparent outer-layer regions are valid and stay transparent; they are not replaced with opaque colours.
+
+Minecraft XYZ positions are mapped into the existing SM64CoopDX player armature's vertical/side/depth axes. Each cube is weighted to the matching existing head, torso, arm or leg group, so the game's player animation hierarchy, camera hooks, and network model selection remain intact. The normal player no longer uses the former simplified primitive-colour Steve body.
+
+The exporter still targets Fast64/DynOS rather than Minecraft's original Java rendering pipeline. Therefore, the base and overlay cuboids, their proportions and skin UV layout are being reproduced; Minecraft's own GPU renderer, lighting, and exact translucent-layer sorting are not transplanted into SM64CoopDX. Alpha/cutout behaviour is delegated to the N64/F3D material pipeline.
+
+Reference files:
+- `PlayerModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/player/PlayerModel.java
+- `HumanoidModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/HumanoidModel.java
+- `ModelPart.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/geom/ModelPart.java
+
+The source repository is a community-maintained decompilation mirror, not an official Mojang source release. The conversion is still an alpha until the DynOS build and Android in-game rendering pass.
+
+## Minecraft humanoid animation port (0.9.0-alpha)
+
+`animations.lua` bakes the Minecraft Java 1.21.11 humanoid formulas into the engine's native `Animation` value/index tables and registers these clips:
+
+- Idle: `AnimationUtils.bobModelPart` on both arms
+- Walk and run: `HumanoidModel.setupAnim` limb equations, with 0.60 and 1.00 fixed walk amounts
+- Crouch and crouch-walk: the source torso and arm rotations, with the walk cycle retained when moving
+- Swim: the source 26-phase arm stroke and leg flutter, sampled at the 30 Hz SM64 update rate
+- Jump, fall and landing: the neutral humanoid pose with the normal Minecraft arm bob; vanilla Minecraft does not add a separate limb animation for a normal jump
+
+The SM64 player GeoLayout has 20 animated nodes (the constant `MARIO_ANIM_PART_MAX` includes the NONE slot). Animation clips therefore use 63 channels: three root-translation slots plus three rotations for each animated node. The node order is kept identical to the stock player rig. Minecraft's local X/Y/Z rotations are remapped to the actor's local axes before baking.
+
+There are deliberate limits in this first implementation. Minecraft calculates `walkAnimationPos` and `walkAnimationSpeed` from entity movement, while the Lua hook exposes SM64 animation IDs rather than that exact pair; consequently, walk and run use fixed amplitudes. Crouch rotations are applied, but the head/body/arm/leg positional offsets from Minecraft are not yet translated into SM64 local units. The normal jump remains neutral because that is closer to vanilla Minecraft than Mario's distinct jump pose.
+
+Source references (decompiled community mirror of Java 1.21.11):
+- `HumanoidModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/HumanoidModel.java
+- `AnimationUtils.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/AnimationUtils.java
+- `PlayerModel.java`: https://github.com/H1lkaaaGD/Minecraft_1.21.11_Source/blob/main/net/minecraft/client/model/player/PlayerModel.java
+
+## Model geometry optimization (0.9.0-alpha)
+
+The Blender generator omits the two coincident internal quads where each turquoise sleeve meets its skin-coloured hand. It also welds the four shared seam vertices inside that same arm vertex group. Vertices are never welded across different animated groups, so the rigid joints stay independent. No silhouette faces are removed. The same optimization is applied to the metallic model variant.
 
 
 ## Body proportions and scale update (0.7.0-alpha)
