@@ -63,19 +63,23 @@ def validate_mesh(mesh_obj, label, required_groups):
 def main():
     mario = require_object("Mario", "ARMATURE")
     body = require_object("Mario Mesh", "MESH")
+    head_armature = require_object("Capless Head", "ARMATURE")
     head = require_object("Capless Head Mesh", "MESH")
     metal = require_object("Metal Mario", "ARMATURE")
     metal_body = require_object("Metal Mario Mesh", "MESH")
+    metal_head_armature = require_object("Metal Capless Head", "ARMATURE")
     metal_head = require_object("Metal Capless Head Mesh", "MESH")
 
-    if body.parent != mario or head.parent != mario:
-        fail("Steve body and capless head must remain parented to Mario")
-    if metal_body.parent != metal or metal_head.parent != metal:
-        fail("the template's Metal Mario branch must be preserved")
+    if body.parent != mario:
+        fail("Mario Mesh must remain parented to Mario")
+    if head.parent != head_armature:
+        fail("Capless Head Mesh must remain parented to the separate Capless Head armature")
+    if metal_body.parent != metal:
+        fail("Metal Mario Mesh must remain parented to Metal Mario")
+    if metal_head.parent != metal_head_armature:
+        fail("Metal Capless Head Mesh must remain parented to Metal Capless Head")
     if not any(m.type == "ARMATURE" and m.object == mario for m in body.modifiers):
         fail("Mario Mesh has no armature modifier targeting Mario")
-    if not any(m.type == "ARMATURE" and m.object == mario for m in head.modifiers):
-        fail("Capless Head Mesh has no armature modifier targeting Mario")
 
     groups = ["Head DL", "Torso", "Left Arm Color", "Right Arm Color",
               "Left Thigh Color", "Right Thigh Color"]
@@ -88,10 +92,12 @@ def main():
         "objects": {
             "Mario": mario.name,
             "Mario Mesh": body_report,
+            "Capless Head": head_armature.name,
             "Capless Head Mesh": head_report,
             "Metal Mario": metal.name,
             "Metal Mario Mesh": {"vertices": len(metal_body.data.vertices),
                                  "polygons": len(metal_body.data.polygons)},
+            "Metal Capless Head": metal_head_armature.name,
             "Metal Capless Head Mesh": {"vertices": len(metal_head.data.vertices),
                                         "polygons": len(metal_head.data.polygons)},
         },
