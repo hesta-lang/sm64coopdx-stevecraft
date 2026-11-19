@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "AI_MODEL_PROMPT.md"
+      - "AI_MODEL_PROMPT_WEB.md"
+      - "tools/export_template_fbx.py"
       - "SM64COOPDX_INTEGRATION_REFERENCE.md"
       - "assets/steve/steve_rig_spec.json"
       - ".github/workflows/prepare-steve-ai-model-kit.yml"
@@ -45,9 +47,37 @@ jobs:
           curl -fL --retry 3 "https://raw.githubusercontent.com/coop-deluxe/character-template/main/Mario%20Coop%20Model%20Template.blend" -o "build/steve-ai-kit/reference/Mario Coop Model Template.blend"
           test -s "build/steve-ai-kit/reference/Mario Coop Model Template.blend"
 
+      - name: Download Blender 3.6 LTS for FBX handoff
+        run: |
+          set -euo pipefail
+          urls=(
+            "https://mirror.blender.org/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+            "https://mirror.freedif.org/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+            "https://mirror.nju.edu.cn/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
+          )
+          downloaded=0
+          for url in "\${urls[@]}"; do
+            rm -f blender.tar.xz
+            if curl -fL --retry 2 --connect-timeout 20 "$url" -o blender.tar.xz && tar -tJf blender.tar.xz >/dev/null 2>&1; then
+              downloaded=1
+              break
+            fi
+          done
+          test "$downloaded" -eq 1
+          tar -xf blender.tar.xz
+
+      - name: Export SM64CoopDX template as FBX for web AI editor
+        env:
+          STEVE_TEMPLATE_FBX: \${{ github.workspace }}/build/steve-ai-kit/reference/Mario Coop Model Template.fbx
+        run: |
+          set -euo pipefail
+          ./blender-3.6.23-linux-x64/blender -b "build/steve-ai-kit/reference/Mario Coop Model Template.blend" --python tools/export_template_fbx.py
+          test -s "build/steve-ai-kit/reference/Mario Coop Model Template.fbx"
+
       - name: Add rig specification and AI instructions
         run: |
           cp AI_MODEL_PROMPT.md build/steve-ai-kit/
+          cp AI_MODEL_PROMPT_WEB.md build/steve-ai-kit/
           cp SM64COOPDX_INTEGRATION_REFERENCE.md build/steve-ai-kit/
           cp assets/steve/steve_rig_spec.json build/steve-ai-kit/reference/
           cat > build/steve-ai-kit/README.txt <<'EOF'
