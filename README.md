@@ -4,6 +4,16 @@ Mod Lua para **SM64CoopDX Android** que sustituye al jugador por Steve de Minecr
 
 **0.14.0-alpha** — nueva ruta de modelado con IA basada en el template oficial de SM64CoopDX, referencias originales de Minecraft Java 1.21.11 y conversión Fast64/DynOS automatizada.
 
+## Nuevo flujo de modelo 3D (alpha)
+
+- Ejecuta [Prepare Steve AI model kit](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/prepare-steve-ai-model-kit.yml) para obtener el kit con el modelo fuente Java, la skin original y el template Blender de SM64CoopDX.
+- Sigue las instrucciones de [AI_MODEL_PROMPT.md](AI_MODEL_PROMPT.md).
+- El resultado debe subirse como `ai-model/steve_compatible.blend` a la rama `stevecraft-ai-model-pipeline-alpha`.
+- El workflow [Convert AI Steve Blender model to DynOS](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/convert-ai-steve-model.yml) valida la escena y exporta el actor.
+
+El modelo 3D generado por IA todavía no está incluido. La exportación no se ejecutará hasta que se suba el archivo Blender compatible. El modelo anterior queda como provisional.
+
+
 
 ## Correcciones de modelo y texturas
 
