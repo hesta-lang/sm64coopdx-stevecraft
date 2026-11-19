@@ -20,6 +20,9 @@ jobs:
       - name: Checkout SteveCraft
         uses: actions/checkout@v4
 
+      - name: Check conversion Python syntax
+        run: python -m py_compile tools/validate_ai_steve_scene.py tools/export_ai_steve_actor.py
+
       - name: Download original Minecraft Java 1.21.11 references
         env:
           SOURCE_REV: fb136698ca0ae1f6e6e5a1b0c964740fb2f6dd18
