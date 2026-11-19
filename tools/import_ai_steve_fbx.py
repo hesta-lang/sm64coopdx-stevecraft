@@ -157,8 +157,9 @@ def main():
         head_candidates[0], head_target, ["Capless Head"], "Capless head"
     )
 
-    # The imported FBX armature is discarded. The template's original Mario
-    # armature, custom GeoLayout metadata, cap switches and animation rig stay.
+    # The imported FBX armatures are discarded. The template's original
+    # Mario and capless-head armatures, GeoLayout metadata and switch branches stay.
+    imported_names = [obj.name for obj in imported]
     for obj in imported:
         bpy.data.objects.remove(obj, do_unlink=True)
 
@@ -169,7 +170,7 @@ def main():
         "retained_template_armature": mario.name,
         "body": body_report,
         "capless_head": head_report,
-        "discarded_import_objects": [obj.name for obj in imported],
+        "discarded_import_objects": imported_names,
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
