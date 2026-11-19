@@ -50,7 +50,9 @@ local function is_air_action(action)
 end
 
 local function input_direction(m)
-    local magnitude = clamp((m.intendedMag or 0.0) / 32.0, 0.0, 1.0)
+    -- LocalPlayer.modifyInput() scales non-zero keyboard input by 0.98.
+    -- Item-use and sneak multipliers are not mapped in this pass.
+    local magnitude = clamp((m.intendedMag or 0.0) / 32.0, 0.0, 1.0) * 0.98
     if magnitude < 0.0001 then return 0.0, 0.0 end
     local yaw = (m.intendedYaw or 0) * (2.0 * PI / 65536.0)
     return math.sin(yaw) * magnitude, math.cos(yaw) * magnitude
@@ -63,6 +65,7 @@ local function convert_coefficients(acceleration_tick, drag_tick)
     local acceleration_frame = acceleration_tick
         * WORLD_UNITS_PER_BLOCK
         * (MINECRAFT_TPS / SM64_FPS)
+        * (drag_tick / drag_frame)
         * ((1.0 - drag_frame) / math.max(0.000001, 1.0 - drag_tick))
     return acceleration_frame, drag_frame
 end
