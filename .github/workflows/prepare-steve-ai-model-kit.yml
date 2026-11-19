@@ -1,0 +1,75 @@
+name: Prepare Steve AI model kit
+
+on:
+  push:
+    paths:
+      - "AI_MODEL_PROMPT.md"
+      - "SM64COOPDX_INTEGRATION_REFERENCE.md"
+      - "assets/steve/steve_rig_spec.json"
+      - ".github/workflows/prepare-steve-ai-model-kit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout SteveCraft
+        uses: actions/checkout@v4
+
+      - name: Download original Minecraft Java 1.21.11 references
+        env:
+          SOURCE_REV: fb136698ca0ae1f6e6e5a1b0c964740fb2f6dd18
+        run: |
+          set -euo pipefail
+          mkdir -p build/steve-ai-kit/reference
+          base="https://raw.githubusercontent.com/H1lkaaaGD/Minecraft_1.21.11_Source/$SOURCE_REV"
+          curl -fL --retry 3 "$base/net/minecraft/client/model/player/PlayerModel.java" -o build/steve-ai-kit/reference/PlayerModel.java
+          curl -fL --retry 3 "$base/net/minecraft/client/model/HumanoidModel.java" -o build/steve-ai-kit/reference/HumanoidModel.java
+          curl -fL --retry 3 "$base/assets/minecraft/textures/entity/player/wide/steve.png" -o build/steve-ai-kit/reference/steve.png
+          test -s build/steve-ai-kit/reference/PlayerModel.java
+          test -s build/steve-ai-kit/reference/HumanoidModel.java
+          test -s build/steve-ai-kit/reference/steve.png
+          python -m pip install --disable-pip-version-check Pillow==11.3.0
+          python -c "from PIL import Image; im=Image.open('build/steve-ai-kit/reference/steve.png'); assert im.size == (64,64), im.size; print('Steve skin:', im.size, im.mode)"
+
+      - name: Download official SM64CoopDX character template
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 "https://raw.githubusercontent.com/coop-deluxe/character-template/main/Mario%20Coop%20Model%20Template.blend" -o "build/steve-ai-kit/reference/Mario Coop Model Template.blend"
+          test -s "build/steve-ai-kit/reference/Mario Coop Model Template.blend"
+
+      - name: Add rig specification and AI instructions
+        run: |
+          cp AI_MODEL_PROMPT.md build/steve-ai-kit/
+          cp SM64COOPDX_INTEGRATION_REFERENCE.md build/steve-ai-kit/
+          cp assets/steve/steve_rig_spec.json build/steve-ai-kit/reference/
+          cat > build/steve-ai-kit/README.txt <<'EOF'
+          SteveCraft AI model handoff kit
+
+          Attach the Blender template, PlayerModel.java, HumanoidModel.java,
+          steve.png and steve_rig_spec.json to your 3D AI/editor.
+          Paste AI_MODEL_PROMPT.md as the task prompt.
+          Required output: steve_compatible.blend.
+
+          This kit is reference material for a personal modding workflow.
+          Minecraft source and texture assets remain subject to their owners'
+          licenses and terms. Do not republish Mojang assets as your own.
+          EOF
+
+      - name: Package kit
+        run: |
+          cd build
+          zip -r stevecraft-steve-ai-model-kit.zip steve-ai-kit
+          test -s stevecraft-steve-ai-model-kit.zip
+
+      - name: Upload AI handoff kit
+        uses: actions/upload-artifact@v4
+        with:
+          name: stevecraft-steve-ai-model-kit
+          path: build/stevecraft-steve-ai-model-kit.zip
+          if-no-files-found: error
+          retention-days: 30
