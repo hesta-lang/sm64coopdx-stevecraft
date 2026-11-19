@@ -70,6 +70,8 @@ def main():
         raise RuntimeError("Exported model has no texture image commands")
     if "G_IM_FMT_RGBA" not in model:
         raise RuntimeError("Exported model has no RGBA texture data")
+    if "G_TF_POINT" not in model:
+        raise RuntimeError("Exported model is missing nearest-neighbor pixel-art filtering")
 
     report = {
         "status": "passed",
