@@ -1,8 +1,7 @@
--- SteveCraft 64 - Minecraft-like free touch camera
--- The third-person camera is SM64CoopDX NEWCAM (Puppycam).
--- In TOUCH_CONTROLS builds it consumes touch_x/touch_y from the native
--- TOUCH_MOUSE region, so the player can orbit by dragging on the right side
--- of the phone screen instead of holding C-buttons or the D-pad.
+-- SteveCraft 64 - Lua-only first/third-person camera.
+-- NEWCAM supplies Android touch orbit and SM64 surface collision. The Lua
+-- API does not expose writable Lakitu position/focus, so camera placement
+-- remains delegated to the engine rather than imitated incompletely.
 
 SteveCraft = SteveCraft or {}
 SteveCraft.PERSPECTIVE_FIRST_PERSON = 0
@@ -32,9 +31,6 @@ end
 local function restore_camera_settings(m)
     if savedCameraSettings == nil then return end
     local settings = savedCameraSettings
-
-    -- Restore options first. Free-camera enable is last because its setter
-    -- calls newcam_init_settings() and restores the mode state.
     camera_config_enable_mouse_look(settings.mouseLook)
     camera_config_enable_collisions(settings.collisions)
     camera_config_enable_analog_cam(settings.analog)
@@ -59,10 +55,6 @@ end
 
 local function configure_touch_free_camera(m)
     save_camera_settings()
-
-    -- NEWCAM is the camera system used by the fork's touchscreen mouse-look.
-    -- TOUCH_MOUSE supplies movement deltas through touch_x/touch_y when the
-    -- user drags in the configured right-hand camera region.
     camera_config_enable_mouse_look(true)
     camera_config_enable_collisions(true)
     camera_config_enable_analog_cam(false)
@@ -86,6 +78,18 @@ local function show_player_model(m)
     end
 end
 
+local function is_local_steve(m)
+    local character = SteveCraft.character
+    return m ~= nil
+        and m.playerIndex == 0
+        and character ~= nil
+        and character.ready
+        and character.modelId ~= nil
+        and gPlayerSyncTable ~= nil
+        and gPlayerSyncTable[0] ~= nil
+        and gPlayerSyncTable[0].modelId == character.modelId
+end
+
 local function enter_first_person(m)
     set_first_person_enabled(false)
     restore_camera_settings(m)
@@ -94,10 +98,7 @@ local function enter_first_person(m)
 end
 
 local function enter_third_person(m)
-    if m == nil or m.area == nil or m.area.camera == nil then
-        return false
-    end
-
+    if m == nil or m.area == nil or m.area.camera == nil then return false end
     set_first_person_enabled(false)
     show_player_model(m)
     configure_touch_free_camera(m)
@@ -105,8 +106,7 @@ local function enter_third_person(m)
 end
 
 local function apply_perspective(m)
-    if m == nil or m.playerIndex ~= 0 then return end
-
+    if not is_local_steve(m) then return end
     if SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON then
         enter_first_person(m)
         applyPerspectiveWhenReady = false
@@ -116,15 +116,11 @@ local function apply_perspective(m)
 end
 
 local function on_mario_update(m)
-    if m == nil or m.playerIndex ~= 0 then return end
-
-    -- Y toggles first/third person. In third person, use touch-drag to orbit
-    -- freely through the rear and front views rather than a button preset.
+    if not is_local_steve(m) then return end
     if m.controller ~= nil and (m.controller.buttonPressed & Y_BUTTON) ~= 0 then
         SteveCraft.perspectiveMode = 1 - SteveCraft.perspectiveMode
         applyPerspectiveWhenReady = true
     end
-
     if applyPerspectiveWhenReady then
         apply_perspective(m)
     elseif SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_THIRD_PERSON then
@@ -133,11 +129,17 @@ local function on_mario_update(m)
 end
 
 local function on_level_init()
-    savedCameraSettings = nil
+    restore_camera_settings(nil)
     applyPerspectiveWhenReady = true
 end
 
 local function on_warp()
+    applyPerspectiveWhenReady = true
+end
+
+local function on_exit()
+    restore_camera_settings(nil)
+    set_first_person_enabled(false)
     applyPerspectiveWhenReady = true
 end
 
@@ -148,3 +150,4 @@ set_first_person_enabled(
 hook_event(HOOK_MARIO_UPDATE, on_mario_update)
 hook_event(HOOK_ON_LEVEL_INIT, on_level_init)
 hook_event(HOOK_ON_WARP, on_warp)
+hook_event(HOOK_ON_EXIT, on_exit)
