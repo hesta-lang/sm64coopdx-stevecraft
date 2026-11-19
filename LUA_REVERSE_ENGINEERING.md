@@ -10,7 +10,7 @@ La referencia es una decompilación comunitaria de Minecraft Java 1.21.11, no un
 
 El mod no necesita funciones C/C++ personalizadas en el APK. Utiliza:
 
-- `HOOK_BEFORE_MARIO_UPDATE` para detectar doble toque hacia delante y actualizar el sprint.
+- `HOOK_MARIO_UPDATE` para detectar doble toque hacia delante después de calcular la entrada de control y actualizar el sprint.
 - `HOOK_BEFORE_SET_MARIO_ACTION` para sustituir los saltos dobles/triples de Mario por el salto ordinario.
 - `HOOK_ON_SET_MARIO_ACTION` para inicializar el impulso vertical de Steve y el impulso de salto corriendo.
 - `HOOK_BEFORE_PHYS_STEP` para aplicar las velocidades adaptadas antes de la resolución de colisiones.
