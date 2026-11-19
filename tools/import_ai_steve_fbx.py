@@ -34,7 +34,12 @@ def make_f3d_material(owner, source_material, slot_index):
         fail("material '{}' has no embedded image texture".format(
             source_material.name if source_material else slot_index
         ))
-    material = createF3DMat(owner, "Shaded Texture")
+    has_alpha = False
+    if image.channels >= 4:
+        pixels = image.pixels
+        has_alpha = any(pixels[index] < 0.999 for index in range(3, len(pixels), 4))
+    preset = "sm64_shaded_texture_cutout" if has_alpha else "Shaded Texture"
+    material = createF3DMat(owner, preset)
     material.name = "AI Steve " + (source_material.name if source_material else str(slot_index))
     try:
         image.colorspace_settings.name = "sRGB"
