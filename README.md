@@ -6,18 +6,13 @@ Mod Lua para **SM64CoopDX Android** que sustituye al jugador por Steve de Minecr
 
 ## Nuevo flujo de modelo 3D (alpha)
 
-- Ejecuta [Prepare Steve AI model kit](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/prepare-steve-ai-model-kit.yml) para obtener el kit con el modelo fuente Java, la skin original y el template Blender de SM64CoopDX.
-- Sigue las instrucciones de [AI_MODEL_PROMPT.md](AI_MODEL_PROMPT.md) o la ruta web descrita en [AI_MODEL_PROMPT_WEB.md](AI_MODEL_PROMPT_WEB.md).
-- Para trabajar desde el navegador del teléfono, usa [AI_MODEL_PROMPT_WEB.md](AI_MODEL_PROMPT_WEB.md) y [AI 3D Editor](https://ai3deditor.com/); el archivo final debe ser `ai-model/steve_compatible.fbx`.
-- Para un agente que edite directamente escenas Blender, usa `AI_MODEL_PROMPT.md`; el archivo final debe ser `ai-model/steve_compatible.blend`.
-- La ruta web produce `ai-model/steve_compatible.fbx` y activa [Convert AI Steve FBX to DynOS](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/convert-ai-steve-fbx.yml).
-- La ruta Blender produce `ai-model/steve_compatible.blend` y activa [Convert AI Steve Blender model to DynOS](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/convert-ai-steve-model.yml).
-- Ambos archivos deben subirse a la rama `stevecraft-ai-model-pipeline-alpha`.
+1. Ejecuta [Prepare Steve AI model kit](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/prepare-steve-ai-model-kit.yml) y descarga el artefacto ZIP.
+2. **Desde Android:** abre [AI 3D Editor](https://ai3deditor.com/), sube `reference/Mario Coop Model Template.fbx`, adjunta `reference/steve.png` y usa [AI_MODEL_PROMPT_WEB.md](AI_MODEL_PROMPT_WEB.md). El resultado debe ser `ai-model/steve_compatible.fbx`.
+3. **Con un agente que edite Blender:** usa `reference/Mario Coop Model Template.blend` y [AI_MODEL_PROMPT.md](AI_MODEL_PROMPT.md). El resultado debe ser `ai-model/steve_compatible.blend`.
+4. Sube el archivo a la rama `stevecraft-ai-model-pipeline-alpha`. El workflow correspondiente valida el rig, los grupos, las UV y los materiales antes de exportar los recursos DynOS.
 
-El modelo 3D generado por IA todavía no está incluido. La exportación no se ejecutará hasta que se suba el archivo Blender compatible. El modelo anterior queda como provisional.
-
-
-
+La fuente Minecraft contiene las definiciones geométricas en Java y la skin PNG; no contiene un archivo OBJ/FBX listo para usar. La IA debe convertir esas referencias en una malla real. El editor web puede modificar FBX mediante prompts, pero no se garantiza que conserve los pesos del esqueleto; el conversor rechazará resultados que pierdan la estructura requerida.
+ 
 ## Correcciones de modelo y texturas
 
 - El generador ahora convierte las posiciones de Minecraft al espacio local de cada malla teniendo en cuenta la rotación de 90° del objeto de malla del template oficial de SM64CoopDX.
