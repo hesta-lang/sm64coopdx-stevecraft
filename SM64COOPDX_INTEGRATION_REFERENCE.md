@@ -43,3 +43,8 @@ A generic actor export does not automatically register a new playable character.
 - Android runtime has no black silhouette, missing textures or sideways pose.
 
 A successful GitHub Actions export validates source conversion only. Visual and animation checks require the Android APK.
+
+
+## Separate capless-head armature
+
+The official character template has a separate `Capless Head` armature for the capless-head switch branch. `Capless Head Mesh` is parented to that armature and uses the `Capless Head` vertex group. The alternate metal branch also has a separate `Metal Capless Head` armature and mesh. Do not parent either head mesh to the main `Mario` armature.
