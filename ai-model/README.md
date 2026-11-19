@@ -7,7 +7,7 @@ Two AI editor routes are supported.
 1. Download the kit from the **Prepare Steve AI model kit** Actions run.
 2. Open [AI 3D Editor](https://ai3deditor.com/) in your browser.
 3. Upload `reference/Mario Coop Model Template.fbx` as the starting model.
-4. Attach `reference/steve.png`, `PlayerModel.java` and `HumanoidModel.java` as references, then paste `AI_MODEL_PROMPT_WEB.md`.
+4. Attach `reference/steve.png` as the texture reference, keep `PlayerModel.java` and `HumanoidModel.java` open as technical references if needed, and paste `AI_MODEL_PROMPT_WEB.md`.
 5. Export the result as FBX, including textures, and upload it here as `ai-model/steve_compatible.fbx`.
 6. The **Convert AI Steve FBX to DynOS** workflow starts automatically.
 
