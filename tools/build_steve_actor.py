@@ -27,6 +27,25 @@ def obj(name, kind):
         raise RuntimeError("Required " + kind + " object missing: " + name)
     return value
 
+def template_object_transform_info(value):
+    def matrix_rows(matrix):
+        return [[round(float(matrix[row][col]), 6) for col in range(4)] for row in range(4)]
+
+    return {
+        "name": value.name,
+        "type": value.type,
+        "parent": value.parent.name if value.parent else None,
+        "location": [round(float(v), 6) for v in value.location],
+        "rotation_euler": [round(float(v), 6) for v in value.rotation_euler],
+        "rotation_quaternion": [round(float(v), 6) for v in value.rotation_quaternion],
+        "rotation_mode": value.rotation_mode,
+        "scale": [round(float(v), 6) for v in value.scale],
+        "matrix_local": matrix_rows(value.matrix_local),
+        "matrix_world": matrix_rows(value.matrix_world),
+        "matrix_parent_inverse": matrix_rows(value.matrix_parent_inverse),
+    }
+
+
 def create_color_material(owner, key, color):
     material = createF3DMat(owner, "Shaded Solid")
     material.name = "Steve " + key.title()
@@ -627,6 +646,11 @@ def main():
         "geo_name": props.geo_name,
         "files": sorted(p.name for p in actor_dir.iterdir() if p.is_file()),
         "mesh_counts": meshes,
+        "template_object_transforms": {
+            name: template_object_transform_info(bpy.data.objects[name])
+            for name in ("Mario", "Mario Mesh", "Capless Head Mesh")
+            if bpy.data.objects.get(name) is not None
+        },
         "minecraft_player_model": {
             "source": "Minecraft Java 1.21.11 PlayerModel.createMesh / HumanoidModel.createMesh",
             "base_cuboids": sum(1 for cube in MINECRAFT_PLAYER_CUBOIDS if not cube["outer"]),
