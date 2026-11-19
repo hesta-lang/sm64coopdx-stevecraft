@@ -283,7 +283,7 @@ local function on_set_mario_action(m)
 
     if m.action == ACT_JUMP then
         state.jumpActive = true
-        state.vy = math.max(JUMP_VELOCITY, (m.vel and m.vel.y) or 0.0)
+        state.vy = JUMP_VELOCITY
         if m.vel ~= nil then
             m.vel.y = state.vy
         end
