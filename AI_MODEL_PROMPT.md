@@ -36,8 +36,10 @@ Open and modify the supplied \`Mario Coop Model Template.blend\`. Do not create 
 Preserve these template objects and names:
 - \`Mario\` — existing player armature.
 - \`Mario Mesh\` — main Steve body mesh, parented to \`Mario\`.
-- \`Capless Head Mesh\` — head-only mesh used by the template's cap/head visibility branch.
-- \`Metal Mario\`, \`Metal Mario Mesh\`, \`Metal Capless Head Mesh\` — preserve the alternate branch; do not delete it.
+- \`Capless Head\` — separate capless-head armature/switch branch.
+- \`Capless Head Mesh\` — head-only mesh parented to \`Capless Head\`.
+- \`Metal Mario\` and \`Metal Mario Mesh\` — preserve the metal body branch.
+- \`Metal Capless Head\` and \`Metal Capless Head Mesh\` — preserve the separate metal capless-head branch.
 
 Keep the existing bone names, hierarchy, pivots, armature modifiers and animation compatibility. Do not rename player bones or invent a new skeleton.
 
@@ -49,7 +51,7 @@ The main body mesh must have populated vertex groups:
 - \`Left Thigh Color\`
 - \`Right Thigh Color\`
 
-The capless head mesh must use the \`Capless Head\` vertex group and remain attached to the same player armature branch.
+The capless head mesh must use the \`Capless Head\` vertex group and remain parented to the separate \`Capless Head\` armature. Do not parent it to \`Mario\`.
 
 Keep Steve facing the same forward direction as the original Mario template. Keep the character upright: head above torso, legs below. Do not rotate the entire character sideways.
 
