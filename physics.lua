@@ -371,9 +371,6 @@ local function after_mario_update(m)
             -- Minecraft applies vertical drag and gravity after movement.
             -- Reading m.vel.y here also respects the solver's ceiling response.
             local actual_vertical = (m.vel and m.vel.y) or state.vy or 0.0
-            if m.ceil ~= nil and actual_vertical > 0.0 then
-                actual_vertical = 0.0
-            end
             state.vy = actual_vertical * VERTICAL_DRAG - VERTICAL_GRAVITY
         elseif not is_air_action(m.action) then
             state.jumpActive = false
