@@ -2,10 +2,17 @@
 
 Mod Lua para **SM64CoopDX Android** que sustituye al jugador por Steve de Minecraft Java 1.21.11, con modelo cúbico, skin clásica, animaciones adaptadas, cámara en primera/tercera persona y movimiento inspirado en Minecraft.
 
-## Versión
+**0.14.0-alpha** — nueva ruta de modelado con IA basada en el template oficial de SM64CoopDX, referencias originales de Minecraft Java 1.21.11 y conversión Fast64/DynOS automatizada.
 
-**0.13.0-alpha** — corrección de orientación/UV del modelo y salto estrictamente vertical, manteniendo el runtime Lua-only.
+## Nuevo flujo de modelo 3D (alpha)
 
+1. Ejecuta [Prepare Steve AI model kit](https://github.com/hesta-lang/sm64coopdx-stevecraft/actions/workflows/prepare-steve-ai-model-kit.yml) y descarga el artefacto ZIP.
+2. **Desde Android:** abre [AI 3D Editor](https://ai3deditor.com/), sube `reference/Mario Coop Model Template.fbx`, adjunta `reference/steve.png` y usa [AI_MODEL_PROMPT_WEB.md](AI_MODEL_PROMPT_WEB.md). El resultado debe ser `ai-model/steve_compatible.fbx`.
+3. **Con un agente que edite Blender:** usa `reference/Mario Coop Model Template.blend` y [AI_MODEL_PROMPT.md](AI_MODEL_PROMPT.md). El resultado debe ser `ai-model/steve_compatible.blend`.
+4. Sube el archivo a la rama `stevecraft-ai-model-pipeline-alpha`. El workflow correspondiente valida el rig, los grupos, las UV y los materiales antes de exportar los recursos DynOS.
+
+La fuente Minecraft contiene las definiciones geométricas en Java y la skin PNG; no contiene un archivo OBJ/FBX listo para usar. La IA debe convertir esas referencias en una malla real. El editor web puede modificar FBX mediante prompts, pero no se garantiza que conserve los pesos del esqueleto; el conversor rechazará resultados que pierdan la estructura requerida.
+ 
 ## Correcciones de modelo y texturas
 
 - El generador ahora convierte las posiciones de Minecraft al espacio local de cada malla teniendo en cuenta la rotación de 90° del objeto de malla del template oficial de SM64CoopDX.
