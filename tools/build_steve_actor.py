@@ -464,16 +464,13 @@ def write_first_person_hand_actor(actor_root):
 def apply_steve_primitive_colors(actor_dir):
     model_path = actor_dir / "model.inc.c"
     source = model_path.read_text(encoding="utf-8")
-    # Only the optional Metal Mario variant still uses primitive colours.
-    # The normal Steve model now uses the full Minecraft skin textures.
+    # Only the optional Metal Mario variant uses primitive colour. Fast64
+    # versions may already export the PRIMITIVE combiner when Shaded Solid is
+    # configured, so accept either combiner and normalize the material safely.
     colors = {
         "Metal": (158, 173, 186),
     }
-    old_combiner = (
-        "gsDPSetCombineLERP(0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT, "
-        "0, 0, 0, SHADE, 0, 0, 0, ENVIRONMENT),"
-    )
-    new_combiner = (
+    primitive_combiner = (
         "gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, "
         "0, 0, 0, PRIMITIVE, 0, 0, 0, 1),"
     )
@@ -482,26 +479,35 @@ def apply_steve_primitive_colors(actor_dir):
         marker = "Gfx mat_steve_Steve_" + material_name + "[] = {"
         start = source.find(marker)
         if start < 0:
-            # The textured Minecraft PlayerModel no longer uses the old
-            # primitive palette; keep the patch optional for absent variants.
             continue
-        end = source.find("\n};", start)
+        end = source.find("\\n};", start)
         if end < 0:
             raise RuntimeError("Unterminated Steve F3D material: " + material_name)
         block = source[start:end + 3]
-        if old_combiner not in block:
-            raise RuntimeError("Unexpected F3D combiner in material: " + material_name)
-        block = block.replace(old_combiner, new_combiner, 1)
-        pipe = "gsDPPipeSync(),"
-        if pipe not in block:
-            raise RuntimeError("Missing pipe sync in material: " + material_name)
-        prim = "gsDPSetPrimColor(0, 0, {}, {}, {}, 255),".format(*rgb)
-        block = block.replace(pipe, pipe + "\n\t" + prim, 1)
+
+        # Replace whichever combiner Fast64 emitted; do not fail just because
+        # a newer exporter already selected PRIMITIVE.
+        combiner_pattern = r"gsDPSetCombineLERP\\([^;]*?\\),"
+        block, combine_count = re.subn(
+            combiner_pattern, primitive_combiner, block, count=1
+        )
+        if combine_count != 1:
+            raise RuntimeError("Missing F3D combiner in material: " + material_name)
+
+        # Keep an existing primitive colour line, or insert one after PipeSync.
+        prim_pattern = r"gsDPSetPrimColor\\([^;]*?\\),"
+        if re.search(prim_pattern, block) is None:
+            pipe = "gsDPPipeSync(),"
+            if pipe not in block:
+                raise RuntimeError("Missing pipe sync in material: " + material_name)
+            prim = "gsDPSetPrimColor(0, 0, {}, {}, {}, 255),".format(*rgb)
+            block = block.replace(pipe, pipe + "\\n\\t" + prim, 1)
+
         source = source[:start] + block + source[end + 3:]
         patched.append(material_name)
+
     model_path.write_text(source, encoding="utf-8")
     return patched
-
 
 def set_steve_root_scale(actor_dir, scale_value=65536):
     geo_path = actor_dir / "geo.inc.c"
