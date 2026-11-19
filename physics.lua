@@ -255,18 +255,6 @@ local function update_horizontal_velocity(m, step_type, state, sprinting)
     end
 end
 
-local function before_mario_update(m)
-    if m == nil or m.playerIndex ~= 0 then return end
-
-    if not physics.enabled or not is_local_steve(m) then
-        sprint_states[0] = nil
-        restore_sprint_fov()
-        return
-    end
-
-    update_sprint_input(m)
-end
-
 local function before_set_mario_action(m, incoming_action, action_arg)
     if not physics.enabled or not is_local_steve(m) then return end
 
@@ -366,12 +354,16 @@ end
 
 local function after_mario_update(m)
     if m == nil or m.playerIndex ~= 0 then return end
-    if not is_local_steve(m) then
+    if not is_local_steve(m) or not physics.enabled then
         states[0] = nil
         sprint_states[0] = nil
         restore_sprint_fov()
         return
     end
+
+    -- HOOK_MARIO_UPDATE runs after controller intent has been calculated.
+    -- The resulting sprint state is consumed by the next physics step.
+    update_sprint_input(m)
 
     local state = states[0]
     if state ~= nil then
@@ -418,7 +410,6 @@ function physics.reset()
     restore_sprint_fov()
 end
 
-hook_event(HOOK_BEFORE_MARIO_UPDATE, before_mario_update)
 hook_event(HOOK_BEFORE_SET_MARIO_ACTION, before_set_mario_action)
 hook_event(HOOK_ON_SET_MARIO_ACTION, on_set_mario_action)
 hook_event(HOOK_BEFORE_PHYS_STEP, before_physics_step)
