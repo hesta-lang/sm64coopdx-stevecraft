@@ -9,6 +9,8 @@
 5. \`reference/steve_rig_spec.json\` — required rig mapping.
 6. \`SM64COOPDX_INTEGRATION_REFERENCE.md\` — target exporter and runtime structure.
 
+The supplied Minecraft source and texture are pinned to the repository snapshot used by the kit workflow. Do not replace them with another Steve skin or model version.
+
 ## Prompt
 
 Edit the supplied Blender character scene for Super Mario 64 Co-op Deluxe (SM64CoopDX). This is a conversion task, not a redesign.
