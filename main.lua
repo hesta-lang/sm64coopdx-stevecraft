@@ -1,13 +1,9 @@
 -- SteveCraft 64
--- Version: 0.10.0-alpha
--- Entry point required by SM64CoopDX.
---
--- SM64CoopDX loads the additional Lua scripts in this mod folder too.
--- Keep this file small; individual systems live in their own files.
+-- Version: 0.11.0-alpha
+-- Lua-only player model, camera, animation and movement layer.
 
 SteveCraft = SteveCraft or {}
-
 SteveCraft.name = "SteveCraft 64"
-SteveCraft.version = "0.10.0-alpha"
+SteveCraft.version = "0.11.0-alpha"
 
 print("[SteveCraft 64] " .. SteveCraft.version .. " loaded")
