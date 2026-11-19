@@ -30,7 +30,7 @@ CRITICAL RIG REQUIREMENTS:
 - Preserve these vertex group names on the main body mesh exactly:
   Head DL, Torso, Left Arm Color, Right Arm Color, Left Thigh Color, Right Thigh Color.
 - Preserve a separate capless head mesh with the Capless Head vertex group.
-- Preserve the object names Mario Mesh and Capless Head Mesh.
+- Preserve the object names Mario Mesh, Capless Head, Capless Head Mesh, Metal Capless Head and Metal Capless Head Mesh.
 - Keep the character upright and facing the same forward direction as the uploaded template.
 - Do not merge the head, torso, arms and legs into one unweighted static object.
 - Do not remove or rename the existing armature.
