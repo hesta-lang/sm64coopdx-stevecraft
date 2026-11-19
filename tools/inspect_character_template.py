@@ -93,6 +93,12 @@ def object_info(obj):
         "location": vec(obj.location),
         "dimensions": vec(obj.dimensions),
         "scale": vec(obj.scale),
+        "rotation_euler": vec(obj.rotation_euler),
+        "rotation_quaternion": vec(obj.rotation_quaternion),
+        "rotation_mode": obj.rotation_mode,
+        "matrix_local": [[round(float(obj.matrix_local[row][col]), 6) for col in range(4)] for row in range(4)],
+        "matrix_world": [[round(float(obj.matrix_world[row][col]), 6) for col in range(4)] for row in range(4)],
+        "matrix_parent_inverse": [[round(float(obj.matrix_parent_inverse[row][col]), 6) for col in range(4)] for row in range(4)],
         "children": [child.name for child in obj.children],
     }
     if obj.type == "MESH":
