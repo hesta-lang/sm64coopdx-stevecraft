@@ -480,14 +480,14 @@ def apply_steve_primitive_colors(actor_dir):
         start = source.find(marker)
         if start < 0:
             continue
-        end = source.find("\\n};", start)
+        end = source.find("\n};", start)
         if end < 0:
             raise RuntimeError("Unterminated Steve F3D material: " + material_name)
         block = source[start:end + 3]
 
         # Replace whichever combiner Fast64 emitted; do not fail just because
         # a newer exporter already selected PRIMITIVE.
-        combiner_pattern = r"gsDPSetCombineLERP\\([^;]*?\\),"
+        combiner_pattern = r"gsDPSetCombineLERP\([^;]*?\),"
         block, combine_count = re.subn(
             combiner_pattern, primitive_combiner, block, count=1
         )
@@ -495,13 +495,13 @@ def apply_steve_primitive_colors(actor_dir):
             raise RuntimeError("Missing F3D combiner in material: " + material_name)
 
         # Keep an existing primitive colour line, or insert one after PipeSync.
-        prim_pattern = r"gsDPSetPrimColor\\([^;]*?\\),"
+        prim_pattern = r"gsDPSetPrimColor\([^;]*?\),"
         if re.search(prim_pattern, block) is None:
             pipe = "gsDPPipeSync(),"
             if pipe not in block:
                 raise RuntimeError("Missing pipe sync in material: " + material_name)
             prim = "gsDPSetPrimColor(0, 0, {}, {}, {}, 255),".format(*rgb)
-            block = block.replace(pipe, pipe + "\\n\\t" + prim, 1)
+            block = block.replace(pipe, pipe + "\n\t" + prim, 1)
 
         source = source[:start] + block + source[end + 3:]
         patched.append(material_name)
