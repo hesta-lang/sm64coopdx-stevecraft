@@ -4,7 +4,6 @@ Mod Lua para **SM64CoopDX Android** que sustituye al jugador por Steve de Minecr
 
 **0.14.0-alpha** — nueva ruta de modelado con IA basada en el template oficial de SM64CoopDX, referencias originales de Minecraft Java 1.21.11 y conversión Fast64/DynOS automatizada.
 
-**0.14.0-alpha** — nueva ruta de modelado con IA basada en el template oficial de SM64CoopDX, referencias originales de Minecraft Java 1.21.11 y conversión Fast64/DynOS automatizada.n de orientación/UV del modelo y salto estrictamente vertical, manteniendo el runtime Lua-only.
 
 ## Correcciones de modelo y texturas
 
