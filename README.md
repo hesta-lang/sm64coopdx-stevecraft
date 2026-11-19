@@ -4,16 +4,16 @@ Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jug
 
 ## Versión
 
-**0.8.0-alpha** — cámara NEWCAM con giro táctil y materiales de Steve corregidos.
+**0.9.0-alpha** — cámara nativa de tres perspectivas con control táctil directo y colisiones por raycast.
 
 ## Cámara
 
-- Y alterna entre primera y tercera persona.
-- En tercera persona se utiliza `CAMERA_MODE_NEWCAM`, el sistema de cámara libre incluido en el fork.
-- Arrastra el dedo por la zona táctil derecha (`TOUCH_MOUSE`) para girar la cámara horizontal y verticalmente.
-- La cámara conserva colisiones de nivel para no atravesar paredes.
-- Las perspectivas trasera y frontal se recorren libremente girando alrededor de Steve; ya no requieren C-buttons ni cruceta.
-- Las opciones de cámara que estaban activas antes de entrar a SteveCraft se guardan y se restauran al volver a primera persona.
+- Y recorre las tres perspectivas de Minecraft: primera persona, tercera persona trasera y tercera persona frontal.
+- El motor nativo coloca la cámara a cuatro bloques de Steve en tercera persona y recorta la distancia mediante ocho rayos de colisión contra la geometría del nivel.
+- Arrastra un dedo por una zona libre de controles en la mitad derecha de la pantalla para mirar alrededor. El gesto no captura los botones virtuales.
+- La orientación es inmediata; la cámara no depende de la interpolación de Lakitu ni de los botones C.
+- La dirección de movimiento se calcula respecto al ángulo de la cámara.
+- La configuración previa de mouse-look y sensibilidad se restaura al salir del juego.
 
 ## Modelo
 
@@ -38,7 +38,7 @@ Las curvas personalizadas aún no están horneadas en clips SM64. El API Lua exp
 1. Descarga el repositorio como ZIP.
 2. Extrae la carpeta completa.
 3. Copia la carpeta del mod en el directorio `mods` de SM64CoopDX.
-4. Inicia un nivel. Pulsa Y para cambiar a tercera persona y arrastra sobre la zona derecha de la pantalla para girar la cámara.
+4. Inicia un nivel. Pulsa Y para recorrer primera persona, tercera persona trasera y tercera persona frontal. Arrastra sobre una zona libre de controles de la mitad derecha para mirar.
 
 ## Validación
 
