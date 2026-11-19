@@ -1,6 +1,6 @@
 # SteveCraft 64
 
-Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jugador por Steve con geometría cúbica y una cámara en tercera persona controlada por el tacto.
+Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jugador por Steve con geometría cúbica, cámara de primera/tercera persona y control táctil.
 
 ## Versión
 
@@ -25,13 +25,15 @@ El actor usa las proporciones clásicas del modelo de Minecraft:
 
 Se mantiene la jerarquía de huesos de jugador de SM64CoopDX. La escala raíz es 1.0. El exportador establece colores primitivos independientes para piel, pelo, ojos, camiseta, pantalón, zapatos y variante metálica; esto evita que las superficies salgan blancas por depender de vértices `SHADE` que se exportan en blanco.
 
-La mano independiente de primera persona usa la skin clásica de Steve 64×64, recortada a seis texturas pequeñas con filtrado por punto.
+La mano independiente de primera persona usa la skin clásica de Steve 64×64, recortada a seis texturas pequeñas con filtrado por punto. El cuerpo todavía usa materiales de color plano: la skin completa 64×64 aún no se aplica a las seis partes del cuerpo.
 
 ## Animaciones
 
-Steve conserva el conjunto de animaciones de jugador compatible del motor. `animations.lua` reimplementa las fórmulas de marcha y agachado de `HumanoidModel.setupAnim` de Minecraft Java 1.21.11.
+Steve conserva el conjunto de animaciones del jugador de SM64CoopDX. `animations.lua` contiene las fórmulas de marcha y agachado de Minecraft Java 1.21.11, pero todavía no las aplica al modelo. Las curvas personalizadas deben convertirse en clips con el orden correcto de los 21 segmentos del esqueleto.
 
-Las curvas personalizadas aún no están horneadas en clips SM64. El API Lua expone las rotaciones de huesos del jugador como solo lectura; para aplicarlas es necesario generar arrays con el orden correcto de los 21 segmentos del esqueleto.
+## Físicas
+
+La versión actual conserva la simulación nativa de SM64CoopDX para movimiento, gravedad, colisiones, agua y acciones especiales. La física de Minecraft todavía no está activa. Sustituir de golpe el integrador de movimiento rompería acciones del juego y requiere una implementación por estados y pruebas en Android.
 
 ## Instalación
 
