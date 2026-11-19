@@ -26,7 +26,7 @@ local SPRINT_DOUBLE_TAP_WINDOW = 11 -- about seven Minecraft ticks at 30 FPS
 local JUMP_POWER_BLOCKS_PER_TICK = 0.42
 local GRAVITY_BLOCKS_PER_TICK2 = 0.08
 local VERTICAL_DRAG_PER_TICK = 0.98
-local SPRINT_JUMP_BOOST_BLOCKS_PER_TICK = 0.2
+-- Horizontal sprint-jump knock-on is intentionally disabled: jumps are vertical-only.
 
 local JUMP_VELOCITY = JUMP_POWER_BLOCKS_PER_TICK
     * WORLD_UNITS_PER_BLOCK * TICK_TO_FRAME
@@ -270,25 +270,21 @@ local function on_set_mario_action(m)
     local state = get_motion_state(m)
 
     if m.action == ACT_JUMP then
+        -- SteveCraft's requested jump mode is strictly vertical. Do not carry
+        -- Mario's forward momentum or Minecraft's sprint-jump horizontal
+        -- knock-on into the jump; both produced visible sideways drift.
         state.jumpActive = true
         state.vy = JUMP_VELOCITY
+        state.vx = 0.0
+        state.vz = 0.0
         if m.vel ~= nil then
+            m.vel.x = 0.0
             m.vel.y = state.vy
+            m.vel.z = 0.0
         end
-
-        local sprint = sprint_states[0] ~= nil and sprint_states[0].sprinting == true
-        if sprint then
-            -- LivingEntity.jumpFromGround() adds 0.2 blocks/tick in body-yaw
-            -- direction when sprinting. This is additive, not a speed replace.
-            local impulse = SPRINT_JUMP_BOOST_BLOCKS_PER_TICK
-                * WORLD_UNITS_PER_BLOCK * TICK_TO_FRAME
-            local yaw = (m.faceAngle.y or 0) * (2.0 * PI / 65536.0)
-            state.vx = (state.vx or 0.0) - math.sin(yaw) * impulse
-            state.vz = (state.vz or 0.0) + math.cos(yaw) * impulse
-            m.vel.x = state.vx
-            m.vel.z = state.vz
-            m.forwardVel = math.sqrt(state.vx * state.vx + state.vz * state.vz)
-        end
+        if m.slideVelX ~= nil then m.slideVelX = 0.0 end
+        if m.slideVelZ ~= nil then m.slideVelZ = 0.0 end
+        if m.forwardVel ~= nil then m.forwardVel = 0.0 end
     elseif m.action == ACT_FREEFALL then
         if not state.jumpActive then
             state.vy = (m.vel and m.vel.y) or 0.0
@@ -341,9 +337,19 @@ local function before_physics_step(m, step_type, step_arg)
     end
 
     if air and state.jumpActive then
-        -- Set the Minecraft vertical velocity before SM64's four collision
-        -- substeps. The solver is not cancelled, so ceilings/floors still work.
+        -- Apply vertical movement only. Clear all horizontal channels after
+        -- Mario's native airborne controller has processed the stick input.
+        -- The original SM64 air-step collision solver still handles landings
+        -- and ceilings, but no horizontal velocity is fed into the step.
+        m.vel.x = 0.0
         m.vel.y = state.vy or 0.0
+        m.vel.z = 0.0
+        if m.forwardVel ~= nil then m.forwardVel = 0.0 end
+        if m.slideVelX ~= nil then m.slideVelX = 0.0 end
+        if m.slideVelZ ~= nil then m.slideVelZ = 0.0 end
+        state.vx = 0.0
+        state.vz = 0.0
+        return
     end
 
     local sprint = step_type == STEP_TYPE_GROUND
