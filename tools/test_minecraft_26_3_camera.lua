@@ -22,7 +22,7 @@ assert(math.abs(rear.desiredDistance - 4) < 1e-6)
 assert(math.abs(rear.position.z - (20 - 4 * math.cos(30 * math.pi / 180))) < 1e-5)
 
 local front = C.camera_pose(entity, "third_person_front", 1)
-assert(math.abs(front.yaw - 190) < 1e-6)
+assert(math.abs(((front.yaw % 360) + 360) % 360 - 190) < 1e-6)
 assert(math.abs(front.pitch + 30) < 1e-6)
 assert(front.position.z > entity.position.z)
 
