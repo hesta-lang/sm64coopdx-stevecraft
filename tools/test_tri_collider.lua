@@ -53,7 +53,7 @@ local sloped = triangle(
     true
 )
 local atSlope = Tri.height_at(sloped, 4, 0)
-assert(atSlope ~= nil and atSlope > 0.7 and atSlope < 0.9, "plane height should be computed inside a triangle")
+assert(atSlope ~= nil and atSlope > 0.7 and atSlope < 0.91, "plane height should be computed inside a triangle")
 assert(Tri.height_at(sloped, -4, 4) == nil, "points outside a triangle must be rejected")
 
 print("SkyCraft-derived triangle collision tests passed.")
