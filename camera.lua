@@ -3,8 +3,11 @@
 -- camera keeps following the Mario physical proxy; Steve is only its visual.
 
 SteveCraft = SteveCraft or {}
+local MinecraftCamera = require("minecraft_26_3_camera")
+SteveCraft.cameraMath = MinecraftCamera
 SteveCraft.PERSPECTIVE_FIRST_PERSON = 0
 SteveCraft.PERSPECTIVE_THIRD_PERSON = 1
+SteveCraft.PERSPECTIVE_THIRD_PERSON_FRONT = 2
 SteveCraft.perspectiveMode = SteveCraft.perspectiveMode or SteveCraft.PERSPECTIVE_FIRST_PERSON
 
 local applyPerspectiveWhenReady = true
@@ -90,10 +93,27 @@ local function enter_first_person(m)
     set_first_person_enabled(true)
 end
 
-local function enter_third_person(m)
+local function apply_minecraft_front_yaw(m)
+    if m == nil or m.area == nil or m.area.camera == nil
+        or m.faceAngle == nil then return end
+
+    local camera = m.area.camera
+    if camera.yaw == nil then return end
+
+    local yaw_degrees = (m.faceAngle.y or 0) * (360.0 / 65536.0)
+    local view_yaw = MinecraftCamera.perspective_rotation(yaw_degrees, 0, true)
+    local sm64_yaw = math.floor((view_yaw * 65536.0 / 360.0) + 0.5) % 65536
+    camera.yaw = sm64_yaw
+    if camera.nextYaw ~= nil then camera.nextYaw = sm64_yaw end
+end
+
+local function enter_third_person(m, front)
     if m == nil or m.area == nil or m.area.camera == nil then return false end
     set_first_person_enabled(false)
     configure_touch_free_camera(m)
+    if front then
+        apply_minecraft_front_yaw(m)
+    end
     return true
 end
 
@@ -103,7 +123,8 @@ local function apply_perspective(m)
         enter_first_person(m)
         applyPerspectiveWhenReady = false
     else
-        applyPerspectiveWhenReady = not enter_third_person(m)
+        local front = SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_THIRD_PERSON_FRONT
+        applyPerspectiveWhenReady = not enter_third_person(m, front)
     end
 end
 
@@ -111,7 +132,7 @@ local function on_mario_update(m)
     if not is_local_steve(m) then return end
 
     if m.controller ~= nil and (m.controller.buttonPressed & Y_BUTTON) ~= 0 then
-        SteveCraft.perspectiveMode = 1 - SteveCraft.perspectiveMode
+        SteveCraft.perspectiveMode = (SteveCraft.perspectiveMode + 1) % 3
         applyPerspectiveWhenReady = true
     end
 
