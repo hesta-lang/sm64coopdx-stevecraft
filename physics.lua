@@ -48,10 +48,18 @@ local function is_local_steve(m)
 end
 
 local function is_ground_action(action)
-    if action == nil then return false end
-    if ACT_FLAG_AIR ~= nil and (action & ACT_FLAG_AIR) ~= 0 then return false end
-    if ACT_FLAG_SWIMMING ~= nil and (action & ACT_FLAG_SWIMMING) ~= 0 then return false end
-    return true
+    return (ACT_IDLE ~= nil and action == ACT_IDLE)
+        or (ACT_WALKING ~= nil and action == ACT_WALKING)
+        or (ACT_START_CROUCHING ~= nil and action == ACT_START_CROUCHING)
+        or (ACT_CROUCHING ~= nil and action == ACT_CROUCHING)
+        or (ACT_STOP_CROUCHING ~= nil and action == ACT_STOP_CROUCHING)
+        or (ACT_BRAKING ~= nil and action == ACT_BRAKING)
+        or (ACT_DECELERATING ~= nil and action == ACT_DECELERATING)
+        or (ACT_BEGIN_SLIDING ~= nil and action == ACT_BEGIN_SLIDING)
+        or (ACT_BUTT_SLIDE ~= nil and action == ACT_BUTT_SLIDE)
+        or (ACT_STOMACH_SLIDE ~= nil and action == ACT_STOMACH_SLIDE)
+        or (ACT_HOLD_IDLE ~= nil and action == ACT_HOLD_IDLE)
+        or (ACT_HOLD_WALKING ~= nil and action == ACT_HOLD_WALKING)
 end
 
 local function is_air_action(action)
