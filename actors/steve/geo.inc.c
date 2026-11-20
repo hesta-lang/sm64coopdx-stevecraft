@@ -276,7 +276,6 @@ const GeoLayout steve_geo[] = {
 		GEO_OPEN_NODE(),
 			GEO_SCALE(LAYER_FORCE, 65536),
 			GEO_OPEN_NODE(),
-				GEO_ASM(0, geo_mirror_mario_set_alpha),
 				GEO_SWITCH_CASE(0, geo_switch_mario_stand_run),
 				GEO_OPEN_NODE(),
 					GEO_NODE_START(),
