@@ -1,5 +1,6 @@
 -- Tests for the SkyCraft-derived triangle collision solver.
-local Tri = dofile("tri_collider.lua")
+dofile("tri_collider.lua")
+local Tri = SteveCraft.triCollision
 
 local function triangle(a, b, c, walkable)
     return assert(Tri.make_triangle(a, b, c, { walkable = walkable }))
