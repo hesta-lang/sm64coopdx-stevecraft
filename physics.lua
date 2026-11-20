@@ -58,6 +58,12 @@ local function is_local_steve(m)
         and proxy.owns_mario_state(m)
 end
 
+local customActionRegistered = false
+local function isolation_active()
+    return physics.enabled and physics.independentMode and customActionRegistered
+end
+
+
 local function is_ground_action(action)
     return (ACT_IDLE ~= nil and action == ACT_IDLE)
         or (ACT_WALKING ~= nil and action == ACT_WALKING)
@@ -332,7 +338,7 @@ local function is_preserved_native_action(action)
 end
 
 local function before_set_mario_action(m, incoming_action, action_arg)
-    if not physics.enabled or not physics.independentMode or not is_local_steve(m) then return end
+    if not isolation_active() or not is_local_steve(m) then return end
     if incoming_action == ACT_STEVECRAFT_CONTROLLED or incoming_action == ACT_UNINITIALIZED then
         return
     end
@@ -361,8 +367,7 @@ local function on_set_mario_action(m)
 end
 
 local function override_mario_geometry_inputs(m)
-    if not physics.enabled or not physics.independentMode or not physics.nativeGeometryDisabled
-        or not is_local_steve(m) then
+    if not isolation_active() or not physics.nativeGeometryDisabled or not is_local_steve(m) then
         return true
     end
 
@@ -383,7 +388,7 @@ local function override_mario_geometry_inputs(m)
 end
 
 local function before_mario_update(m)
-    if not physics.enabled or not physics.independentMode or not is_local_steve(m) then return end
+    if not isolation_active() or not is_local_steve(m) then return end
     if m.action == ACT_STEVECRAFT_CONTROLLED or is_preserved_native_action(m.action) then return end
     set_mario_action(m, ACT_STEVECRAFT_CONTROLLED, 0)
 end
@@ -490,7 +495,7 @@ local function before_physics_step(m, step_type, step_arg)
         return
     end
 
-    if not physics.enabled or not physics.independentMode then
+    if not isolation_active() then
         states[m.playerIndex or 0] = nil
         return
     end
@@ -640,10 +645,11 @@ function physics.reset()
 end
 
 if type(hook_mario_action) == "function" and ACT_STEVECRAFT_CONTROLLED ~= nil then
-    hook_mario_action(ACT_STEVECRAFT_CONTROLLED, {
+    local ok = pcall(hook_mario_action, ACT_STEVECRAFT_CONTROLLED, {
         every_frame = stevecraft_controlled_action,
         gravity = function() return true end,
     })
+    customActionRegistered = ok
 end
 
 hook_event(HOOK_BEFORE_SET_MARIO_ACTION, before_set_mario_action)
@@ -651,7 +657,7 @@ hook_event(HOOK_ON_SET_MARIO_ACTION, on_set_mario_action)
 hook_event(HOOK_BEFORE_MARIO_UPDATE, before_mario_update)
 hook_event(HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS, override_mario_geometry_inputs)
 hook_event(HOOK_ALLOW_FORCE_WATER_ACTION, function(m)
-    if physics.enabled and physics.independentMode and is_local_steve(m) then
+    if isolation_active() and is_local_steve(m) then
         return false
     end
 end)
