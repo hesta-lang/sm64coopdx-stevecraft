@@ -1,5 +1,6 @@
 package net.minecraft.client.model;
 import net.minecraft.world.entity.HumanoidArm;
+// Selected source-derived method excerpts; the full Minecraft type is omitted.
 // Minimal Minecraft 26.3 method fixtures; CI refreshes selected bodies from NeoForm gameSources.
 public class HumanoidModel<T extends HumanoidRenderState> extends EntityModel<T> {
  public final ModelPart head;

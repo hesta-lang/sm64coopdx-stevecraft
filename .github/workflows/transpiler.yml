@@ -177,7 +177,7 @@ jobs:
           python - <<'PY'
           import json
           r=json.load(open("build/transpiled-real/transpile-report.json",encoding="utf-8"))
-          assert r["translated_methods"]==4 and len(r["skipped_methods"])==6 and r["strict_blockers"]==6 and not r["skipped_files"],r
+          assert r["translated_methods"]==4 and len(r["skipped_methods"])==6 and r["strict_blockers"]==6 and not r["skipped_files"] and set(r["generated_modules"])=={"net/minecraft/client/model/HumanoidModel.lua","net/minecraft/client/model/player/PlayerModel.lua"},r
           reasons=" | ".join(x["reason"] for x in r["skipped_methods"])
           for x in ("super calls","ternary conditional operator","object construction","lambda/method reference","unadapted Minecraft engine type/API"): assert x in reasons,r
           print("Translated real Minecraft methods:",r["translated_methods"],"Skipped conservatively:",len(r["skipped_methods"]))

@@ -84,7 +84,7 @@ def main():
    for imported in info["imports"]:
     if imported in ("net.minecraft.util.Util","net.minecraft.world.entity.HumanoidArm"):
      wrapper.append(f"import {imported};")
-   wrapper.extend(["","// Source-derived method excerpts only; the full class is not copied.",info["class_declaration"]])
+   wrapper.extend(["","// Selected source-derived method excerpts; the full Minecraft type is omitted.",info["class_declaration"]])
    for field in spec["fixture_fields"]:
     declaration=next((line.strip() for line in source.splitlines()
       if re.match(r"^[ \t]*(?:public|protected|private)\b",line) and re.search(rf"\b{re.escape(field)}\s*(?:;|=)",line)),None)
