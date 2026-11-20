@@ -1,0 +1,72 @@
+name: SteveCraft Java-to-Lua transpiler
+
+on:
+  push:
+    branches:
+      - stevecraft-java-lua-transpiler-alpha
+    paths:
+      - "tools/java_to_lua.py"
+      - "tools/mc_sources_fixture/**"
+      - "tools/mc_transpiler_test.py"
+      - "tools/verify_transpiled.lua"
+      - "mc_compat.lua"
+      - ".github/workflows/transpiler.yml"
+  pull_request:
+    paths:
+      - "tools/java_to_lua.py"
+      - "tools/mc_sources_fixture/**"
+      - "tools/mc_transpiler_test.py"
+      - "tools/verify_transpiled.lua"
+      - "mc_compat.lua"
+      - ".github/workflows/transpiler.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transpiler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Lua 5.4
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4
+      - name: Check Python syntax
+        run: python -m py_compile tools/java_to_lua.py tools/mc_transpiler_test.py
+      - name: Run transpiler integration tests
+        run: python -m unittest discover -s tools -p "mc_transpiler_test.py" -v
+      - name: Translate Java fixture source
+        run: |
+          python tools/java_to_lua.py \
+            --input tools/mc_sources_fixture \
+            --output build/transpiled \
+            --version fixture-validation
+          python - <<'PY'
+          import json
+          report = json.load(open("build/transpiled/transpile-report.json", encoding="utf-8"))
+          assert report["translated_methods"] == 4, report
+          assert len(report["skipped_methods"]) == 1, report
+          assert report["strict_blockers"] == 1, report
+          assert not report["skipped_files"], report
+          print("Generated methods:", report["translated_methods"])
+          print("Expected unsupported methods:", len(report["skipped_methods"]))
+          PY
+      - name: Validate generated Lua syntax
+        run: |
+          luac5.4 -p mc_compat.lua
+          find build/transpiled -name "*.lua" -print0 | xargs -0 -r luac5.4 -p
+      - name: Execute generated modules
+        run: lua5.4 tools/verify_transpiled.lua
+      - name: Upload translated Lua and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: stevecraft-java-to-lua-fixture
+          path: |
+            build/transpiled/
+            mc_compat.lua
