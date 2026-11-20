@@ -12,6 +12,50 @@ SteveCraft.perspectiveMode = SteveCraft.perspectiveMode or SteveCraft.PERSPECTIV
 
 local applyPerspectiveWhenReady = true
 local savedCameraSettings = nil
+local savedFirstPersonEyeOffsetY = nil
+local lastEyeOffsetY = nil
+
+local function restore_first_person_eye_offset()
+    local fp = gFirstPersonCamera
+    if savedFirstPersonEyeOffsetY == nil or fp == nil or fp.offset == nil then return end
+    pcall(function() fp.offset.y = savedFirstPersonEyeOffsetY end)
+    savedFirstPersonEyeOffsetY = nil
+    lastEyeOffsetY = nil
+end
+
+local function is_minecraft_crouching(m)
+    local physics = SteveCraft.physics
+    if physics ~= nil and type(physics.get_animation_state) == "function" then
+        local ok, state = pcall(physics.get_animation_state, m)
+        if ok and state ~= nil then return state.crouching == true end
+    end
+
+    local input = m ~= nil and m.input or 0
+    if INPUT_Z_DOWN ~= nil and (input & INPUT_Z_DOWN) ~= 0 then return true end
+    return ACT_CROUCHING ~= nil and m ~= nil and m.action == ACT_CROUCHING
+end
+
+local function update_minecraft_eye_height(m)
+    local fp = gFirstPersonCamera
+    if fp == nil or fp.offset == nil then return false end
+
+    if savedFirstPersonEyeOffsetY == nil then
+        local ok, value = pcall(function() return fp.offset.y end)
+        if not ok or type(value) ~= "number" then return false end
+        savedFirstPersonEyeOffsetY = value
+    end
+
+    local unitsPerBlock = 160.0 / 1.8
+    local wanted = MinecraftCamera.player_eye_offset(
+        is_minecraft_crouching(m), unitsPerBlock, 120.0
+    )
+    if lastEyeOffsetY ~= wanted then
+        local ok = pcall(function() fp.offset.y = wanted end)
+        if not ok then return false end
+        lastEyeOffsetY = wanted
+    end
+    return true
+end
 
 local function save_camera_settings()
     if savedCameraSettings ~= nil then return end
@@ -91,6 +135,7 @@ local function enter_first_person(m)
     set_first_person_enabled(false)
     restore_camera_settings(m)
     set_first_person_enabled(true)
+    update_minecraft_eye_height(m)
 end
 
 local function apply_minecraft_front_yaw(m)
@@ -110,6 +155,7 @@ end
 
 local function enter_third_person(m, front)
     if m == nil or m.area == nil or m.area.camera == nil then return false end
+    restore_first_person_eye_offset()
     set_first_person_enabled(false)
     configure_touch_free_camera(m)
     if front then
@@ -140,10 +186,16 @@ local function on_mario_update(m)
     if applyPerspectiveWhenReady then
         apply_perspective(m)
     end
+
+    if SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON
+        and get_first_person_enabled() then
+        update_minecraft_eye_height(m)
+    end
 end
 
 local function on_level_init()
     restore_camera_settings(nil)
+    restore_first_person_eye_offset()
     applyPerspectiveWhenReady = true
 end
 
@@ -153,6 +205,7 @@ end
 
 local function on_exit()
     restore_camera_settings(nil)
+    restore_first_person_eye_offset()
     set_first_person_enabled(false)
     applyPerspectiveWhenReady = true
 end
