@@ -1,14 +1,14 @@
 # SteveCraft 64
 
-Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como Steve y mantiene el código de SteveCraft separado del motor. Usa un proxy físico basado en la entidad nativa del motor y un modelo Steve renderizado por separado.
+Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como Steve y mantiene el código de SteveCraft separado del motor. Usa MarioState como puente con el motor y un modelo Steve renderizado por separado; SteveCraft controla los pasos de movimiento interceptados.
 
 ## Versión
 
-**0.17.0-alpha** — corrige la visibilidad del actor DynOS independiente y reconcilia las velocidades de Steve con el desplazamiento real aceptado por el motor; añade movimiento sumergido experimental.
+**0.18.0-alpha** — incorpora un controlador Lua que sustituye los pasos nativos de movimiento de Mario en suelo, aire y agua cuando el adaptador de superficies está disponible.
 
 ## Proxy físico/visual
 
-- **MarioState y marioObj siguen siendo la autoridad física única:** el motor conserva el movimiento, gravedad, paredes, superficies, colisiones, daño e interacciones.
+- **MarioState y marioObj siguen siendo el contenedor de estado compatible con el motor:** SteveCraft escribe su posición y velocidad, y ejecuta su propia integración de movimiento. El motor sigue proporcionando las consultas de geometría y el sistema de interacciones.
 - **Steve es un objeto visual independiente:** cada cliente crea una representación local de Steve para cada jugador y la sincroniza con el objeto físico correspondiente.
 - El objeto visual no tiene hitbox, interacciones ni gravedad. No procesa movimiento ni colisiones.
 - El GeoLayout independiente ya no llama a `geo_mirror_mario_set_alpha`: esa rutina lee `MarioBodyState.modelState`, que el proxy pone a alfa cero para ocultar a Mario. Mantenerla también ocultaba a Steve y dejaba visible solo su sombra.
@@ -18,19 +18,21 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 - En primera persona se oculta el cuerpo visual independiente y se conserva el brazo viewmodel de Steve.
 - La cámara nativa continúa siguiendo al proxy físico. La API Lua no expone un destino Lakitu editable para implementar una cámara Minecraft completamente independiente.
 
-Este Proxy separa la representación del cuerpo que colisiona. **MarioState sigue siendo la única autoridad física** y el motor resuelve los contactos finales.
+Este Proxy separa la representación del cuerpo visual. **SteveCraft es ahora el propietario de la integración de movimiento** para los pasos que consigue interceptar; MarioState se conserva como estado puente para el motor, red e interacciones.
 
 ## Colisiones triangulares de SkyCraft/MarioCraft
 
 - Se portó a Lua el algoritmo de `TriCollider` de SkyCraft: subpasos para evitar atravesar paredes, empuje lateral, muestreo de suelo bajo los pies, subida de escalones, seguimiento de pendientes y recorte contra techos.
 - `sm64_collision_adapter.lua` consulta las superficies reales de SM64CoopDX con `find_floor`, `find_ceil` y `find_wall_collisions`; no lee memoria ni modifica los pools de colisión del motor.
-- El desplazamiento propuesto se limita antes del paso físico normal. Después, SM64CoopDX sigue ejecutando su resolvedor original, sus acciones, las interacciones y sus colisiones dinámicas.
+- El adaptador consulta superficies reales de SM64CoopDX y el resolvedor triangular de SteveCraft calcula el desplazamiento aceptado. El cuerpo utiliza una huella radial y altura configurable, no una caja AABB voxel exacta.
+- `HOOK_BEFORE_PHYS_STEP` cancela `perform_ground_step`, `perform_air_step` o `perform_water_step` devolviendo resultados compatibles cuando el resolvedor Lua completa el movimiento. Así se omiten el movimiento, colisiones finales y gravedad integrados en esos pasos nativos para el jugador local.
+- La posición, velocidad, datos de contacto básicos y transformación gráfica se actualizan desde Lua. Si no se puede consultar la geometría o escribir la posición, el código cae de forma segura al paso nativo.
 - La adaptación usa la escala de SteveCraft actual, todavía provisional. No copia la conversión Windows de MarioCraft (100 unidades SM64 por bloque).
 - No se importó el puente de memoria compartida de Windows ni el cliente Fabric/Minecraft que MarioCraft arranca en segundo plano.
 
-La precolisión triangular está desactivada por defecto porque SM64CoopDX ya realiza su propio paso de colisión en el mismo movimiento; aplicar dos resolutores seguidos puede causar bloqueos o vibraciones. Se puede habilitar experimentalmente con `SteveCraft.physics.set_triangle_collision_enabled(true)` y desactivar con `false`.
+El controlador independiente está activado por defecto. Para volver temporalmente al paso de movimiento nativo durante un diagnóstico, usa `SteveCraft.physics.set_independent_mode(false)`; para reactivarlo, `SteveCraft.physics.set_independent_mode(true)`. La precolisión triangular opcional solo se utiliza en el modo de respaldo.
 
-**Esto no convierte las físicas de SM64 en las físicas completas de Minecraft.** MarioCraft obtiene velocidad, gravedad, fricción, saltos y demás del propio Minecraft Java que ejecuta por separado; el algoritmo reutilizado aquí solo resuelve geometría triangular.
+**Esto todavía no equivale a las físicas completas de Minecraft.** SteveCraft ya controla aceleración, gravedad, arrastre, salto y el paso de movimiento cuando el hook puede reemplazarlo, pero la geometría procede de las superficies triangulares de SM64CoopDX. No existe aún una colisión AABB contra una cuadrícula de bloques Minecraft.
 
 Consulta [PROXY_ARCHITECTURE.md](PROXY_ARCHITECTURE.md) y [MARIOCRAFT_PORT.md](MARIOCRAFT_PORT.md) para los límites y el detalle de la adaptación.
 
@@ -44,12 +46,12 @@ El movimiento se separó en minecraft_26_3_physics.lua, una traducción de compo
 - Gravedad y arrastre vertical: gravedad por defecto 0.08 y factor vertical 0.98, aplicados en el mismo orden que el paso de movimiento de Minecraft.
 - Salto: usa la fuerza de salto por defecto 0.42, conserva el momento horizontal y aplica el impulso de sprint de 0.2 bloques/tick.
 - Sprint: doble toque hacia delante con ventana equivalente a la configuración predeterminada documentada.
-- Movimiento sumergido: se conecta al hook real `STEP_TYPE_WATER`, usa velocidad de agua, eficiencia configurable, arrastre y los controles verticales A/Z. El paso de agua nativo conserva la resolución de suelo/techo y sus corrientes.
-- Colisión/velocidad: guarda la velocidad solicitada antes del paso SM64 y la reconcilia con el desplazamiento observado. En aire no vuelve a leer la velocidad vertical después de que `perform_air_step()` ya haya ejecutado `apply_gravity()`; esto evita sumar una segunda gravedad de Mario a la gravedad de Minecraft.
+- Movimiento sumergido: reemplaza el paso `STEP_TYPE_WATER` cuando el hook puede resolverlo, usa velocidad de agua, eficiencia configurable, arrastre y controles verticales A/Z.
+- Colisión/velocidad: el solver triangular calcula el desplazamiento aceptado antes de que el motor ejecute su resolver. La posición se escribe directamente en MarioState y el módulo sincroniza la transformación gráfica. La gravedad nativa no se ejecuta en los pasos interceptados.
 
-Las recurrencias de 20 TPS se convierten matemáticamente a los 30 FPS del juego. La conversión de escala entre bloques y unidades SM64 sigue siendo provisional (160 unidades por 1.8 m). Los atributos, modificadores de objetos y estado de hambre que el motor Lua no expone requieren datos externos; SteveCraft.usingItem, SteveCraft.canSprint y el proveedor de fricción son entradas opcionales.
+Las recurrencias de 20 TPS se convierten matemáticamente a los 30 FPS del juego. En modo independiente el hook cancela el paso físico nativo de suelo/aire/agua y actualiza `MarioState.pos` directamente. La conversión de escala entre bloques y unidades SM64 sigue siendo provisional (160 unidades por 1.8 m). Los atributos, modificadores de objetos y estado de hambre que el motor Lua no expone requieren datos externos; SteveCraft.usingItem, SteveCraft.canSprint y el proveedor de fricción son entradas opcionales.
 
-**Límite esencial:** esto no sustituye el movimiento/colisión voxel-AABB de Minecraft. MarioState y el motor SM64 siguen resolviendo la colisión final. El paso de agua reproduce solo el movimiento sumergido normal; las corrientes de SM64 se añaden después del hook y no se integran aún como velocidad persistente. Lava, escaleras, vuelo, monturas, efectos, sprint por atributos y fricción por bloque aún no tienen paridad completa.
+**Límite esencial:** se evita el paso nativo de movimiento solo en las llamadas interceptadas; el preprocesamiento nativo `update_mario_geometry_inputs()` sigue activo para conservar `floor`, `ceil`, agua y flags de acciones. Ese prepaso aún ejecuta una corrección preliminar de paredes. No se ha desactivado completamente cada cálculo de Mario. También se mantienen las superficies triangulares de SM64 como geometría consultada. El cuerpo usa una aproximación radial de 0.3 bloques, no AABB real. Las acciones especiales que no pasan por `HOOK_BEFORE_PHYS_STEP`, los daños/estados de Mario, corrientes, lava, escaleras, vuelo, monturas, efectos, sprint por atributos y fricción por bloque aún no tienen paridad completa. Si el adaptador falla, se permite un paso nativo de respaldo.
 
 ## FOV
 
@@ -82,12 +84,13 @@ El modelo se mantiene dentro de este repositorio independiente. No se modifica e
 ## Límites actuales
 
 - La equivalencia entre bloques Minecraft y unidades SM64 sigue siendo provisional.
-- El pre-resolutor triangular queda desactivado por defecto para no duplicar el resolvedor nativo. Es una opción experimental, no un reemplazo de las colisiones AABB/voxel de Minecraft.
-- La ruta de agua es experimental: conserva la colisión de agua y las corrientes que gestiona SM64, pero no reproduce las corrientes Minecraft persistentes, burbujas, fluidos personalizados ni todos los estados de nado. Lava y modificadores individuales de bloque siguen incompletos.
+- El bypass solo cubre las llamadas `STEP_TYPE_GROUND`, `STEP_TYPE_AIR` y `STEP_TYPE_WATER`; acciones especiales que no usan esos pasos pueden seguir ejecutando movimiento de Mario.
+- El colisionador horizontal usa una aproximación radial de 0.3 bloques de radio, no un AABB rectangular exacto. Las superficies consultadas siguen siendo triángulos de SM64.
+- La ruta de agua aún no reproduce corrientes Minecraft persistentes, burbujas, fluidos personalizados ni todos los estados de nado. Lava y modificadores individuales de bloque siguen incompletos.
 - El Proxy aún depende de las animaciones del esqueleto SM64; no reemplaza los clips por los controladores Java de Minecraft.
 - La API Lua no permite escribir directamente la posición/foco de Lakitu para una cámara Minecraft totalmente separada.
 - La eliminación de `geo_mirror_mario_set_alpha` corrige el acoplamiento conocido entre la alfa de Mario y el cuerpo de Steve; sigue pendiente confirmar el renderizado real en SM64CoopDX Android.
-- Un build correcto y un análisis sintáctico Lua no sustituyen la prueba real del mod en SM64CoopDX Android.
+- Un build correcto y las pruebas simuladas no demuestran que el bypass funcione en tiempo real con el fork Android. Es imprescindible verificar en dispositivo el movimiento, la cámara, las transiciones de acciones, las colisiones, el agua y los límites del nivel.
 
 ## Referencias de ingeniería inversa
 
