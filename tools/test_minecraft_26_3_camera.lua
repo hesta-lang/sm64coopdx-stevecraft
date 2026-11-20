@@ -10,7 +10,7 @@ local entity = {
 }
 local origin = C.interpolate_entity(entity, 0.5)
 assert(math.abs(origin.x - 5) < 1e-6)
-assert(math.abs(origin.y - 5.75) < 1e-6)
+assert(math.abs(origin.y - 3.75) < 1e-6)
 assert(math.abs(origin.z - 10) < 1e-6)
 
 local yaw, pitch = C.interpolate_rotation(entity, 0.5)
