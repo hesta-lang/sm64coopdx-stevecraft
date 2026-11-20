@@ -77,7 +77,7 @@ local function make_mario(index, globalIndex)
         oMoveAnglePitch = 0, oMoveAngleYaw = 0x4000, oMoveAngleRoll = 0,
         oAnimations = { name = "mario-player-animations" },
         oAnimState = 3,
-        header = { gfx = { animInfo = anim, scale = { x = 1.1, y = 1.2, z = 1.3 } } },
+        header = { gfx = { animInfo = anim, scale = { x = 1.1, y = 1.2, z = 1.3 }, shadowInvisible = false } },
     }
     return {
         playerIndex = index,
