@@ -6,6 +6,9 @@ import sys
 from mathutils import Vector
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from steve_geo_sanitizer import sanitize_steve_geo_source
+
 ADDON_PARENT = Path(os.environ["FAST64_ADDON"]).resolve()
 ADDON_ROOT = ADDON_PARENT / "fast64_gart"
 if not (ADDON_ROOT / "__init__.py").is_file():
@@ -433,15 +436,9 @@ def freeze_steve_eye_switches():
 def sanitize_unsupported_geo_commands(actor_dir):
     geo_path = actor_dir / "geo.inc.c"
     source = geo_path.read_text(encoding="utf-8")
-    source, removed = re.subn(
-        r"(?m)^[ \t]*CUSTOM_CMD\(\),[ \t]*(?:\r?\n|$)",
-        "",
-        source,
-    )
-    if "CUSTOM_CMD" in source:
-        raise RuntimeError("Unsupported CUSTOM_CMD token remains in Steve GeoLayout")
-    geo_path.write_text(source, encoding="utf-8")
-    return removed
+    sanitized, report = sanitize_steve_geo_source(source)
+    geo_path.write_text(sanitized, encoding="utf-8")
+    return report
 
 
 def write_first_person_hand_actor(actor_root):
@@ -646,7 +643,7 @@ def main():
     if missing:
         raise RuntimeError("Fast64 is missing exported actor files: " + ", ".join(missing))
 
-    removed_custom_commands = sanitize_unsupported_geo_commands(actor_dir)
+    geo_sanitization = sanitize_unsupported_geo_commands(actor_dir)
     primitive_materials = apply_steve_primitive_colors(actor_dir)
     steve_root_scale = set_steve_root_scale(actor_dir, 65536)
     first_person_hand = write_first_person_hand_actor(actor_root)
@@ -683,7 +680,8 @@ def main():
         },
         "disabled_vanilla_branches": disabled,
         "static_eye_switches": static_eye_switches,
-        "unsupported_custom_commands_removed": removed_custom_commands,
+        "unsupported_custom_commands_removed": geo_sanitization["unsupported_custom_commands_removed"],
+        "shared_mario_alpha_callbacks_removed": geo_sanitization["shared_mario_alpha_callbacks_removed"],
         "steve_root_scale": steve_root_scale,
         "metal_variant_primitive_materials": primitive_materials,
         "first_person_hand": first_person_hand,
