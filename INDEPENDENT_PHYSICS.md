@@ -10,7 +10,7 @@ The mod does not modify SM64CoopDX C/C++ source or the APK.
 
 At load time, SteveCraft registers `ACT_STEVECRAFT_CONTROLLED` with `hook_mario_action()`. The action uses the currently unused cutscene-group slot `0x13F` so the ordinary stationary/moving/airborne/submerged Mario action handlers are not dispatched. It preserves reading/dialog actions needed for text UI.
 
-`HOOK_BEFORE_MARIO_UPDATE` moves an attached local Steve into this action. `HOOK_BEFORE_SET_MARIO_ACTION` redirects subsequent native locomotion and physical-action transitions back to the Steve action. The custom action calls the exposed ground, air and water step functions only as entry points: `HOOK_BEFORE_PHYS_STEP` returns SteveCraft's own step result before the engine's native movement resolver or gravity executes.
+`HOOK_BEFORE_MARIO_UPDATE` moves an attached local Steve into this action. `HOOK_BEFORE_SET_MARIO_ACTION` redirects subsequent native locomotion and physical-action transitions back to the Steve action. The native waiting-for-dialog action is itself overridden by the Steve callback, which preserves the engine's check for whether an NPC can start a conversation. The custom action calls the exposed ground, air and water step functions only as entry points: `HOOK_BEFORE_PHYS_STEP` returns SteveCraft's own step result before the engine's native movement resolver or gravity executes.
 
 The custom action supplies Steve-specific animation selection. Its gravity action hook suppresses native `apply_gravity()` if any path requests it. The force-water-action hook prevents Mario from automatically switching Steve into Mario's native swimming/plunge actions.
 
