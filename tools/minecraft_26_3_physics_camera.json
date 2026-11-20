@@ -1,0 +1,78 @@
+{
+  "minecraft_version": "26.3",
+  "reference": {
+    "name": "Unofficial community decompiled Minecraft 26.x source index",
+    "url": "https://mc-packet-reference.netlify.app/26.x/",
+    "note": "Behavioral port reference only. No decompiled Mojang source files are copied into this repository."
+  },
+  "ports": [
+    {
+      "class": "net.minecraft.client.player.LocalPlayer",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/player/localplayer/",
+      "lua_module": "minecraft_26_3_physics.lua",
+      "status": "behavioral_port_with_input_adapter",
+      "methods": [
+        "modifyInput",
+        "modifyInputSpeedForSquareMovement",
+        "aiStep sprint-trigger behavior"
+      ],
+      "limitations": [
+        "SM64CoopDX does not expose Minecraft item-use state or hunger attributes; optional SteveCraft.usingItem and SteveCraft.canSprint flags are adapter inputs.",
+        "Sprint is implemented through forward double-tap; a dedicated Minecraft sprint key binding is not present.",
+        "Input is sampled at SM64 frame rate and mapped from MarioState intendedMag/intendedYaw."
+      ]
+    },
+    {
+      "class": "net.minecraft.world.entity.LivingEntity",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/world/entity/livingentity/",
+      "lua_module": "minecraft_26_3_physics.lua",
+      "status": "normal_ground_air_jump_behavior_ported",
+      "methods": [
+        "getFrictionInfluencedSpeed",
+        "travelInAir",
+        "handleRelativeFrictionAndCalculateMovement",
+        "jumpFromGround",
+        "effective gravity and velocity drag"
+      ],
+      "limitations": [
+        "Default block friction is 0.6 unless SteveCraft.physics.set_block_friction_provider supplies a value.",
+        "Water, lava, ladders, crawling, flight, effects, mounts, attributes beyond exposed defaults, and block-specific collision behavior are not fully implemented.",
+        "SM64CoopDX remains the final triangle and wall collision resolver; this is not Minecraft's voxel/AABB collision engine."
+      ]
+    },
+    {
+      "class": "net.minecraft.world.entity.Entity",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/world/entity/entity/",
+      "lua_module": "minecraft_26_3_physics.lua",
+      "status": "input_vector_rotation_ported",
+      "methods": [
+        "getInputVector"
+      ]
+    },
+    {
+      "class": "net.minecraft.client.Camera",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/camera/",
+      "lua_module": "minecraft_26_3_camera.lua",
+      "status": "camera_math_ported_engine_adapter_partial",
+      "methods": [
+        "interpolated entity eye position",
+        "interpolated view rotation",
+        "third-person rear/front transform",
+        "four-block default distance with scale/camera-distance multipliers",
+        "eight offset VISUAL/no-fluid collision ray algorithm"
+      ],
+      "limitations": [
+        "The ray algorithm requires a Minecraft-style block raycast callback and is tested independently, not wired to SM64 triangle queries.",
+        "SM64CoopDX Lua exposes camera yaw but camera position/focus are read-only; NEWCAM still owns the actual camera placement and collision."
+      ]
+    }
+  ],
+  "validation": {
+    "syntax": "luac5.4 -p",
+    "tests": [
+      "tools/test_minecraft_26_3_physics.lua",
+      "tools/test_minecraft_26_3_camera.lua"
+    ],
+    "runtime_test": "Not yet tested inside SM64CoopDX Android."
+  }
+}
