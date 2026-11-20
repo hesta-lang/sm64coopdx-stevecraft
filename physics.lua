@@ -1,39 +1,24 @@
--- SteveCraft 64 - Lua-only Minecraft Java 1.21.11 movement adaptation.
--- Reference: LocalPlayer.aiStep, LivingEntity.jumpFromGround/travelInAir,
--- AbstractClientPlayer.getFieldOfViewModifier.
--- SM64CoopDX remains responsible for surface and wall collision resolution.
+-- SteveCraft 64 - Minecraft Java Edition 26.3 movement port.
+-- The source-side equations live in minecraft_26_3_physics.lua.
+-- SM64CoopDX still owns actual geometry collision and MarioState integration.
 
 SteveCraft = SteveCraft or {}
 SteveCraft.physics = SteveCraft.physics or {}
 local physics = SteveCraft.physics
 local PI = math.pi
+local MinecraftPhysics = require("minecraft_26_3_physics")
 
 physics.enabled = physics.enabled ~= false
-physics.reference = "Minecraft Java 1.21.11 LocalPlayer / LivingEntity / AbstractClientPlayer"
--- SkyCraft/MarioCraft triangle pre-clipping is supplementary to SM64 collision.
--- It is enabled by default when the documented SM64 Lua query API is present.
+physics.reference = "Minecraft Java Edition 26.3 LocalPlayer / LivingEntity / Entity / Camera"
 physics.triangleCollisionEnabled = physics.triangleCollisionEnabled ~= false
 
--- Provisional model-scale conversion. Calibrate in a real level before treating
--- these SM64 units as an exact Minecraft block equivalent.
-local WORLD_UNITS_PER_BLOCK = 160.0 / 1.8
-local MINECRAFT_TPS = 20.0
-local SM64_FPS = 30.0
-local TICK_TO_FRAME = MINECRAFT_TPS / SM64_FPS
-local FRAMES_PER_TICK = SM64_FPS / MINECRAFT_TPS
-local DEFAULT_FRICTION = 0.6
-local PLAYER_MOVEMENT_SPEED = 0.1
-local SPRINT_SPEED_MULTIPLIER = 1.3
+-- This unit conversion is provisional and must be calibrated in a live level.
+local WORLD_UNITS_PER_BLOCK = MinecraftPhysics.WORLD_UNITS_PER_BLOCK
+local TICK_TO_FRAME = MinecraftPhysics.TICK_TO_FRAME
 local SPRINT_FOV_MULTIPLIER = 1.15
-local SPRINT_DOUBLE_TAP_WINDOW = 11 -- about seven Minecraft ticks at 30 FPS
-local JUMP_POWER_BLOCKS_PER_TICK = 0.42
-local GRAVITY_BLOCKS_PER_TICK2 = 0.08
-local VERTICAL_DRAG_PER_TICK = 0.98
--- Horizontal sprint-jump knock-on is intentionally disabled: jumps are vertical-only.
-
-local JUMP_VELOCITY = JUMP_POWER_BLOCKS_PER_TICK
-    * WORLD_UNITS_PER_BLOCK * TICK_TO_FRAME
-local VERTICAL_GRAVITY, VERTICAL_DRAG = 0, 1
+local SPRINT_DOUBLE_TAP_WINDOW = 11 -- seven Minecraft ticks mapped to 30 FPS
+local JUMP_VELOCITY = MinecraftPhysics.jump_velocity()
+local block_friction_provider = nil
 local states = {}
 local sprint_states = {}
 local warned = false
@@ -58,7 +43,11 @@ local function is_local_steve(m)
 end
 
 local function is_ground_action(action)
-    return ACT_WALKING ~= nil and action == ACT_WALKING
+    return (ACT_IDLE ~= nil and action == ACT_IDLE)
+        or (ACT_WALKING ~= nil and action == ACT_WALKING)
+        or (ACT_START_CROUCHING ~= nil and action == ACT_START_CROUCHING)
+        or (ACT_CROUCHING ~= nil and action == ACT_CROUCHING)
+        or (ACT_STOP_CROUCHING ~= nil and action == ACT_STOP_CROUCHING)
 end
 
 local function is_air_action(action)
@@ -97,43 +86,32 @@ local function get_sprint_state(m)
     return state
 end
 
-local function convert_coefficients(acceleration_tick, drag_tick)
-    -- Convert a 20 Hz discrete recurrence to 30 Hz while preserving its
-    -- terminal velocity in the provisional SM64-units-per-block scale.
-    local drag_frame = drag_tick ^ (1.0 / FRAMES_PER_TICK)
-    local acceleration_frame = acceleration_tick
-        * WORLD_UNITS_PER_BLOCK
-        * TICK_TO_FRAME
-        * (drag_tick / drag_frame)
-        * ((1.0 - drag_frame) / math.max(0.000001, 1.0 - drag_tick))
-    return acceleration_frame, drag_frame
+local function input_options(m)
+    return {
+        sneaking = MinecraftPhysics.is_sneaking_action(m.action),
+        usingItem = SteveCraft.usingItem == true,
+        itemUseSpeed = SteveCraft.itemUseSpeedMultiplier,
+        sneakingSpeed = SteveCraft.sneakingSpeed,
+    }
 end
-
-VERTICAL_GRAVITY, VERTICAL_DRAG = convert_coefficients(
-    GRAVITY_BLOCKS_PER_TICK2, VERTICAL_DRAG_PER_TICK
-)
 
 local function input_direction(m)
-    -- LocalPlayer.modifyInput() applies 0.98 to non-zero movement input.
-    -- Item-use and sneak multipliers are not part of this movement pass.
-    local magnitude = clamp((m.intendedMag or 0.0) / 32.0, 0.0, 1.0) * 0.98
-    if magnitude < 0.0001 then return 0.0, 0.0, 0.0 end
-    local yaw = (m.intendedYaw or 0) * (2.0 * PI / 65536.0)
-    return math.sin(yaw) * magnitude, math.cos(yaw) * magnitude, magnitude
+    return MinecraftPhysics.input_from_intent(
+        m.intendedMag or 0, m.intendedYaw or 0,
+        (m.faceAngle and m.faceAngle.y) or 0, input_options(m)
+    )
 end
 
-local function is_forward_input(m)
-    if m.intendedMag == nil or m.intendedYaw == nil or m.faceAngle == nil then
-        return false
+local function get_block_friction(m)
+    if type(block_friction_provider) == "function" then
+        local ok, friction = pcall(block_friction_provider, m)
+        if ok and type(friction) == "number" then
+            return math.max(0.0, friction)
+        end
     end
-    if m.intendedMag < 14.0 then
-        return false
-    end
-
-    -- Treat the forward cone (including diagonal-forward input) as W input.
-    local difference = ((m.intendedYaw - m.faceAngle.y + 32768) % 65536) - 32768
-    local radians = difference * (2.0 * PI / 65536.0)
-    return math.cos(radians) >= 0.5
+    -- A normal Minecraft block has 0.6 friction. SM64 surfaces do not expose
+    -- Minecraft block-state friction, so mods may inject a provider if known.
+    return MinecraftPhysics.DEFAULT_BLOCK_FRICTION
 end
 
 local function restore_sprint_fov()
@@ -201,57 +179,33 @@ end
 
 local function update_sprint_input(m)
     local state = get_sprint_state(m)
-    local forward_down = is_forward_input(m)
-
-    -- Minecraft Java LocalPlayer supports double-tap forward sprinting.
-    if forward_down and not state.forwardWasDown then
-        if state.tapWindow > 0 then
-            state.sprinting = true
-        end
-        state.tapWindow = SPRINT_DOUBLE_TAP_WINDOW
-    elseif not forward_down then
-        -- Minecraft stops ground sprinting when forward input is released.
-        state.sprinting = false
-    end
-
-    if state.tapWindow > 0 then
-        state.tapWindow = state.tapWindow - 1
-    end
-    state.forwardWasDown = forward_down
-
+    local _, _, forward_impulse = input_direction(m)
     local camera_cutscene = m.area ~= nil and m.area.camera ~= nil
         and m.area.camera.cutscene ~= nil and m.area.camera.cutscene ~= 0
-    apply_sprint_fov(m, state.sprinting and not camera_cutscene)
+    local can_start = not camera_cutscene
+        and not MinecraftPhysics.is_sneaking_action(m.action)
+        and SteveCraft.canSprint ~= false
+        and SteveCraft.usingItem ~= true
+    state = MinecraftPhysics.update_sprint(
+        state, forward_impulse, can_start, SPRINT_DOUBLE_TAP_WINDOW
+    )
+    sprint_states[m.playerIndex or 0] = state
+    apply_sprint_fov(m, state.sprinting)
 end
 
 local function update_horizontal_velocity(m, step_type, state, sprinting)
     local wish_x, wish_z = input_direction(m)
-    local acceleration, drag
-
-    if step_type == STEP_TYPE_GROUND then
-        -- LivingEntity.getFrictionInfluencedSpeed(), plus its +30% sprint
-        -- movement-speed attribute modifier.
-        local friction = DEFAULT_FRICTION
-        local movement_speed = PLAYER_MOVEMENT_SPEED
-            * (sprinting and SPRINT_SPEED_MULTIPLIER or 1.0)
-        local ground_accel = movement_speed * 0.21600002
-            / (friction * friction * friction)
-        acceleration, drag = convert_coefficients(
-            ground_accel, friction * 0.91
+    local on_ground = step_type == STEP_TYPE_GROUND
+    local move_x, move_z, next_x, next_z =
+        MinecraftPhysics.horizontal_step(
+            state.vx, state.vz, wish_x, wish_z,
+            on_ground, get_block_friction(m), sprinting and on_ground
         )
-    else
-        -- LivingEntity.travelInAir(): normal air input and horizontal drag.
-        acceleration, drag = convert_coefficients(0.02, 0.91)
-    end
 
-    local move_x = state.vx + acceleration * wish_x
-    local move_z = state.vz + acceleration * wish_z
     m.vel.x = move_x
     m.vel.z = move_z
-
-    -- Save the post-drag velocity for the next 30 Hz frame.
-    state.vx = move_x * drag
-    state.vz = move_z * drag
+    state.vx = next_x
+    state.vz = next_z
     state.active = true
 
     if m.forwardVel ~= nil then
@@ -344,21 +298,20 @@ local function on_set_mario_action(m)
     local state = get_motion_state(m)
 
     if m.action == ACT_JUMP then
-        -- SteveCraft's requested jump mode is strictly vertical. Do not carry
-        -- Mario's forward momentum or Minecraft's sprint-jump horizontal
-        -- knock-on into the jump; both produced visible sideways drift.
+        -- Minecraft keeps horizontal momentum and adds its sprint-jump impulse.
         state.jumpActive = true
         state.vy = JUMP_VELOCITY
-        state.vx = 0.0
-        state.vz = 0.0
+        local sprint = sprint_states[m.playerIndex or 0] ~= nil
+            and sprint_states[m.playerIndex or 0].sprinting == true
+        state.vx, state.vz = MinecraftPhysics.sprint_jump_impulse(
+            state.vx, state.vz, (m.faceAngle and m.faceAngle.y) or 0,
+            sprint, WORLD_UNITS_PER_BLOCK
+        )
         if m.vel ~= nil then
-            m.vel.x = 0.0
+            m.vel.x = state.vx
             m.vel.y = state.vy
-            m.vel.z = 0.0
+            m.vel.z = state.vz
         end
-        if m.slideVelX ~= nil then m.slideVelX = 0.0 end
-        if m.slideVelZ ~= nil then m.slideVelZ = 0.0 end
-        if m.forwardVel ~= nil then m.forwardVel = 0.0 end
     elseif m.action == ACT_FREEFALL then
         if not state.jumpActive then
             state.vy = (m.vel and m.vel.y) or 0.0
@@ -410,27 +363,16 @@ local function before_physics_step(m, step_type, step_arg)
         state.vz = m.vel.z or 0.0
     end
 
-    if air and state.jumpActive then
-        -- Apply vertical movement only. Clear all horizontal channels after
-        -- Mario's native airborne controller has processed the stick input.
-        -- The original SM64 air-step collision solver still handles landings
-        -- and ceilings, but no horizontal velocity is fed into the step.
-        m.vel.x = 0.0
-        m.vel.y = state.vy or 0.0
-        m.vel.z = 0.0
-        if m.forwardVel ~= nil then m.forwardVel = 0.0 end
-        if m.slideVelX ~= nil then m.slideVelX = 0.0 end
-        if m.slideVelZ ~= nil then m.slideVelZ = 0.0 end
-        state.vx = 0.0
-        state.vz = 0.0
-        apply_triangle_collision(m, step_type, state)
-        return
-    end
-
-    local sprint = step_type == STEP_TYPE_GROUND
-        and sprint_states[index] ~= nil
+    local sprint = sprint_states[index] ~= nil
         and sprint_states[index].sprinting == true
     update_horizontal_velocity(m, step_type, state, sprint)
+
+    if air and state.jumpActive then
+        -- Use Minecraft jump/fall velocity, but leave landing and wall contacts
+        -- to SM64's native resolver through the proxy.
+        m.vel.y = state.vy or 0.0
+    end
+
     apply_triangle_collision(m, step_type, state)
 end
 
@@ -453,7 +395,7 @@ local function after_mario_update(m)
             -- Minecraft applies vertical drag and gravity after movement.
             -- Reading m.vel.y here also respects the solver's ceiling response.
             local actual_vertical = (m.vel and m.vel.y) or state.vy or 0.0
-            state.vy = actual_vertical * VERTICAL_DRAG - VERTICAL_GRAVITY
+            state.vy = MinecraftPhysics.apply_vertical_friction(actual_vertical)
         elseif not is_air_action(m.action) then
             state.jumpActive = false
             state.vy = 0.0
@@ -497,4 +439,11 @@ hook_event(HOOK_ON_LEVEL_INIT, physics.reset)
 hook_event(HOOK_ON_WARP, physics.reset)
 hook_event(HOOK_ON_EXIT, physics.reset)
 
-print("[SteveCraft 64] Lua Minecraft sprint/jump movement layer loaded")
+function physics.set_block_friction_provider(provider)
+    if provider ~= nil and type(provider) ~= "function" then
+        error("block friction provider must be a function or nil")
+    end
+    block_friction_provider = provider
+end
+
+print("[SteveCraft 64] Minecraft Java 26.3 movement port loaded")

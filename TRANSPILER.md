@@ -44,3 +44,11 @@ Lua 5.4 has one general numeric type; this pipeline does not preserve Java long 
 ## Validation boundary
 
 GitHub Actions validates the Java-subset fixtures, the Lua runtime assertions, and the 26.3 target inventory. Fixture success is not evidence that the full HumanoidModel or PlayerModel source has been transpiled or that generated modules work inside SM64CoopDX. Each translated subsystem must pass adapter-level tests before it is enabled in SteveCraft.
+
+## Minecraft 26.3 physics and camera behavior ports
+
+The runtime modules minecraft_26_3_physics.lua and minecraft_26_3_camera.lua are independent Lua ports of selected behavior from LocalPlayer, LivingEntity, Entity, and Camera. They are not emitted by the current generic java_to_lua.py converter: that converter does not yet support the constructors, entity lifecycle, world collision, renderer state, or engine APIs needed by those full classes. The new modules therefore express the source behavior in tested Lua functions and keep engine-specific bindings in physics.lua/camera.lua.
+
+Coverage and limitations are recorded in tools/minecraft_26_3_physics_camera.json. The port covers ordinary ground/air movement, input shaping, sprint double-tap, jump impulse, gravity/drag, camera interpolation, perspective transforms, target distance, and the eight-ray clipping calculation.
+
+Important gaps remain: SM64 does not expose Minecraft's item-use/hunger/attribute state by default; block friction is 0.6 unless a provider is supplied; SM64 triangle collisions are not Minecraft voxel/AABB collisions; the camera ray routine is not wired to a Minecraft block raycaster; and Lua bindings make camera position/focus read-only. These ports are not a claim of 100% vanilla equivalence and have not yet been tested in the Android game.

@@ -1,4 +1,4 @@
-name: Lua syntax, proxy and triangle collision tests
+name: Lua syntax, Minecraft parity, proxy and collision tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   syntax:
-    name: Validate Lua scripts, proxy and triangle collision adapter
+    name: Validate Lua scripts, Minecraft ports, proxy and collision adapter
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -35,3 +35,12 @@ jobs:
 
       - name: Run SM64 collision adapter tests
         run: lua5.4 tools/test_sm64_collision_adapter.lua
+
+      - name: Run Minecraft 26.3 physics parity tests
+        run: lua5.4 tools/test_minecraft_26_3_physics.lua
+
+      - name: Run Minecraft 26.3 camera parity tests
+        run: lua5.4 tools/test_minecraft_26_3_camera.lua
+
+      - name: Validate Minecraft physics/camera port manifest
+        run: python3 -m unittest discover -s tools -p "minecraft_26_3_port_test.py" -v
