@@ -50,7 +50,7 @@ jobs:
           python - <<'PY'
           import json
           report = json.load(open("build/transpiled/transpile-report.json", encoding="utf-8"))
-          assert report["translated_methods"] == 4, report
+          assert report["translated_methods"] == 5, report
           assert len(report["skipped_methods"]) == 1, report
           assert report["strict_blockers"] == 1, report
           assert not report["skipped_files"], report
