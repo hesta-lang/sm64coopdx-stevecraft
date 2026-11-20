@@ -40,6 +40,7 @@ function spawn_non_sync_object(_, modelId, x, y, z, setup)
                     animTimer = 0, animYTrans = 0,
                 },
                 scale = { x = 1, y = 1, z = 1 },
+                shadowInvisible = false,
             },
         },
     }
@@ -118,6 +119,7 @@ assert(visual.oInteractType == 0, "visual object has interactions enabled")
 assert(visual.oIntangibleTimer == -1, "visual object is not intangible")
 assert(visual.oPosX == 10 and visual.oPosY == 20 and visual.oPosZ == 30, "initial transform mismatch")
 assert(localMario.marioObj.header.gfx.shadowInvisible == true, "native Mario shadow was not hidden")
+assert(visual.header.gfx.shadowInvisible == true, "detached Steve shadow was not hidden")
 assert(visual.header.gfx.animInfo.animID == 12, "animation ID was not copied")
 assert(visual.header.gfx.animInfo.animFrame == 8, "animation frame was not copied")
 assert(visual.oAnimations == localMario.marioObj.oAnimations, "animation table was not copied")
@@ -137,6 +139,7 @@ assert(proxy.update(localMario, 123) == true, "proxy update failed")
 assert(proxy.get_visual_object(0) == visual, "proxy recreated the visual unnecessarily")
 assert(visual.oPosX == 88, "visual did not follow MarioState's independent position")
 assert(localMario.marioObj.header.gfx.shadowInvisible == true, "native Mario shadow reappeared")
+assert(visual.header.gfx.shadowInvisible == true, "detached Steve shadow reappeared")
 assert(visual.header.gfx.animInfo.animFrame == 9, "animation frame did not track Mario")
 assert(proxy.get_state(0).position.x == 88, "physics snapshot did not refresh")
 
