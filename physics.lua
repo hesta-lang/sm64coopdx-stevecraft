@@ -10,7 +10,9 @@ local MinecraftPhysics = require("minecraft_26_3_physics")
 
 physics.enabled = physics.enabled ~= false
 physics.reference = "Minecraft Java Edition 26.3 LocalPlayer / LivingEntity / Entity / Camera"
-physics.triangleCollisionEnabled = physics.triangleCollisionEnabled ~= false
+-- Native SM64 already performs authoritative surface collision. Keep the
+-- additional SkyCraft pre-clip opt-in to avoid solving the same wall twice.
+physics.triangleCollisionEnabled = physics.triangleCollisionEnabled == true
 
 -- This unit conversion is provisional and must be calibrated in a live level.
 local WORLD_UNITS_PER_BLOCK = MinecraftPhysics.WORLD_UNITS_PER_BLOCK
@@ -356,7 +358,10 @@ local function before_physics_step(m, step_type, step_arg)
 
     local ground = step_type == STEP_TYPE_GROUND and is_ground_action(m.action)
     local air = step_type == STEP_TYPE_AIR and is_air_action(m.action)
-    if not ground and not air then
+    local water = step_type == STEP_TYPE_WATER
+        and ACT_FLAG_SWIMMING ~= nil
+        and (m.action & ACT_FLAG_SWIMMING) ~= 0
+    if not ground and not air and not water then
         states[m.playerIndex or 0] = nil
         return
     end
@@ -366,10 +371,48 @@ local function before_physics_step(m, step_type, step_arg)
     local sprint = sprint_states[index] ~= nil
         and sprint_states[index].sprinting == true
 
+    if water then
+        -- perform_water_step() has its own floor/ceiling/wall solver and calls
+        -- the same hook with STEP_TYPE_WATER. Do not send this move through the
+        -- triangular ground/air pre-clip a second time.
+        local wish_x, wish_z = input_direction(m)
+        local on_floor = m.floorHeight ~= nil
+            and math.abs((m.pos.y or 0) - m.floorHeight) <= 1.0
+        local move_x, move_z, next_x, next_z =
+            MinecraftPhysics.water_horizontal_step(
+                state.vx, state.vz, wish_x, wish_z,
+                MinecraftPhysics.DEFAULT_MOVEMENT_SPEED,
+                SteveCraft.waterMovementEfficiency or 0,
+                on_floor, sprint
+            )
+
+        local input = m.input or 0
+        local jump_held = INPUT_A_DOWN ~= nil and (input & INPUT_A_DOWN) ~= 0
+        local descend_held = INPUT_Z_DOWN ~= nil and (input & INPUT_Z_DOWN) ~= 0
+        local move_y, next_y = MinecraftPhysics.water_vertical_step(
+            state.vy, jump_held, descend_held,
+            MinecraftPhysics.DEFAULT_GRAVITY
+        )
+
+        m.vel.x, m.vel.y, m.vel.z = move_x, move_y, move_z
+        state.vx, state.vy, state.vz = next_x, next_y, next_z
+        state.pendingStep = {
+            medium = "water",
+            startX = m.pos.x or 0,
+            startY = m.pos.y or 0,
+            startZ = m.pos.z or 0,
+            requestedX = move_x,
+            requestedY = move_y,
+            requestedZ = move_z,
+            wasGround = on_floor,
+            wasAir = false,
+        }
+        return
+    end
+
     -- Build the requested Minecraft displacement first. SM64's native
-    -- perform_ground_step/perform_air_step still clips it against level walls,
-    -- floors and ceilings. Store the pre-step velocity so Mario's own
-    -- apply_gravity() result cannot be mistaken for Minecraft's post-step value.
+    -- perform_ground_step/perform_air_step clips against its level surfaces.
+    -- The actual delta is reconciled after Mario's complete physics update.
     update_horizontal_velocity(m, step_type, state, sprint)
     if air and state.jumpActive then
         m.vel.y = state.vy or 0.0
@@ -378,6 +421,7 @@ local function before_physics_step(m, step_type, step_arg)
     apply_triangle_collision(m, step_type, state)
 
     state.pendingStep = {
+        medium = "air_ground",
         startX = m.pos.x or 0,
         startY = m.pos.y or 0,
         startZ = m.pos.z or 0,
@@ -415,11 +459,6 @@ local function after_mario_update(m)
             expectedZ = expectedZ * normalY
         end
 
-        local toleranceX = math.max(1.0, math.abs(expectedX) * 0.25)
-        local toleranceZ = math.max(1.0, math.abs(expectedZ) * 0.25)
-        local blockedX = math.abs(actualX - expectedX) > toleranceX
-        local blockedZ = math.abs(actualZ - expectedZ) > toleranceZ
-
         local hasWall = m.wall ~= nil
         local normalX = vector_component(m.wallNormal, "x", 1)
         local normalZ = vector_component(m.wallNormal, "z", 3)
@@ -428,9 +467,28 @@ local function after_mario_update(m)
             normalZ = vector_component(m.wall.normal, "z", 3)
         end
 
-        state.vx, state.vz = MinecraftPhysics.reconcile_horizontal_velocity(
-            state.vx, state.vz, hasWall, normalX, normalZ, blockedX, blockedZ
-        )
+        if pending.medium == "water" then
+            -- Water currents are added by SM64 after this hook, and its water
+            -- solver keeps wall results local. Do not mistake current drift for
+            -- player velocity or axis clipping. The water surface/floor clamp
+            -- is observable in the actual vertical displacement.
+            local verticalBlockedUp = pending.requestedY > 0
+                and actualY < pending.requestedY - math.max(1.0, math.abs(pending.requestedY) * 0.08)
+            local verticalBlockedDown = pending.requestedY < 0
+                and actualY > pending.requestedY + math.max(1.0, math.abs(pending.requestedY) * 0.08)
+            if verticalBlockedUp or verticalBlockedDown then
+                state.vy = 0
+            end
+        else
+            local toleranceX = math.max(1.0, math.abs(expectedX) * 0.25)
+            local toleranceZ = math.max(1.0, math.abs(expectedZ) * 0.25)
+            local blockedX = math.abs(actualX - expectedX) > toleranceX
+            local blockedZ = math.abs(actualZ - expectedZ) > toleranceZ
+
+            state.vx, state.vz = MinecraftPhysics.reconcile_horizontal_velocity(
+                state.vx, state.vz, hasWall, normalX, normalZ, blockedX, blockedZ
+            )
+        end
 
         if pending.wasAir and state.jumpActive and is_air_action(m.action) then
             local vertical, hitCeiling = MinecraftPhysics.reconcile_vertical_velocity(
