@@ -403,7 +403,7 @@ local function update_steve_animation(m, state)
     else
         local speed = math.sqrt((state.vx or 0) ^ 2 + (state.vz or 0) ^ 2)
         if speed < 0.8 then
-            target = CHAR_ANIM_IDLE_HEAD_LEFT
+            target = CHAR_ANIM_IDLE_HEAD_CENTER
         elseif speed < WORLD_UNITS_PER_BLOCK * 0.075 then
             target = CHAR_ANIM_WALKING
         else
