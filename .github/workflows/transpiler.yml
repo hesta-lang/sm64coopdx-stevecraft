@@ -162,7 +162,7 @@ jobs:
         run: |
           mvn -B -f build/nfrt-pom.xml org.codehaus.mojo:exec-maven-plugin:3.5.0:java \
             -Dexec.mainClass=net.neoforged.neoform.runtime.cli.Main \
-            -Dexec.args="run --neoform=net.neoforged:neoform:26.3-1@zip --dist=joined --artifact-manifest=build/nfrt-artifact-manifest.properties --write-result=gameSources:build/minecraft-26.3-sources.jar --home-dir=build/nfrt-home --work-dir=build/nfrt-work --no-color --verbose"
+            -Dexec.args="run --neoform=net.neoforged:neoform:26.3-1@zip --dist=joined --artifact-manifest=build/nfrt-artifact-manifest.properties --write-result=gameSources:$GITHUB_WORKSPACE/build/minecraft-26.3-sources.jar --home-dir=$GITHUB_WORKSPACE/build/nfrt-home --work-dir=$GITHUB_WORKSPACE/build/nfrt-work --no-color --verbose"
           test -s build/minecraft-26.3-sources.jar
       - name: Analyze real classes and extract selected source methods
         run: |
