@@ -1,16 +1,17 @@
 -- SteveCraft 64 - independent Steve render / Mario physical proxy.
 --
--- MarioState and its marioObj remain the ONLY physics and collision authority.
+-- MarioState remains the engine-facing state/interaction proxy, but SteveCraft
+-- owns player locomotion and its collision solver in isolation mode.
 -- Each client creates one local, non-colliding Steve render object per player.
--- That object follows the matching MarioState and mirrors Mario's animation
--- descriptor. No second controller, gravity solver, or collision body is made.
+-- It follows MarioState's position/rotation and mirrors the compatible animation
+-- descriptor. The hidden Mario object is retained only for engine integration.
 
 SteveCraft = SteveCraft or {}
 SteveCraft.proxy = SteveCraft.proxy or {}
 local proxy = SteveCraft.proxy
 
 proxy.version = "1.0.0-alpha"
-proxy.reference = "SM64CoopDX MarioState + detached Steve render object"
+proxy.reference = "SteveCraft locomotion + MarioState engine bridge + detached Steve render object"
 
 local records = {}
 local behaviorId = nil
@@ -97,68 +98,86 @@ end
 
 local function set_visual_transform(m, visualObject)
     local sourceObject = m.marioObj
+    local position = m.pos
+    local rotation = m.faceAngle
+
+    -- The independent controller writes MarioState directly. The native
+    -- marioObj transform may still contain an older frame or an animation/floor
+    -- correction, so never use it as Steve's positional authority.
+    if position ~= nil then
+        visualObject.oPosX = position.x
+        visualObject.oPosY = position.y
+        visualObject.oPosZ = position.z
+    end
+    if rotation ~= nil then
+        visualObject.oFaceAnglePitch = rotation.x
+        visualObject.oFaceAngleYaw = rotation.y
+        visualObject.oFaceAngleRoll = rotation.z
+        visualObject.oMoveAnglePitch = rotation.x
+        visualObject.oMoveAngleYaw = rotation.y
+        visualObject.oMoveAngleRoll = rotation.z
+    end
+
     if sourceObject ~= nil then
-        visualObject.oPosX = sourceObject.oPosX
-        visualObject.oPosY = sourceObject.oPosY
-        visualObject.oPosZ = sourceObject.oPosZ
-        visualObject.oFaceAnglePitch = sourceObject.oFaceAnglePitch
-        visualObject.oFaceAngleYaw = sourceObject.oFaceAngleYaw
-        visualObject.oFaceAngleRoll = sourceObject.oFaceAngleRoll
-        visualObject.oMoveAnglePitch = sourceObject.oMoveAnglePitch
-        visualObject.oMoveAngleYaw = sourceObject.oMoveAngleYaw
-        visualObject.oMoveAngleRoll = sourceObject.oMoveAngleRoll
+        -- Keep the compatible animation descriptors but do not inherit
+        -- Mario's position, rotation or graphical-height corrections.
         copy_animation_state(sourceObject, visualObject)
-    else
-        local position = m.pos
-        local rotation = m.faceAngle
-        if position ~= nil then
-            visualObject.oPosX = position.x
-            visualObject.oPosY = position.y
-            visualObject.oPosZ = position.z
-        end
-        if rotation ~= nil then
-            visualObject.oFaceAnglePitch = rotation.x
-            visualObject.oFaceAngleYaw = rotation.y
-            visualObject.oFaceAngleRoll = rotation.z
-            visualObject.oMoveAngleYaw = rotation.y
-        end
+    end
+    visualObject.oGraphYOffset = 0
+
+    -- Do not render a second SM64-style shadow under the detached player.
+    -- SteveCraft will need its own Minecraft-like shadow solution later.
+    local visualGfx = visualObject.header ~= nil and visualObject.header.gfx or nil
+    if visualGfx ~= nil then
+        visualGfx.shadowInvisible = true
     end
 
     local networkPlayer = gNetworkPlayers ~= nil
         and gNetworkPlayers[m.playerIndex] or nil
     if networkPlayer ~= nil and networkPlayer.globalIndex ~= nil then
-        -- Steve's GeoLayout calls geo_mario_head_rotation and
-        -- geo_mario_tilt_torso. These resolve the correct body-state slot
-        -- through the object's globalPlayerIndex.
         visualObject.globalPlayerIndex = networkPlayer.globalIndex
     end
 end
 
 local function hide_native_body(m, record)
-    if m == nil or m.marioBodyState == nil then return end
+    if m == nil then return end
 
-    local current = m.marioBodyState.modelState or 0
-    if record.lastHiddenModelState == nil or current ~= record.lastHiddenModelState then
-        record.originalModelState = current
+    if m.marioBodyState ~= nil then
+        local current = m.marioBodyState.modelState or 0
+        if record.lastHiddenModelState == nil or current ~= record.lastHiddenModelState then
+            record.originalModelState = current
+        end
+
+        -- Hide Mario's native mesh while leaving the interaction proxy active.
+        local hidden = (current & ~0x1FF) | NATIVE_BODY_HIDDEN_ALPHA
+        m.marioBodyState.modelState = hidden
+        record.lastHiddenModelState = hidden
     end
 
-    -- SM64CoopDX's first-person camera uses 0x100 with alpha byte 0.
-    -- Preserve other flags such as metal/vanish state while hiding the native body.
-    local hidden = (current & ~0x1FF) | NATIVE_BODY_HIDDEN_ALPHA
-    m.marioBodyState.modelState = hidden
-    record.lastHiddenModelState = hidden
+    -- Hide the native Mario proxy shadow. Steve's detached actor is the visual.
+    local gfx = m.marioObj ~= nil and m.marioObj.header ~= nil
+        and m.marioObj.header.gfx or nil
+    if gfx ~= nil then
+        if record.originalShadowInvisible == nil then
+            record.originalShadowInvisible = gfx.shadowInvisible
+        end
+        gfx.shadowInvisible = true
+    end
 end
 
 local function restore_native_body(record)
-    if record == nil or record.marioState == nil
-        or record.marioState.marioBodyState == nil
-        or record.originalModelState == nil then
-        return
-    end
+    if record == nil or record.marioState == nil then return end
 
     local bodyState = record.marioState.marioBodyState
-    if bodyState.modelState == record.lastHiddenModelState then
+    if bodyState ~= nil and record.originalModelState ~= nil
+        and bodyState.modelState == record.lastHiddenModelState then
         bodyState.modelState = record.originalModelState
+    end
+
+    local object = record.marioState.marioObj
+    local gfx = object ~= nil and object.header ~= nil and object.header.gfx or nil
+    if gfx ~= nil and record.originalShadowInvisible ~= nil then
+        gfx.shadowInvisible = record.originalShadowInvisible
     end
 end
 
@@ -397,4 +416,4 @@ if type(hook_event) == "function" then
     end
 end
 
-print("[SteveCraft] Independent Steve visual proxy initialized; Mario remains the physics authority.")
+print("[SteveCraft] Steve visual proxy initialized; Mario native body and shadow are hidden.")

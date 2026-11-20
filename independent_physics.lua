@@ -92,7 +92,8 @@ end
 
 -- Returns the numeric step result expected by perform_ground_step,
 -- perform_air_step or perform_water_step. nil means the adapter could not
--- safely take ownership, so the caller must let the native step run.
+-- safely take ownership. In strict isolation mode the caller stops that step
+-- instead of falling back to Mario's native movement.
 function M.resolve(m, step_type, state, requested, config)
     if m == nil or m.pos == nil or state == nil or requested == nil then return nil end
 

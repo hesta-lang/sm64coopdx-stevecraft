@@ -1,50 +1,72 @@
-# SteveCraft independent movement controller
+# SteveCraft native Mario isolation
 
-## Ownership model
+## Scope
 
-The local player's movement is owned by SteveCraft in the normal ground, air and water step paths. Mario is retained as the engine-facing state carrier and interaction proxy; its native model is hidden while the detached Steve object is rendered.
+Version 0.20.0-alpha moves the local Steve player into a dedicated Lua locomotion action. MarioState and marioObj remain the engine-facing player state and interaction proxy, but they no longer choose or integrate Steve's normal walk/run/jump/fall/swim movement while isolation is active.
 
-The controller uses two APIs from the Android fork:
+The mod does not modify SM64CoopDX C/C++ source or the APK.
 
-- `HOOK_BEFORE_PHYS_STEP` runs before `perform_ground_step`, `perform_air_step` and `perform_water_step`.
-- A numeric return value causes the corresponding engine function to return immediately with that step result.
+## Native action replacement
 
-When the Lua collision adapter resolves a move, SteveCraft updates the nested `MarioState.pos.x/y/z` and `MarioState.vel.x/y/z` components, synchronizes the Mario object's graphics transform, and returns a compatible ground/air/water result. This bypasses the native position integration, native final collision step and the gravity call at the end of `perform_air_step`.
+At load time, SteveCraft registers `ACT_STEVECRAFT_CONTROLLED` as an unused stationary-group action with `ACT_FLAG_CUSTOM_ACTION`, but without `ACT_FLAG_INTANGIBLE` or `ACT_FLAG_INVULNERABLE`. Its Lua callback suppresses native `act_idle()` while keeping the state eligible for object interactions and `mario_ready_to_speak()`. NPC dialogue and sign-reading remain available.
 
-The Android fork's generated Lua bindings mark the `MarioState.pos` and `MarioState.vel` properties read-only, but expose them as mutable `LOT_VEC3F` C objects; the nested `Vec3f.x/y/z` fields are writable. This is why the implementation writes components instead of assigning a new vector to `m.pos` or `m.vel`.
+`HOOK_BEFORE_MARIO_UPDATE` moves an attached local Steve into this action. `HOOK_BEFORE_SET_MARIO_ACTION` redirects subsequent native locomotion and physical-action transitions back to the Steve action. The custom action calls the exposed ground, air and water step functions only as entry points: `HOOK_BEFORE_PHYS_STEP` returns SteveCraft's own step result before the engine's native movement resolver or gravity executes.
 
-## Collision source and limits
+The custom action supplies Steve-specific animation selection. Its gravity action hook suppresses native `apply_gravity()` if any path requests it. The force-water-action hook prevents Mario from automatically switching Steve into Mario's native swimming/plunge actions. The hazard-surface hook blocks Mario's quicksand sinking, lava boosts and wind reactions for the local Steve. Terminal death actions remain native; warp/death-plane and PSS timers remain level mechanics.
 
-SteveCraft still calls the engine's `find_floor`, `find_ceil` and wall-collision query functions to sample level surfaces. Those triangles are passed to the Lua port of SkyCraft TriCollider. The native movement step is bypassed, but the source geometry is not converted into Minecraft blocks.
+## Native geometry replacement
 
-The current horizontal player footprint is an approximation: a radius of 0.3 Minecraft blocks and a height of 1.8 blocks. It is not a true rectangular AABB swept against a voxel grid. Step height defaults to 0.6 blocks. Scale remains provisional at 160 SM64 units per 1.8 m.
+`HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS` returns `false` for the attached local Steve. The C implementation then returns before `update_mario_geometry_inputs()` calls:
+- `f32_find_wall_collision()` (both native wall/position corrections);
+- native floor and ceiling updates;
+- native water-level and poison-gas-level updates;
+- Mario's slope-slide, squish and off-floor input flag generation.
 
-The independent override is attempted for `STEP_TYPE_GROUND`, `STEP_TYPE_AIR` and `STEP_TYPE_WATER`. It falls back to the old native path when surface queries, collision sampling, or position writes fail. Special actions which do not call those three step functions are not universally replaced.
+Before returning false, `steve_geometry.lua` repopulates only the contact data required by the engine bridge and Steve controller: floor and ceiling references/heights, water/gas levels, floor angle, and basic in-water/off-floor/gas flags. It does not alter MarioState position. Missing floor results retain the last known floor pointer only to keep the host action dispatcher alive; the Steve controller's own `onGround` flag remains based on the current real floor query.
 
-The native `update_mario_geometry_inputs()` prepass is intentionally still enabled. It populates floor/ceiling/water references and action input flags, but it also runs SM64's preliminary wall-position correction. Disabling that whole prepass with `HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS` would also remove flags such as off-floor and in-water and leave action code without valid contact state. The current stage replaces the actual ground/air/water movement step, not every native geometry/input calculation. A later stage needs a Lua replacement for those geometry-derived action inputs before safely disabling the prepass.
+## Movement and collision
 
-Existing Mario health, damage, interactions, level bounds, camera, and networking remain part of the host engine.
+`HOOK_BEFORE_PHYS_STEP` cancels the native `perform_ground_step`, `perform_air_step` and `perform_water_step` work. `independent_physics.lua` writes the accepted position and velocity through writable `MarioState.pos/vel` vector components, updates the host object's graphical transform and returns the appropriate native step result.
 
-## Toggle
+The collision source remains SM64CoopDX's level-surface queries, adapted to the Lua SkyCraft triangle solver. The current body approximation is a radius of 0.3 Minecraft blocks and height of 1.8 blocks, with a default 0.6-block step height. This is **not** a Minecraft voxel/AABB grid, and scale is still provisional at 160 SM64 units per 1.8 metres.
 
-The mode is enabled by default:
+When a Lua movement step cannot be resolved, SteveCraft returns a neutral step result and stops that step rather than falling back to Mario's native movement. This avoids mixing two physical systems, but it can leave Steve temporarily stopped if geometry queries fail.
 
-```lua
-SteveCraft.physics.set_independent_mode(true)
-```
+## Visual proxy
 
-Disable it temporarily to compare native behavior:
+Steve's detached DynOS actor now uses `MarioState.pos` and `MarioState.faceAngle` directly for its transform. Only animation descriptor/frame data are borrowed from Mario's object. This avoids copying a stale native transform or its graphical height corrections.
+
+The hidden Mario proxy keeps its engine object and interaction state, but its native body alpha and `header.gfx.shadowInvisible` are disabled. The detached Steve actor also has `header.gfx.shadowInvisible=true`, preventing either SM64-generated shadow from producing the black oval visible in the screenshot. No custom Minecraft-style shadow is drawn yet. The original Mario body/shadow visibility values are restored when the proxy is destroyed.
+
+## Known side effects and unfinished work
+
+Because the controller action is stationary rather than cutscene-group, `mario_handle_special_floors()` still runs. The hazard hook blocks quicksand, lava and wind movement effects, but warp/death-plane and PSS timer triggers remain native level mechanics. Terminal death actions are also preserved. Door/object interactions and NPC dialogue continue to use the host engine and can request transitions back into the Steve controller action. Sign-reading actions remain native. Health, damage, networking and the camera remain engine-owned.
+
+Special cutscenes that require actual Mario movement are not fully reproduced. Remote players are not moved by this local isolation path.
+
+This version still uses triangle geometry, not voxel collision. It does not provide exact Minecraft block material, moving-platform, fluid-current, lava, ladder, mount, status-effect or attribute behavior.
+
+## Runtime toggles
+
+The default mode is enabled. To deliberately restore the native player action/movement path for diagnosis:
 
 ```lua
 SteveCraft.physics.set_independent_mode(false)
 ```
 
-Availability can be queried with:
+Re-enable it with:
 
 ```lua
-SteveCraft.physics.is_independent_collision_available()
+SteveCraft.physics.set_independent_mode(true)
 ```
 
-## Validation status
+The geometry prepass is disabled by default while isolation is active. It can be toggled for diagnosis with:
 
-CI tests verify the Lua controller's ground movement, wall clipping, floor landing, ceiling clipping, water floor contact, and graphics transform synchronization using mocked collision queries. They do not replace a real Android test. In-game verification is still needed for action transitions, edge falls, slopes, stairs, moving platforms, multiplayer state, and world bounds.
+```lua
+SteveCraft.physics.set_native_geometry_disabled(false)
+SteveCraft.physics.set_native_geometry_disabled(true)
+```
+
+## Validation
+
+Automated tests cover the Lua geometry adapter and independent movement resolver with mocked surfaces. Proxy tests verify that Steve follows MarioState directly and hides/restores the native shadow. These tests do not prove that the Android runtime will behave correctly. A real SM64CoopDX Android test is required for standing height, ground contact, jumping, falls, walls, ceilings, water, dialog transitions, door/warp behavior and level bounds.
