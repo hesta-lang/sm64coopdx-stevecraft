@@ -1,6 +1,6 @@
 -- SteveCraft 64 - Minecraft Java Edition 26.3 movement port.
 -- The source-side equations live in minecraft_26_3_physics.lua.
--- SM64CoopDX still owns actual geometry collision and MarioState integration.
+-- SteveCraft owns intercepted movement steps; SM64CoopDX supplies geometry queries and the engine-facing MarioState.
 
 SteveCraft = SteveCraft or {}
 SteveCraft.physics = SteveCraft.physics or {}
