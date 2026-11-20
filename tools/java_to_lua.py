@@ -41,7 +41,7 @@ def matching(ts, start, left="(", right=")"):
             if depth==0: return i
     raise ValueError("unclosed "+left)
 
-def expr(ts, report, where):
+def expr(ts, report, where, class_name=None, class_methods=()):
     s=" ".join(ts)
     s=re.sub(r'\b(?:true|false|null)\b',lambda m:{"true":"true","false":"false","null":"nil"}[m.group()],s)
     s=re.sub(r'\bthis\s*\.\s*','self.',s)
@@ -50,13 +50,19 @@ def expr(ts, report, where):
     s=re.sub(r'\bMath\s*\.\s*(\w+)',lambda m:MATH.get(m.group(1),"math."+m.group(1)),s)
     s=re.sub(r'\bMth\s*\.\s*(PI|HALF_PI|TWO_PI|DEG_TO_RAD|RAD_TO_DEG)\b',lambda m:'MC.Mth.'+m.group(1),s)
     s=re.sub(r'\bMth\s*\.\s*(\w+)',lambda m:MTH.get(m.group(1),"MC.Mth."+m.group(1)),s)
+    if class_name and class_methods:
+        own_pattern="|".join(re.escape(x) for x in sorted(class_methods,key=len,reverse=True))
+        s=re.sub(rf'(?<![\w$.])({own_pattern})\s*\(',lambda m:f"{class_name}.{m.group(1)}(",s)
     s=s.replace("&&"," and ").replace("||"," or ").replace("!=","~=")
     s=re.sub(r'(?<![=!<>])!(?!=)'," not ",s)
     s=re.sub(r'\b(\d[\d_]*)([lL])\b',r'\1',s)
     s=re.sub(r'\b0[xX]([0-9a-fA-F_]+)\b',lambda m:str(int(m.group(1).replace("_",""),16)),s)
     s=re.sub(r'\b0[bB]([01_]+)\b',lambda m:str(int(m.group(1).replace("_",""),2)),s)
     s=re.sub(r'\b0([0-7_]+)\b',lambda m:str(int(m.group(1).replace("_",""),8)),s)
-    s=re.sub(r'(?<![\w.])((?:\d[\d_]*(?:\.\d[\d_]*)?|\.\d[\d_]+)(?:[eE][+-]?\d[\d_]*)?)[fFdD]\b',r'\1',s)
+    def normalize_float_suffix(match):
+        literal=match.group(1)
+        return f"MC.java_float({literal})" if match.group(2).lower()=="f" else literal
+    s=re.sub(r'(?<![\w.])((?:\d[\d_]*(?:\.\d[\d_]*)?|\.\d[\d_]+)(?:[eE][+-]?\d[\d_]*)?)([fFdD])\b',normalize_float_suffix,s)
     s=re.sub(r'\s+', ' ', s).strip()
     if re.search(r'\b(?:byte|short|int|long|float|double)\s*\)'," ".join(ts)):
         report["warnings"].append(f"{where}: primitive cast erased; Java overflow/narrowing is not exact")
@@ -65,8 +71,8 @@ def expr(ts, report, where):
     return s
 
 class Body:
-    def __init__(self, ts, report, where):
-        self.t=ts; self.i=0; self.r=report; self.w=where
+    def __init__(self, ts, report, where, class_name=None, class_methods=()):
+        self.t=ts; self.i=0; self.r=report; self.w=where; self.c=class_name; self.cm=class_methods
     def take_expr(self, stop):
         start=self.i; depth=0
         while self.i<len(self.t):
@@ -96,7 +102,7 @@ class Body:
                     if x==";" and dep==0: chunks.append(inside[start:j]); start=j+1
                 chunks.append(inside[start:])
                 if len(chunks)!=3: raise ValueError("unsupported for header")
-                init=" ".join(chunks[0]); cond=expr(chunks[1],self.r,self.w); step=" ".join(chunks[2])
+                init=" ".join(chunks[0]); cond=expr(chunks[1],self.r,self.w,self.c,self.cm); step=" ".join(chunks[2])
                 m=re.match(r'\s*(?:(?:int|long|var)\s+)?(\w+)\s*=\s*(-?\d+)\s*$',init)
                 sm=re.fullmatch(r'\s*(\w+)\s*(\+\+|--)\s*',step)
                 if m and sm and m.group(1)==sm.group(1) and re.fullmatch(rf'{re.escape(m.group(1))}\s*(<|<=|>|>=)\s*-?\d+',cond):
@@ -109,7 +115,7 @@ class Body:
                     out=[pad+f"for {v} = {m.group(2)}, {limit}, {1 if sm.group(2)=='++' else -1} do"]+body+[pad+"end"]
                     return out
                 raise ValueError("only constant-bound numeric for loops are supported")
-            cond=expr(inside,self.r,self.w); body=self.statement(indent+1)
+            cond=expr(inside,self.r,self.w,self.c,self.cm); body=self.statement(indent+1)
             if kind=="if":
                 out=[pad+"if "+cond+" then"]+body
                 if self.i<len(self.t) and self.t[self.i]=="else":
@@ -126,12 +132,12 @@ class Body:
                 condition,when_true,when_false=ternary
                 if not condition or not when_true or not when_false:
                     raise ValueError("malformed return ternary expression")
-                return [pad+"if "+expr(condition,self.r,self.w)+" then",
-                        pad+"    return "+expr(when_true,self.r,self.w),
+                return [pad+"if "+expr(condition,self.r,self.w,self.c,self.cm)+" then",
+                        pad+"    return "+expr(when_true,self.r,self.w,self.c,self.cm),
                         pad+"else",
-                        pad+"    return "+expr(when_false,self.r,self.w),
+                        pad+"    return "+expr(when_false,self.r,self.w,self.c,self.cm),
                         pad+"end"]
-            return [pad+"return"+(" "+expr(e,self.r,self.w) if e else "")]
+            return [pad+"return"+(" "+expr(e,self.r,self.w,self.c,self.cm) if e else "")]
         if self.t[self.i] in ("break","continue"):
             op=self.t[self.i]; self.i+=1
             if self.i<len(self.t) and self.t[self.i]==";": self.i+=1
@@ -145,8 +151,8 @@ class Body:
         decl=re.match(rf'^(?:final\s+)?({TYPE})\s+([A-Za-z_$]\w*)\s*(=\s*[\s\S]+)?$',raw)
         if decl:
             val=decl.group(3)
-            return [pad+"local "+decl.group(2)+((" = "+expr(tokens(val[1:]),self.r,self.w)) if val else "")]
-        raw=expr(e,self.r,self.w)
+            return [pad+"local "+decl.group(2)+((" = "+expr(tokens(val[1:]),self.r,self.w,self.c,self.cm)) if val else "")]
+        raw=expr(e,self.r,self.w,self.c,self.cm)
         raw=re.sub(r'\b([A-Za-z_$]\w*)\s*\+\+$',r'\1 = \1 + 1',raw)
         raw=re.sub(r'\b([A-Za-z_$]\w*)\s*--$',r'\1 = \1 - 1',raw)
         compound=re.fullmatch(r'([A-Za-z_$]\w*)\s*(\+=|-=|\*=|/=|%=)\s*(.+)',raw)
@@ -272,8 +278,10 @@ def translate_file(path, root, outroot, report, strict):
         lines.append(f"{name}.{var} = {expr(tokens(val),report,name+'.'+var)}")
     # Methods. Non-static instance methods become colon methods and receive self.
     meth_re=re.compile(rf'((?:(?:public|protected|private|static|final|synchronized|native|abstract)\s+)*)({RETURN_TYPE}|void)\s+(\w+)\s*\(([^)]*)\)\s*(?:throws\s+[\w.,\s]+)?\{{')
+    method_matches=list(meth_re.finditer(class_body))
+    class_methods={item.group(3) for item in method_matches}
     cursor=0; methods=0
-    for m in meth_re.finditer(class_body):
+    for m in method_matches:
         flags,ret,mname,args=m.groups()
         start=m.end(); d=1; j=start; q=None; e=False
         while j<len(class_body) and d:
@@ -300,7 +308,7 @@ def translate_file(path, root, outroot, report, strict):
             validate_method_tokens(bt, name+"."+mname)
             if "switch" in bt:
                 raise ValueError("switch statement is unsupported")
-            lua=Body(bt,report,name+"."+mname)
+            lua=Body(bt,report,name+"."+mname,name,class_methods)
             translated=[]
             while lua.i<len(lua.t): translated+=lua.statement(1)
             for field_name in field_names:
@@ -317,6 +325,7 @@ def translate_file(path, root, outroot, report, strict):
             lines.append(f"function {name}:{mname}({args_lua})")
         lines.extend(translated); lines.append("end"); methods+=1
         report["translated_methods"]+=1
+        report["translated_method_details"].append({"class":(package+"." if package else "")+name,"method":mname,"signature":f"{ret} {mname}({args})"})
     if methods==0:
         report["skipped_files"].append({"file":str(path),"reason":"no supported methods"})
     lines.append("return "+name)
@@ -333,7 +342,7 @@ def main():
     a=p.parse_args()
     if not a.input.is_dir(): p.error("--input must be a directory containing Java source files")
     report={"minecraft_source_version":a.version,"files_seen":[],"generated_modules":[],
-            "translated_methods":0,"skipped_methods":[],"skipped_files":[],"warnings":[]}
+            "translated_methods":0,"translated_method_details":[],"skipped_methods":[],"skipped_files":[],"warnings":[]}
     paths=sorted(a.input.rglob("*.java"))
     if a.classes:
         wanted=set(a.classes)

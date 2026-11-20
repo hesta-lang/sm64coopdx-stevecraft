@@ -39,17 +39,28 @@
   "note": "Secondary, unofficial cross-check only; CI source input is generated separately through NeoForm."
  },
  "coverage": {
-  "public_api_methods_translated": 3,
-  "public_api_methods_total": 18,
-  "public_api_coverage_percent": 16.7,
+  "public_api_methods_translated": 15,
+  "public_api_methods_total": 132,
+  "public_api_coverage_percent": 11.4,
   "private_helpers_translated": 1,
   "translated_method_names": [
+   "Mth.clamp(double)",
+   "Mth.clampedLerp(double)",
+   "Mth.absMax(double)",
+   "Mth.equal(double)",
+   "Mth.sign(double)",
+   "Mth.lerp(double)",
+   "Mth.square(double)",
+   "Mth.inverseLerp(double)",
+   "Mth.clampedMap(double)",
+   "Mth.map(double)",
+   "Mth.lengthSquared(double, double, double)",
+   "Mth.length(double, double, double)",
    "HumanoidModel.getHead",
    "HumanoidModel.getArm",
-   "HumanoidModel.quadraticArmUpdate",
    "PlayerModel.getRandomBodyPart"
   ],
-  "note": "Three public methods are translated (3/18). The private quadraticArmUpdate helper is counted separately. This is selected-method coverage, not full-class translation."
+  "note": "15 public API signatures are source-transpiled (15/132). HumanoidModel.quadraticArmUpdate is one additional private helper. The 20 manual Mth compatibility functions are not counted as source-transpiled methods. Coverage is selected-signature coverage, not full-class translation."
  },
  "runtime_validation": {
   "lua_5_4_validated": true,
@@ -64,7 +75,7 @@
    "class": "net.minecraft.util.Mth",
    "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/util/mth/",
    "role": "mathematical foundation for model animation",
-   "status": "partial_manual_port_source_inventory_verified",
+   "status": "partial_source_transpilation_and_manual_adapters",
    "api_surface_count": 114,
    "ported_methods": [
     "clamp",
@@ -102,7 +113,7 @@
     "Java overload resolution is not implemented; clamp maps to float/double semantics, not int/long semantics.",
     "Lua numbers do not preserve all Java int/long overflow, long precision, or every float rounding boundary."
    ],
-   "remaining": "20 named helpers are manually adapted from a 114-method API surface; no complete Mth transpilation is claimed.",
+   "remaining": "12 selected double-signature methods are emitted from the exact 26.3 source; the other 102 API signatures are not transpiled. The 20 compatibility helpers listed under ported_methods remain separate manual Lua adapters.",
    "source_inventory": {
     "source_entry": "net/minecraft/util/Mth.java",
     "api_surface_count": 114,
@@ -134,7 +145,40 @@
      "TWO_PI",
      "DEG_TO_RAD",
      "RAD_TO_DEG"
+    ],
+    "transpiled_signatures": [
+     "clamp(double,double,double)",
+     "clampedLerp(double,double,double)",
+     "absMax(double,double)",
+     "equal(double,double)",
+     "sign(double)",
+     "lerp(double,double,double)",
+     "square(double)",
+     "inverseLerp(double,double,double)",
+     "clampedMap(double,double,double,double,double)",
+     "map(double,double,double,double,double)",
+     "lengthSquared(double,double,double)",
+     "length(double,double,double)"
     ]
+   },
+   "transpiled_methods": [
+    "clamp(double,double,double)",
+    "clampedLerp(double,double,double)",
+    "absMax(double,double)",
+    "equal(double,double)",
+    "sign(double)",
+    "lerp(double,double,double)",
+    "square(double)",
+    "inverseLerp(double,double,double)",
+    "clampedMap(double,double,double,double,double)",
+    "map(double,double,double,double,double)",
+    "lengthSquared(double,double,double)",
+    "length(double,double,double)"
+   ],
+   "coverage": {
+    "public_api_methods_translated": 12,
+    "public_api_methods_total": 114,
+    "public_api_coverage_percent": 10.5
    }
   },
   {

@@ -17,23 +17,49 @@ SPECS = [
   "field_names":["LEFT_SLEEVE","RIGHT_SLEEVE","LEFT_PANTS","RIGHT_PANTS","bodyParts","leftSleeve","rightSleeve","leftPants","rightPants","jacket","slim"],
   "fixture_fields":["bodyParts","slim"],"api_surface_count":5},
  {"class":"Mth","package":"net.minecraft.util","source_path":"net/minecraft/util/Mth.java",
-  "selected_methods":[],
-  "api_methods":["clamp","lerp","sign","wrapDegrees","absMax","degreesDifference","degreesDifferenceAbs","rotateIfNecessary","approach","approachDegrees","positiveModulo","frac","square","cube","equal","clampedLerp","sin","cos","sqrt","rotLerpRad"],
+  "selected_methods":[
+   {"name":"clamp","params":["double","double","double"]},
+   {"name":"clampedLerp","params":["double","double","double"]},
+   {"name":"absMax","params":["double","double"]},
+   {"name":"equal","params":["double","double"]},
+   {"name":"sign","params":["double"]},
+   {"name":"lerp","params":["double","double","double"]},
+   {"name":"square","params":["double"]},
+   {"name":"inverseLerp","params":["double","double","double"]},
+   {"name":"clampedMap","params":["double","double","double","double","double"]},
+   {"name":"map","params":["double","double","double","double","double"]},
+   {"name":"lengthSquared","params":["double","double","double"]},
+   {"name":"length","params":["double","double","double"]}
+  ],
+  "api_methods":["clamp","lerp","sign","wrapDegrees","absMax","degreesDifference","degreesDifferenceAbs","rotateIfNecessary","approach","approachDegrees","positiveModulo","frac","square","cube","equal","clampedLerp","sin","cos","sqrt","rotLerpRad","inverseLerp","clampedMap","map","lengthSquared","length"],
   "helper_methods":[],
   "field_names":["PI","HALF_PI","TWO_PI","DEG_TO_RAD","RAD_TO_DEG","SIN_QUANTIZATION","SIN_MASK","COS_OFFSET","SIN_SCALE","SIN"],
   "fixture_fields":[],"api_surface_count":114}
 ]
 
 def method_header(name):
- return re.compile(rf"(?m)^[ \t]*(?:(?:public|protected|private)\s+)[^{{;]*?\b{re.escape(name)}\s*\([^;]*?\)\s*(?:throws\s+[^{{]+)?\{{")
+ return re.compile(rf"(?m)^[ \t]*(?:(?:public|protected|private)\s+)[^{{;]*?\b{re.escape(name)}\s*\((?P<params>[^)]*)\)\s*(?:throws\s+[^{{]+)?\{{")
+
+def parameter_types(params):
+ if not params.strip(): return []
+ result=[]
+ for part in params.split(","):
+  cleaned=re.sub(r"\bfinal\b","",part).strip()
+  match=re.fullmatch(r"([\w.$]+(?:\[\])?)\s+[A-Za-z_$]\w*",cleaned)
+  if not match: return None
+  result.append(match.group(1))
+ return result
 
 def read_entry(archive,suffix):
  matches=[name for name in archive.namelist() if name.endswith(suffix)]
  if len(matches)!=1: raise RuntimeError(f"Expected one {suffix} entry; found {matches}")
  return matches[0],archive.read(matches[0]).decode("utf-8")
 
-def find_method(source,name):
+def find_method(source,selected):
+ name=selected if isinstance(selected,str) else selected["name"]
+ expected=None if isinstance(selected,str) else selected.get("params")
  for match in method_header(name).finditer(source):
+  if expected is not None and parameter_types(match.group("params"))!=expected: continue
   if source[:match.start()].count("{")-source[:match.start()].count("}")!=1: continue
   depth=0
   for index in range(match.end()-1,len(source)):
@@ -41,7 +67,8 @@ def find_method(source,name):
    elif source[index]=="}":
     depth-=1
     if depth==0: return source[match.start():index+1].strip(),source.count("\n",0,match.start())+1
- raise RuntimeError(f"Could not extract top-level method {name}")
+ expected_text="" if expected is None else "("+", ".join(expected)+")"
+ raise RuntimeError(f"Could not extract top-level method {name}{expected_text}")
 
 def find_class_header(source,name):
  match=re.search(rf"(?m)^[ \t]*(?:public\s+)?class\s+{re.escape(name)}\b[^{{]*\{{",source)
@@ -99,9 +126,12 @@ def main():
   for spec in SPECS:
    entry,source=read_entry(archive,spec["source_path"]); info=analyze_source(source,spec)
    methods=[]; selected=[]
-   for method_name in spec["selected_methods"]:
-    body,line=find_method(source,method_name); methods.append(body)
-    selected.append({"name":method_name,"source_line":line,"signature":body.split("{",1)[0].strip()})
+   for method_spec in spec["selected_methods"]:
+    body,line=find_method(source,method_spec); methods.append(body)
+    method_name=method_spec if isinstance(method_spec,str) else method_spec["name"]
+    header=body.split("{",1)[0].strip()
+    params_match=re.search(r"\(([^)]*)\)",header)
+    selected.append({"name":method_name,"source_line":line,"signature":header,"parameter_types":parameter_types(params_match.group(1)) if params_match else []})
    wrapper=[f"package {spec['package']};"]
    for imported in info["imports"]:
     if imported in ("net.minecraft.util.Util","net.minecraft.world.entity.HumanoidArm"):

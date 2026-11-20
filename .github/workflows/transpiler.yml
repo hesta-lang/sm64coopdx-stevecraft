@@ -173,14 +173,18 @@ jobs:
           python tools/java_to_lua.py --input build/minecraft-26.3-extracted --output build/transpiled-real \
             --version 26.3 --class net.minecraft.client.model.HumanoidModel \
             --class net.minecraft.client.model.player.PlayerModel \
+            --class net.minecraft.util.Mth \
             --report build/transpiled-real/transpile-report.json
           python - <<'PY'
           import json
           r=json.load(open("build/transpiled-real/transpile-report.json",encoding="utf-8"))
-          assert r["translated_methods"]==4 and len(r["skipped_methods"])==6 and r["strict_blockers"]==6 and not r["skipped_files"] and set(r["generated_modules"])=={"net/minecraft/client/model/HumanoidModel.lua","net/minecraft/client/model/player/PlayerModel.lua"},r
+          assert r["translated_methods"]==16 and len(r["skipped_methods"])==6 and r["strict_blockers"]==6 and not r["skipped_files"] and set(r["generated_modules"])=={"net/minecraft/client/model/HumanoidModel.lua","net/minecraft/client/model/player/PlayerModel.lua","net/minecraft/util/Mth.lua"},r
+          expected_mth={"clamp","clampedLerp","absMax","equal","sign","lerp","square","inverseLerp","clampedMap","map","lengthSquared","length"}
+          actual_mth={x["method"] for x in r["translated_method_details"] if x["class"]=="net.minecraft.util.Mth"}
+          assert actual_mth==expected_mth,(actual_mth,expected_mth,r)
           reasons=" | ".join(x["reason"] for x in r["skipped_methods"])
           for x in ("super calls","ternary conditional operator","object construction","lambda/method reference","unadapted Minecraft engine type/API"): assert x in reasons,r
-          print("Translated real Minecraft methods:",r["translated_methods"],"Skipped conservatively:",len(r["skipped_methods"]))
+          print("Translated real Minecraft methods:",r["translated_methods"],"including 12 Mth double helpers; skipped conservatively:",len(r["skipped_methods"]))
           PY
       - name: Validate generated Lua 5.4 syntax
         run: |
