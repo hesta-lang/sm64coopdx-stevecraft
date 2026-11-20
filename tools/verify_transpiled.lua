@@ -10,6 +10,8 @@ assert(PlayerMath.squareRoot(9.0)==3.0);assert(PlayerMath.isNotZero(1)==true and
 assert(PlayerEntry.calculate(4.0)==8.0)
 local expected={}
 for line in io.lines("build/java-reference.txt") do local key,value=line:match("^([^=]+)=(.+)$");if key then expected[key]=value end end
+local realExpected={}
+for line in io.lines("build/java-real-source-reference.txt") do local key,value=line:match("^([^=]+)=(.+)$");if key then realExpected[key]=value end end
 local function close(actual,reference,epsilon) assert(math.abs(actual-reference)<=epsilon,("numeric mismatch: actual=%s reference=%s"):format(actual,reference)) end
 local angles={0.0,math.pi/2,-math.pi/2,1.23456789,123.456789}
 for i=1,#angles do close(Mth.sin(angles[i]),tonumber(expected["sin."..(i-1)]),1e-6);close(Mth.cos(angles[i]),tonumber(expected["cos."..(i-1)]),1e-6) end
@@ -32,12 +34,12 @@ assert(Mth.rotateIfNecessary(0,90,30)==60);assert(Mth.approach(2,10,3)==5 and Mt
 assert(Mth.approachDegrees(350,10,5)==355);assert(Mth.positiveModulo(-3,2)==1 and Mth.frac(-1.25)==0.75)
 assert(Mth.square(3)==9 and Mth.cube(3)==27 and Mth.equal(1.0,1.000001))
 assert(Mth.clampedLerp(-1,3,7)==3 and Mth.clampedLerp(2,3,7)==7 and Mth.clampedLerp(0.5,3,7)==5)
-local function real_close(key,value,epsilon) close(value,tonumber(expected["real."..key]),epsilon or 1e-12) end
+local function real_close(key,value,epsilon) close(value,tonumber(realExpected[key]),epsilon or 1e-12) end
 real_close("clamp.normal",RealMth.clamp(2.0,0.0,4.0));real_close("clamp.inverted",RealMth.clamp(5.0,6.0,3.0));real_close("lerp",RealMth.lerp(0.25,2.0,6.0))
 real_close("clampedLerp.low",RealMth.clampedLerp(-1.0,3.0,7.0));real_close("clampedLerp.middle",RealMth.clampedLerp(0.5,3.0,7.0));real_close("clampedLerp.high",RealMth.clampedLerp(2.0,3.0,7.0))
 real_close("absMax",RealMth.absMax(-7.0,3.0));real_close("square",RealMth.square(-3.0));real_close("inverseLerp",RealMth.inverseLerp(5.0,0.0,10.0))
 real_close("clampedMap",RealMth.clampedMap(15.0,0.0,10.0,20.0,40.0));real_close("map",RealMth.map(15.0,0.0,10.0,20.0,40.0))
 real_close("lengthSquared3",RealMth.lengthSquared(2.0,3.0,6.0));real_close("length3",RealMth.length(2.0,3.0,6.0))
-assert(RealMth.sign(-4.0)==tonumber(expected["real.sign.negative"]));assert(RealMth.sign(-0.0)==tonumber(expected["real.sign.zero"]));assert(RealMth.sign(0/0)==tonumber(expected["real.sign.nan"]))
-assert(RealMth.equal(1.0,1.000001)==(expected["real.equal.near"]=="true"));assert(RealMth.equal(1.0,1.00002)==(expected["real.equal.far"]=="true"))
+assert(RealMth.sign(-4.0)==tonumber(realExpected["sign.negative"]));assert(RealMth.sign(-0.0)==tonumber(realExpected["sign.zero"]));assert(RealMth.sign(0/0)==tonumber(realExpected["sign.nan"]))
+assert(RealMth.equal(1.0,1.000001)==(realExpected["equal.near"]=="true"));assert(RealMth.equal(1.0,1.00002)==(realExpected["equal.far"]=="true"))
 print("Minecraft 26.3 selected Java excerpts and Mth/Util equivalence checks passed")

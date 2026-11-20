@@ -49,6 +49,6 @@ There are no adapters yet for `ModelPart`, `PoseStack`, geometry builders, rende
 
 ## Validation boundary
 
-CI runs Python tests, compiles a Java reference harness, compares numeric and method behavior, generates the real 26.3 joined-distribution sources through NeoForm, extracts selected methods, transpiles the excerpts, validates Lua 5.4 syntax, and executes Lua assertions against the Java reference output.
+CI runs Python tests, generates the real 26.3 joined-distribution sources through NeoForm, extracts selected methods, transpiles the excerpts, compiles the extracted Mth.java wrapper itself into a Java reference runner, validates Lua 5.4 syntax, and compares generated Lua results against that exact Java excerpt. A separate Java harness validates the existing manual Mth/Util adapters and model-method behavior.
 
 Passing CI validates only this subset and its explicit adapters. It does not prove full `Mth`, `HumanoidModel` or `PlayerModel` translation, constructor/inheritance behavior, or compatibility inside SteveCraft/SM64CoopDX. PR #6 must remain Draft until runtime adapter validation is complete.

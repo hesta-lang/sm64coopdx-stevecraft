@@ -13,6 +13,7 @@ on:
       - "tools/minecraft_26_3_equivalence_test.py"
       - "tools/extract_minecraft_26_3.py"
       - "tools/Minecraft263Reference.java"
+      - "tools/Minecraft263RealSourceRunner.java"
       - "tools/minecraft_26_3_targets.json"
       - "tools/verify_transpiled.lua"
       - "mc_compat.lua"
@@ -186,6 +187,12 @@ jobs:
           for x in ("super calls","ternary conditional operator","object construction","lambda/method reference","unadapted Minecraft engine type/API"): assert x in reasons,r
           print("Translated real Minecraft methods:",r["translated_methods"],"including 12 Mth double helpers; skipped conservatively:",len(r["skipped_methods"]))
           PY
+      - name: Compile extracted Mth source as Java reference
+        run: |
+          mkdir -p build/java-real-source
+          javac -d build/java-real-source build/minecraft-26.3-extracted/net/minecraft/util/Mth.java tools/Minecraft263RealSourceRunner.java
+          java -cp build/java-real-source Minecraft263RealSourceRunner > build/java-real-source-reference.txt
+          cat build/java-real-source-reference.txt
       - name: Validate generated Lua 5.4 syntax
         run: |
           luac5.4 -p mc_compat.lua
@@ -193,16 +200,19 @@ jobs:
       - name: Execute Java-to-Lua and Mth/Util equivalence assertions
         run: lua5.4 tools/verify_transpiled.lua
       - name: Upload excerpts, generated Lua, and reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: stevecraft-minecraft-26-3-transpiler-alpha
-          if-no-files-found: error
+          if-no-files-found: warn
           path: |
             build/transpiled/
             build/transpiled-real/
             build/minecraft-26.3-source-report.json
             build/minecraft-26.3-extracted/
             build/java-reference.txt
+            build/java-real-source-reference.txt
+            tools/Minecraft263RealSourceRunner.java
             mc_compat.lua
             tools/minecraft_26_3_targets.json
             build/nfrt-artifact-manifest.properties

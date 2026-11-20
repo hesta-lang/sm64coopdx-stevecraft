@@ -11,7 +11,7 @@ public final class Minecraft263Reference {
  public static float quadraticArmUpdate(final float x){return -65.0F*x+x*x;}
  public static float clampFloat(final float value,final float min,final float max){return value<min?min:Math.min(value,max);}
  // Source-shaped Java reference for the selected Minecraft 26.3 Mth double overloads.
- public static double mthClamp(final double value,final double min,final double max){return Math.min(Math.max(value,min),max);}
+ public static double mthClamp(final double value,final double min,final double max){return Math.max(min,Math.min(max,value));}
  public static double mthLerp(final double alpha1,final double p0,final double p1){return p0+alpha1*(p1-p0);}
  public static double mthClampedLerp(final double factor,final double min,final double max){if(factor<0.0){return min;}else{return factor>1.0?max:mthLerp(factor,min,max);}}
  public static double mthAbsMax(final double a,final double b){return Math.max(Math.abs(a),Math.abs(b));}
