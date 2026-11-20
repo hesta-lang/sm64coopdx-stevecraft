@@ -43,14 +43,15 @@ end
 
 local function is_local_steve(m)
     local character = SteveCraft.character
+    local proxy = SteveCraft.proxy
     return m ~= nil
         and m.playerIndex == 0
         and character ~= nil
         and character.ready
         and character.modelId ~= nil
-        and gPlayerSyncTable ~= nil
-        and gPlayerSyncTable[0] ~= nil
-        and gPlayerSyncTable[0].modelId == character.modelId
+        and proxy ~= nil
+        and type(proxy.owns_mario_state) == "function"
+        and proxy.owns_mario_state(m)
 end
 
 local function is_ground_action(action)
