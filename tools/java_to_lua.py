@@ -42,7 +42,7 @@ def expr(ts, report, where):
     s=re.sub(r'\bthis\s*\.\s*','self.',s)
     s=re.sub(r'\bMath\s*\.\s*(\w+)',lambda m:MATH.get(m.group(1),"math."+m.group(1)),s)
     s=re.sub(r'\bMth\s*\.\s*(\w+)',lambda m:MTH.get(m.group(1),"MC.Mth."+m.group(1)),s)
-    s=s.replace("&&"," and ").replace("||"," or ")
+    s=s.replace("&&"," and ").replace("||"," or ").replace("!=","~=")
     s=re.sub(r'(?<![=!<>])!(?!=)'," not ",s)
     s=re.sub(r'\b(\d[\d_]*)([lL])\b',r'\1',s)
     s=re.sub(r'\b0[xX]([0-9a-fA-F_]+)\b',lambda m:str(int(m.group(1).replace("_",""),16)),s)
