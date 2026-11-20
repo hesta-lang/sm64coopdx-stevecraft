@@ -7,7 +7,7 @@ Separate the player representation from the entity that SM64CoopDX simulates, wi
 ## Current implementation
 
 - **Physical authority:** the engine's existing `MarioState` and `marioObj`. They continue to own movement, surface collision resolution, gravity, hit reactions, and the native camera's follow target.
-- **Visual representation:** a separate, local-only Steve DynOS object is created for each player on each client. It has no interaction type, no hitbox, no gravity, and no independent movement controller.
+- **Visual representation:** a separate, local-only Steve DynOS object is created for each player on each client. It has no interaction type, no hitbox, no gravity, and no independent movement controller. The native Mario body is hidden with zero alpha while the proxy is attached, preserving non-alpha model flags; the original body state is restored when the proxy is destroyed.
 - **Transform:** the visual object copies position and orientation from the matching Mario object every object update.
 - **Animation:** the visual copies the source object's animation descriptor, frame, timing, animation table, and scale. Steve's generated GeoLayout uses the same animated player hierarchy, so the normal player animation data can drive the detached mesh.
 - **Head and torso:** Steve's GeoLayout uses the standard Mario head/torso Geo ASM callbacks. The visual object's `globalPlayerIndex` is set from `gNetworkPlayers[playerIndex].globalIndex`, allowing those callbacks to resolve the correct player's body-state data.
