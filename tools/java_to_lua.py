@@ -16,7 +16,7 @@ MTH_CONSTANTS = {"PI", "HALF_PI", "TWO_PI", "DEG_TO_RAD", "RAD_TO_DEG"}
 ENGINE_API_TYPES = {"ModelPart", "PoseStack", "HumanoidModel", "AvatarRenderState", "HumanoidRenderState", "ArmedEntityRenderState", "MeshDefinition", "CubeDeformation", "CubeListBuilder", "PartDefinition", "PartPose", "ArmorModelSet", "RenderTypes", "RenderType", "EquipmentSlot", "ItemStack", "InteractionHand", "RandomSource", "SpearAnimations", "AnimationUtils", "Identifier", "Maps", "Map", "Set", "Function", "EntityModel", "ArmedModel", "HeadedModel", "Ease", "SwingDescription"}
 ENGINE_API_METHODS = {"translateAndRotate", "addOrReplaceChild", "retainPartsAndChildren", "retainExactParts", "getRoot", "getChild", "animateCrossbowCharge", "animateCrossbowHold", "thirdPersonHandUse", "thirdPersonAttackHand", "entityCutout", "entityTranslucent"}
 
-MATH = {"abs":"math.abs","sqrt":"math.sqrt","sin":"math.sin","cos":"math.cos",
+MATH = {"abs":"math.abs","sqrt":"math.sqrt","sin":"math.sin","cos":"math.cos","atan2":"math.atan",
         "tan":"math.tan","floor":"math.floor","ceil":"math.ceil",
         "min":"math.min","max":"math.max","pow":"math.pow"}
 MTH = {"abs":"math.abs","sqrt":"MC.Mth.sqrt","sin":"MC.Mth.sin","cos":"MC.Mth.cos",

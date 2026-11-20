@@ -67,6 +67,31 @@ class TranspilerIntegrationTests(unittest.TestCase):
             self.assertIn("function PlayerModel:getRandomBodyPart(random)", player)
             self.assertNotIn("function PlayerModel:setupAnim(", player)
 
+    def test_mth_explicit_self_calls_resolve_to_the_translated_class(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "src" / "net" / "minecraft" / "util" / "Mth.java"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "package net.minecraft.util; public class Mth { "
+                "public static double clamp(double value,double min,double max) { "
+                "return value<min?min:Math.min(value,max); } "
+                "public static double approach(double current,double target,double step) { "
+                "return current+Mth.clamp(target-current,-step,step); } }",
+                encoding="utf-8"
+            )
+            output = Path(tmp) / "lua"
+            report = Path(tmp) / "report.json"
+            run = subprocess.run(
+                [sys.executable, str(TRANSPILER), "--input", str(source.parent),
+                 "--output", str(output), "--report", str(report)],
+                capture_output=True, text=True
+            )
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            generated = (output / "net/minecraft/util/Mth.lua").read_text()
+            self.assertIn("function Mth.approach", generated)
+            self.assertIn("Mth.clamp", generated)
+            self.assertNotIn("MC.Mth.clamp", generated)
+
     def test_qualified_class_filter_selects_the_requested_package(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "lua"

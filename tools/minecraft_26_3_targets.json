@@ -39,9 +39,9 @@
     "note": "Secondary, unofficial cross-check only; CI source input is generated separately through NeoForm."
   },
   "coverage": {
-    "public_api_methods_translated": 18,
+    "public_api_methods_translated": 17,
     "public_api_methods_total": 132,
-    "public_api_coverage_percent": 13.6,
+    "public_api_coverage_percent": 12.9,
     "private_helpers_translated": 1,
     "translated_method_names": [
       "Mth.clamp(double)",
@@ -59,11 +59,10 @@
       "HumanoidModel.getHead",
       "HumanoidModel.getArm",
       "PlayerModel.getRandomBodyPart",
-      "Mth.cube(double)",
       "Mth.frac(double)",
-      "Mth.approach(double,double,double)"
+      "Mth.atan2(double,double)"
     ],
-    "note": "18 public API signatures are source-transpiled (18/132). HumanoidModel.quadraticArmUpdate is one additional private helper. The 20 manual Mth compatibility functions are not counted as source-transpiled methods. Coverage is selected-signature coverage, not full-class translation."
+    "note": "17 public API signatures are source-transpiled (17/132). HumanoidModel.quadraticArmUpdate is one additional private helper. The 20 manual Mth compatibility functions are not counted as source-transpiled methods. Coverage is selected-signature coverage, not full-class translation."
   },
   "runtime_validation": {
     "lua_5_4_validated": true,
@@ -114,9 +113,10 @@
       },
       "overload_limits": [
         "Java overload resolution is not implemented; clamp maps to float/double semantics, not int/long semantics.",
-        "Lua numbers do not preserve all Java int/long overflow, long precision, or every float rounding boundary."
+        "Lua numbers do not preserve all Java int/long overflow, long precision, or every float rounding boundary.",
+        "Mth.cube(float) and Mth.approach(float,float,float) are intentionally not source-transpiled until binary32 rounding is modeled at each arithmetic boundary."
       ],
-      "remaining": "15 selected double-signature methods are emitted from the exact 26.3 source; the other 99 API signatures are not transpiled. The 20 compatibility helpers listed under ported_methods remain separate manual Lua adapters.",
+      "remaining": "14 selected double-signature methods are emitted from the exact 26.3 source; the other 100 API signatures are not transpiled. The 20 compatibility helpers listed under ported_methods remain separate hand-written Lua adapters.",
       "source_inventory": {
         "source_entry": "net/minecraft/util/Mth.java",
         "api_surface_count": 114,
@@ -162,9 +162,8 @@
           "map(double,double,double,double,double)",
           "lengthSquared(double,double,double)",
           "length(double,double,double)",
-          "cube(double)",
           "frac(double)",
-          "approach(double,double,double)"
+          "atan2(double,double)"
         ]
       },
       "transpiled_methods": [
@@ -180,14 +179,13 @@
         "map(double,double,double,double,double)",
         "lengthSquared(double,double,double)",
         "length(double,double,double)",
-        "cube(double)",
         "frac(double)",
-        "approach(double,double,double)"
+        "atan2(double,double)"
       ],
       "coverage": {
-        "public_api_methods_translated": 15,
+        "public_api_methods_translated": 14,
         "public_api_methods_total": 114,
-        "public_api_coverage_percent": 13.2
+        "public_api_coverage_percent": 12.3
       }
     },
     {

@@ -25,16 +25,15 @@ SPECS = [
    {"name":"sign","params":["double"]},
    {"name":"lerp","params":["double","double","double"]},
    {"name":"square","params":["double"]},
-   {"name":"cube","params":["double"]},
    {"name":"frac","params":["double"]},
-   {"name":"approach","params":["double","double","double"]},
+   {"name":"atan2","params":["double","double"]},
    {"name":"inverseLerp","params":["double","double","double"]},
    {"name":"clampedMap","params":["double","double","double","double","double"]},
    {"name":"map","params":["double","double","double","double","double"]},
    {"name":"lengthSquared","params":["double","double","double"]},
    {"name":"length","params":["double","double","double"]}
   ],
-  "api_methods":["clamp","lerp","sign","wrapDegrees","absMax","degreesDifference","degreesDifferenceAbs","rotateIfNecessary","approach","approachDegrees","positiveModulo","frac","square","cube","equal","clampedLerp","sin","cos","sqrt","rotLerpRad","inverseLerp","clampedMap","map","lengthSquared","length"],
+  "api_methods":["clamp","lerp","sign","wrapDegrees","absMax","atan2","degreesDifference","degreesDifferenceAbs","rotateIfNecessary","approach","approachDegrees","positiveModulo","frac","square","cube","equal","clampedLerp","sin","cos","sqrt","rotLerpRad","inverseLerp","clampedMap","map","lengthSquared","length"],
   "helper_methods":[],
   "field_names":["PI","HALF_PI","TWO_PI","DEG_TO_RAD","RAD_TO_DEG","SIN_QUANTIZATION","SIN_MASK","COS_OFFSET","SIN_SCALE","SIN"],
   "fixture_fields":[],"api_surface_count":114}

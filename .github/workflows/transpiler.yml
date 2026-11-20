@@ -186,13 +186,13 @@ jobs:
           python - <<'PY'
           import json
           r=json.load(open("build/transpiled-real/transpile-report.json",encoding="utf-8"))
-          assert r["translated_methods"]==19 and len(r["skipped_methods"])==6 and r["strict_blockers"]==6 and not r["skipped_files"] and set(r["generated_modules"])=={"net/minecraft/client/model/HumanoidModel.lua","net/minecraft/client/model/player/PlayerModel.lua","net/minecraft/util/Mth.lua"},r
-          expected_mth={"clamp","clampedLerp","absMax","equal","sign","lerp","square","cube","frac","approach","inverseLerp","clampedMap","map","lengthSquared","length"}
+          assert r["translated_methods"]==18 and len(r["skipped_methods"])==6 and r["strict_blockers"]==6 and not r["skipped_files"] and set(r["generated_modules"])=={"net/minecraft/client/model/HumanoidModel.lua","net/minecraft/client/model/player/PlayerModel.lua","net/minecraft/util/Mth.lua"},r
+          expected_mth={"clamp","clampedLerp","absMax","equal","sign","lerp","square","frac","atan2","inverseLerp","clampedMap","map","lengthSquared","length"}
           actual_mth={x["method"] for x in r["translated_method_details"] if x["class"]=="net.minecraft.util.Mth"}
           assert actual_mth==expected_mth,(actual_mth,expected_mth,r)
           reasons=" | ".join(x["reason"] for x in r["skipped_methods"])
           for x in ("super calls","ternary conditional operator","object construction","lambda/method reference","unadapted Minecraft engine type/API"): assert x in reasons,r
-          print("Translated real Minecraft methods:",r["translated_methods"],"including 15 Mth double helpers; skipped conservatively:",len(r["skipped_methods"]))
+          print("Translated real Minecraft methods:",r["translated_methods"],"including 14 Mth double helpers; skipped conservatively:",len(r["skipped_methods"]))
           PY
       - name: Compile extracted Mth source as Java reference
         run: |
