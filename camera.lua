@@ -1,7 +1,6 @@
--- SteveCraft 64 - Lua-only first/third-person camera.
--- NEWCAM supplies Android touch orbit and SM64 surface collision. The Lua
--- API does not expose writable Lakitu position/focus, so camera placement
--- remains delegated to the engine rather than imitated incompletely.
+-- SteveCraft 64 - first/third-person camera bridge.
+-- NEWCAM supplies Android touch orbit and SM64 surface collision. The native
+-- camera keeps following the Mario physical proxy; Steve is only its visual.
 
 SteveCraft = SteveCraft or {}
 SteveCraft.PERSPECTIVE_FIRST_PERSON = 0
@@ -72,35 +71,28 @@ local function configure_touch_free_camera(m)
     end
 end
 
-local function show_player_model(m)
-    if m ~= nil and m.marioBodyState ~= nil then
-        m.marioBodyState.modelState = 0
-    end
-end
-
 local function is_local_steve(m)
     local character = SteveCraft.character
+    local proxy = SteveCraft.proxy
     return m ~= nil
         and m.playerIndex == 0
         and character ~= nil
         and character.ready
         and character.modelId ~= nil
-        and gPlayerSyncTable ~= nil
-        and gPlayerSyncTable[0] ~= nil
-        and gPlayerSyncTable[0].modelId == character.modelId
+        and proxy ~= nil
+        and type(proxy.is_attached) == "function"
+        and proxy.is_attached(0)
 end
 
 local function enter_first_person(m)
     set_first_person_enabled(false)
     restore_camera_settings(m)
-    show_player_model(m)
     set_first_person_enabled(true)
 end
 
 local function enter_third_person(m)
     if m == nil or m.area == nil or m.area.camera == nil then return false end
     set_first_person_enabled(false)
-    show_player_model(m)
     configure_touch_free_camera(m)
     return true
 end
@@ -117,14 +109,14 @@ end
 
 local function on_mario_update(m)
     if not is_local_steve(m) then return end
+
     if m.controller ~= nil and (m.controller.buttonPressed & Y_BUTTON) ~= 0 then
         SteveCraft.perspectiveMode = 1 - SteveCraft.perspectiveMode
         applyPerspectiveWhenReady = true
     end
+
     if applyPerspectiveWhenReady then
         apply_perspective(m)
-    elseif SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_THIRD_PERSON then
-        show_player_model(m)
     end
 end
 
