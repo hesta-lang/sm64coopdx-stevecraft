@@ -110,17 +110,23 @@ local function set_visual_transform(m, visualObject)
         visualObject.oPosZ = position.z
     end
     if rotation ~= nil then
-        visualObject.oFaceAnglePitch = rotation.x
+        -- Minecraft's humanoid player body remains upright while moving and
+        -- jumping. Mario's faceAngle pitch/roll may contain acrobatic tilts;
+        -- only yaw is shared with Steve's body.
+        visualObject.oFaceAnglePitch = 0
         visualObject.oFaceAngleYaw = rotation.y
-        visualObject.oFaceAngleRoll = rotation.z
-        visualObject.oMoveAnglePitch = rotation.x
+        visualObject.oFaceAngleRoll = 0
+        visualObject.oMoveAnglePitch = 0
         visualObject.oMoveAngleYaw = rotation.y
-        visualObject.oMoveAngleRoll = rotation.z
+        visualObject.oMoveAngleRoll = 0
     end
 
-    if sourceObject ~= nil then
-        -- Keep the compatible animation descriptors but do not inherit
-        -- Mario's position, rotation or graphical-height corrections.
+    local animationController = SteveCraft.animations
+    if animationController ~= nil and type(animationController.update_visual) == "function" then
+        animationController.update_visual(m, visualObject)
+    elseif sourceObject ~= nil then
+        -- Compatibility fallback only; the custom animation controller owns
+        -- all normal Steve poses when loaded.
         copy_animation_state(sourceObject, visualObject)
     end
     visualObject.oGraphYOffset = 0
@@ -292,7 +298,7 @@ local function ensure_visual(m, modelId, record)
 
     record.visual = visual
     record.modelId = modelId
-    set_visual_transform(m, visual)
+    -- proxy.update() applies the visual transform once after this returns.
     return visual
 end
 

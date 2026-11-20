@@ -38,7 +38,21 @@ The actor remains a DynOS/F3D model. Minecraft's Java renderer, lighting and exa
 
 ## Animation
 
-Because the original SM64 player skeleton is preserved, the actor can use the engine's standard player animation set. SteveCraft also registers Minecraft-style clips through `animations.lua` for idle, walk, run, crouch, crouch-walk and swim. Only players using Steve's model receive those clips.
+The actor keeps the compatible 20-part SM64 animated hierarchy, but its normal pose is no longer inherited from Mario. The exporter sanitizer removes the Mario-specific GeoLayout callbacks:
+- `geo_mirror_mario_set_alpha`;
+- `geo_move_mario_part_from_parent`;
+- `geo_mario_tilt_torso`;
+- `geo_mario_head_rotation`.
+
+This prevents Mario's hidden alpha, torso lean, part offset and head rotation from being applied to the detached Steve model. The body transform also uses MarioState position plus yaw only; pitch and roll are held at zero.
+
+`animations.lua` registers independent clips and applies them directly to each detached Steve visual object. The selector is driven by SteveCraft's Minecraft motion snapshot, not `gPlayerSyncTable.modelId` or Mario's animation ID. Current clips:
+- `steve_mc_idle`;
+- `steve_mc_walk` and `steve_mc_run`;
+- `steve_mc_crouch` and `steve_mc_crouch_walk`;
+- `steve_mc_swim`.
+
+Horizontal limb movement continues while airborne if Steve retains horizontal speed. The first-person right arm is a separate 4×12×4 DynOS actor positioned in camera space, with walking bob and a B-button swing. The viewmodel does not yet render held tools/items or all Minecraft use-item poses.
 
 ## Runtime checks still required
 
@@ -46,8 +60,9 @@ Because the original SM64 player skeleton is preserved, the actor can use the en
 - [ ] Steve's head is above the torso; torso, both arms and both legs are separated and visible.
 - [ ] The face and all body regions sample the intended Steve skin faces.
 - [ ] Head, torso, arms and legs rotate at the intended joints.
-- [ ] Idle, walk, run and jump poses do not roll the whole body onto its side.
-- [ ] First-person camera and touch orbit remain functional.
+- [ ] Idle, walk, run, crouch, swim and airborne horizontal movement use the intended Steve clips.
+- [ ] First-person arm aligns to the screen and attack swing looks correct.
+- [ ] First-person eye height and NEWCAM touch orbit remain functional.
 - [ ] Jump motion is vertical only, with no residual X/Z movement.
 - [ ] Android gameplay and multiplayer model selection are validated.
 

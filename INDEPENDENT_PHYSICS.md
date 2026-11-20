@@ -2,7 +2,7 @@
 
 ## Scope
 
-Version 0.20.0-alpha moves the local Steve player into a dedicated Lua locomotion action. MarioState and marioObj remain the engine-facing player state and interaction proxy, but they no longer choose or integrate Steve's normal walk/run/jump/fall/swim movement while isolation is active.
+Version 0.21.0-alpha moves the local Steve player into a dedicated Lua locomotion action. MarioState and marioObj remain the engine-facing player state and interaction proxy, but they no longer choose or integrate Steve's normal walk/run/jump/fall/swim movement while isolation is active.
 
 The mod does not modify SM64CoopDX C/C++ source or the APK.
 
@@ -34,9 +34,13 @@ When a Lua movement step cannot be resolved, SteveCraft returns a neutral step r
 
 ## Visual proxy
 
-Steve's detached DynOS actor now uses `MarioState.pos` and `MarioState.faceAngle` directly for its transform. Only animation descriptor/frame data are borrowed from Mario's object. This avoids copying a stale native transform or its graphical height corrections.
+Steve's detached DynOS actor uses `MarioState.pos` and player yaw directly. Body pitch and roll are zeroed so Mario's acrobatic tilt never rotates Steve's whole cuboid body. The detached actor no longer borrows Mario's animation descriptor: `animations.lua` selects and applies independent Minecraft humanoid clips from SteveCraft's horizontal speed, sprint, crouch and water state. Its walk/run cycle remains active in air while horizontal speed remains.
 
-The hidden Mario proxy keeps its engine object and interaction state, but its native body alpha and `header.gfx.shadowInvisible` are disabled. The detached Steve actor also has `header.gfx.shadowInvisible=true`, preventing either SM64-generated shadow from producing the black oval visible in the screenshot. No custom Minecraft-style shadow is drawn yet. The original Mario body/shadow visibility values are restored when the proxy is destroyed.
+The detached GeoLayout is sanitized at export time to remove `geo_mirror_mario_set_alpha`, `geo_move_mario_part_from_parent`, `geo_mario_tilt_torso` and `geo_mario_head_rotation`. These callbacks otherwise copy Mario-specific opacity, part offsets, torso lean and head rotation into the Steve rig.
+
+The hidden Mario proxy keeps its engine object and interaction state, but its native body alpha and `header.gfx.shadowInvisible` are disabled. The detached Steve actor also has `header.gfx.shadowInvisible=true`, preventing either SM64-generated shadow from producing the black oval. No custom Minecraft-style shadow is drawn yet. The original Mario body/shadow visibility values are restored when the proxy is destroyed.
+
+The separate first-person right arm is a 4×12×4 DynOS cuboid. Its shoulder position and long axis are calculated from first-person camera forward/right/up vectors, with movement bob and a B-button attack swing. The camera bridge adjusts eye height to Minecraft's 1.62-block standing and 1.27-block crouching values using the writable `gFirstPersonCamera.offset.y` component.
 
 ## Known side effects and unfinished work
 
@@ -69,4 +73,4 @@ SteveCraft.physics.set_native_geometry_disabled(true)
 
 ## Validation
 
-Automated tests cover the Lua geometry adapter and independent movement resolver with mocked surfaces. Proxy tests verify that Steve follows MarioState directly and hides/restores the native shadow. These tests do not prove that the Android runtime will behave correctly. A real SM64CoopDX Android test is required for standing height, ground contact, jumping, falls, walls, ceilings, water, dialog transitions, door/warp behavior and level bounds.
+Automated tests cover the Lua geometry adapter, independent movement resolver, detached animation clip selection, proxy transform ownership, first-person arm pose/swing and camera eye-height conversion. These tests do not prove that the Android DynOS runtime will behave correctly. A real SM64CoopDX Android test is required for standing height, ground contact, jumping, falls, walls, ceilings, water, dialog transitions, door/warp behavior and level bounds.

@@ -51,6 +51,15 @@ jobs:
       - name: Run native Mario isolation integration tests
         run: lua5.4 tools/test_physics_isolation.lua
 
+      - name: Run independent Minecraft humanoid animation tests
+        run: lua5.4 tools/test_steve_animations.lua
+
+      - name: Run first-person Steve viewmodel tests
+        run: lua5.4 tools/test_first_person_hand.lua
+
+      - name: Run Steve first-person camera bridge tests
+        run: lua5.4 tools/test_camera_bridge.lua
+
       - name: Run Minecraft 26.3 camera parity tests
         run: lua5.4 tools/test_minecraft_26_3_camera.lua
 

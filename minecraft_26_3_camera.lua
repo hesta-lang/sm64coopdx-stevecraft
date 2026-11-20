@@ -18,6 +18,16 @@ local function finite(x, fallback)
     return x
 end
 
+-- Convert Minecraft's standing/crouching eye height into this mod's current
+-- SM64 world scale. The host FirstPersonCamera has a fixed 120-unit head
+-- baseline; only its writable offset.y is adjusted by camera.lua.
+function C.player_eye_offset(crouching, units_per_block, sm64_head_baseline)
+    local units = math.max(0.0, finite(units_per_block, 160.0 / 1.8))
+    local baseline = finite(sm64_head_baseline, 120.0)
+    local eye_blocks = crouching and 1.27 or 1.62
+    return eye_blocks * units - baseline
+end
+
 local function vec(x, y, z)
     return { x = finite(x, 0), y = finite(y, 0), z = finite(z, 0) }
 end

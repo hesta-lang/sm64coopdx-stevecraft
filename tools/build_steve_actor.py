@@ -434,6 +434,8 @@ def freeze_steve_eye_switches():
 
 
 def sanitize_unsupported_geo_commands(actor_dir):
+    # Strip exporter-only commands plus Mario alpha/part-offset/torso/head
+    # callbacks so the detached Steve rig owns its own Minecraft pose.
     geo_path = actor_dir / "geo.inc.c"
     source = geo_path.read_text(encoding="utf-8")
     sanitized, report = sanitize_steve_geo_source(source)

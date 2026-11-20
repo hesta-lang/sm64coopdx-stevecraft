@@ -4,20 +4,21 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 
 ## Versión
 
-**0.20.0-alpha** — aísla la locomoción de Steve mediante una acción Lua propia, sustituye el preprocesamiento geométrico nativo y sincroniza el renderizado con MarioState.
+**0.21.0-alpha** — añade animaciones Minecraft independientes para el Steve separado, elimina callbacks de pose de Mario del GeoLayout, recalibra el brazo de primera persona y ajusta la altura de ojos Minecraft.
 
 ## Proxy físico/visual
 
 - **MarioState y marioObj son el puente de compatibilidad con el motor:** SteveCraft controla la aceleración, salto, gravedad, movimiento y resolución de contactos del jugador local. El motor conserva las consultas de geometría y el sistema de interacciones.
 - **Steve es un objeto visual independiente:** cada cliente crea una representación local de Steve para cada jugador y la sincroniza con el objeto físico correspondiente.
 - El objeto visual no tiene hitbox, interacciones ni gravedad. No procesa movimiento ni colisiones.
-- El GeoLayout independiente ya no llama a `geo_mirror_mario_set_alpha`: esa rutina lee `MarioBodyState.modelState`, que el proxy pone a alfa cero para ocultar a Mario. Mantenerla también ocultaba a Steve y dejaba visible solo su sombra.
-- La posición y orientación visuales se leen directamente de `MarioState.pos` y `MarioState.faceAngle`; solo se reutiliza el descriptor/frame de animación compatible. No se copia la transformación gráfica potencialmente atrasada de Mario.
+- El GeoLayout de Steve ya no ejecuta los callbacks de pose propios de Mario: `geo_mirror_mario_set_alpha`, `geo_move_mario_part_from_parent`, `geo_mario_tilt_torso` ni `geo_mario_head_rotation`. Esos callbacks hacían que el esqueleto separado heredase la alfa, el desplazamiento del torso y la rotación de cabeza de Mario.
+- La posición visual procede de `MarioState.pos`; Steve usa solo el yaw de avance y mantiene pitch/roll corporales en cero para que saltos o giros acrobáticos de Mario no tumben el cuerpo cúbico.
 - Se ocultan las sombras nativas tanto del proxy Mario como del actor DynOS separado (`header.gfx.shadowInvisible`). Esta versión elimina las sombras negras generadas por SM64; todavía no dibuja una sombra de Minecraft propia.
 - El modelo de Steve conserva la jerarquía animada compatible con el esqueleto de jugador de SM64CoopDX.
-- Se asigna `globalPlayerIndex` al objeto visual para que las rutinas GeoLayout de cabeza y torso resuelvan el estado corporal del jugador correcto.
-- En primera persona se oculta el cuerpo visual independiente y se conserva el brazo viewmodel de Steve.
-- La cámara nativa continúa siguiendo al proxy físico. La API Lua no expone un destino Lakitu editable para implementar una cámara Minecraft completamente independiente.
+- Se asigna `globalPlayerIndex` al objeto visual para las ramas restantes de estado de jugador, como la selección de cabeza/cap; el cuerpo ya no depende de los callbacks de rotación de cabeza/torso de Mario.
+- En primera persona se oculta el cuerpo visual independiente y se usa un brazo derecho 4×12×4 separado, posicionado con los vectores de yaw/pitch de la cámara, balanceo por movimiento y swing de ataque con B.
+- La altura de ojos de primera persona se ajusta a 1.62 bloques de pie y 1.27 agachado usando el componente `gFirstPersonCamera.offset.y`. Se conserva el FOV del usuario; el valor predeterminado del motor es 70°.
+- En tercera persona sigue usándose NEWCAM para mantener el giro táctil Android. No se puede forzar desde Lua la posición/foco final de Lakitu ni un seguimiento exacto a cuatro bloques.
 
 Este Proxy separa el cuerpo visual del puente de compatibilidad. **SteveCraft es el propietario de la locomoción y de la integración física** mientras el modo independiente está activo; MarioState sigue transportando posición, contactos, datos de jugador e interacciones requeridos por el motor.
 
@@ -91,10 +92,10 @@ El modelo se mantiene dentro de este repositorio independiente. No se modifica e
 - La acción propia cubre la locomoción regular de Steve y permanece no-intangible/no-invulnerable para permitir interacciones y diálogos. Se conservan las secuencias terminales de muerte del motor; warp/death-plane y temporizadores PSS siguen siendo mecánicas de nivel nativas, mientras quicksand, lava, viento y plunge de agua quedan bloqueados para Steve.
 - El colisionador horizontal usa una aproximación radial de 0.3 bloques de radio, no un AABB rectangular exacto. Las superficies consultadas siguen siendo triángulos de SM64.
 - La ruta de agua aún no reproduce corrientes Minecraft persistentes, burbujas, fluidos personalizados ni todos los estados de nado. Lava y modificadores individuales de bloque siguen incompletos.
-- El Proxy aún depende de las animaciones del esqueleto SM64; no reemplaza los clips por los controladores Java de Minecraft.
-- La API Lua no permite escribir directamente la posición/foco de Lakitu para una cámara Minecraft totalmente separada.
+- El controlador separado registra y aplica clips de Steve para idle, caminar, correr, agacharse, caminar agachado y nadar. El ciclo de piernas sigue dependiendo de la velocidad horizontal durante los saltos; faltan poses de objetos, herramientas y efectos de estado.
+- La API Lua no permite escribir directamente la posición/foco de Lakitu ni conectar el raycast de ocho rayos a bloques VISUAL. La cámara de tercera persona aún no tiene paridad exacta con el zoom/collision clipping de Minecraft.
 - La eliminación de `geo_mirror_mario_set_alpha` evita compartir la alfa de Mario; también se oculta la sombra del proxy y la transformación Steve viene directamente de MarioState. El aspecto final todavía requiere prueba real en Android.
-- Un build correcto y las pruebas simuladas no demuestran que el bypass funcione en tiempo real con el fork Android. Es imprescindible verificar en dispositivo el movimiento, la cámara, las transiciones de acciones, las colisiones, el agua y los límites del nivel.
+- El actor regenerado y las pruebas simuladas no demuestran que DynOS reproduzca el rig/animaciones correctamente en Android. Es imprescindible verificar en dispositivo el cuerpo, la mano 1P, animaciones al caminar/saltar/nadar, zoom táctil y colisiones.
 
 ## Referencias de ingeniería inversa
 

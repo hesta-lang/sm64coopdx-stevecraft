@@ -1,6 +1,12 @@
 package.path = "./?.lua;" .. package.path
 local C = require("minecraft_26_3_camera")
 
+local unitsPerBlock = 160.0 / 1.8
+assert(math.abs(C.player_eye_offset(false, unitsPerBlock, 120) - 24) < 1e-6,
+    "standing eye height must match Minecraft's 1.62-block eye position")
+assert(math.abs(C.player_eye_offset(true, unitsPerBlock, 120) - (1.27 * unitsPerBlock - 120)) < 1e-6,
+    "crouching eye height must match Minecraft's 1.27-block eye position")
+
 local entity = {
     oldPosition = { x = 0, y = 0, z = 0 },
     position = { x = 10, y = 4, z = 20 },

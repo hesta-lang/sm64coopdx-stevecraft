@@ -322,108 +322,116 @@ if not animations.customClipsRegistered then
     animations.customClipsReady = true
 end
 
-local clip_by_mario_animation = {}
-
-local function bind_clip(clip_name, ...)
-    for index = 1, select("#", ...) do
-        local animation_id = select(index, ...)
-        if type(animation_id) == "number" then
-            clip_by_mario_animation[animation_id] = clip_name
-        end
-    end
-end
-
--- Minecraft has one HumanoidModel walk equation; the run clip simply uses a
--- higher walkAnimationSpeed. Normal jumps and falls do not have a separate
--- vanilla humanoid limb cycle, so they use Minecraft's neutral arm-bob pose.
-bind_clip("steve_mc_idle",
-    MARIO_ANIM_IDLE_HEAD_LEFT,
-    MARIO_ANIM_IDLE_HEAD_RIGHT,
-    MARIO_ANIM_IDLE_HEAD_CENTER,
-    MARIO_ANIM_SINGLE_JUMP,
-    MARIO_ANIM_DOUBLE_JUMP_RISE,
-    MARIO_ANIM_DOUBLE_JUMP_FALL,
-    MARIO_ANIM_GENERAL_FALL,
-    MARIO_ANIM_LAND_FROM_SINGLE_JUMP,
-    MARIO_ANIM_LAND_FROM_DOUBLE_JUMP,
-    MARIO_ANIM_GENERAL_LAND,
-    MARIO_ANIM_TRIPLE_JUMP,
-    MARIO_ANIM_TRIPLE_JUMP_FLY)
-
-bind_clip("steve_mc_walk", MARIO_ANIM_WALKING)
-bind_clip("steve_mc_run", MARIO_ANIM_RUNNING, MARIO_ANIM_RUNNING_UNUSED)
-bind_clip("steve_mc_crouch", MARIO_ANIM_CROUCHING)
-bind_clip("steve_mc_crouch_walk", MARIO_ANIM_CRAWLING)
-bind_clip("steve_mc_swim",
-    MARIO_ANIM_SWIM_PART1,
-    MARIO_ANIM_SWIM_PART2,
-    MARIO_ANIM_FLUTTERKICK,
-    MARIO_ANIM_WATER_ACTION_END,
-    MARIO_ANIM_WATER_IDLE,
-    MARIO_ANIM_DIVE)
-
+local active_visual_by_player = {}
 local active_clip_by_player = {}
-local previous_base_animation_by_player = {}
 
-local function is_steve_player(m)
-    local character = SteveCraft.character
-    if character == nil or not character.ready or character.modelId == nil then
-        return false
+local function current_motion(m)
+    local physics = SteveCraft.physics
+    if physics ~= nil and type(physics.get_animation_state) == "function" then
+        local ok, state = pcall(physics.get_animation_state, m)
+        if ok and state ~= nil then return state end
     end
-    if gPlayerSyncTable == nil or m.playerIndex == nil then
-        return false
-    end
-    local sync = gPlayerSyncTable[m.playerIndex]
-    return sync ~= nil and sync.modelId == character.modelId
+
+    local velocity = m.vel or {}
+    local vx, vy, vz = velocity.x or 0, velocity.y or 0, velocity.z or 0
+    local speed = math.sqrt(vx * vx + vz * vz)
+    local action = m.action or 0
+    local in_water = INPUT_IN_WATER ~= nil and m.input ~= nil
+        and (m.input & INPUT_IN_WATER) ~= 0
+    local on_ground = not (ACT_FLAG_AIR ~= nil and (action & ACT_FLAG_AIR) ~= 0)
+    local crouching = (ACT_CROUCHING ~= nil and action == ACT_CROUCHING)
+        or (INPUT_Z_DOWN ~= nil and m.input ~= nil and (m.input & INPUT_Z_DOWN) ~= 0)
+    return {
+        vx = vx, vy = vy, vz = vz,
+        horizontalSpeed = speed,
+        verticalSpeed = vy,
+        onGround = on_ground,
+        inWater = in_water,
+        airborne = not on_ground and not in_water,
+        crouching = crouching,
+        sprinting = false,
+        usingItem = false,
+    }
 end
 
-local function apply_minecraft_animation(m)
-    if m == nil or m.marioObj == nil or not is_steve_player(m) then
-        return
+local function select_clip(state)
+    if state.inWater then return "steve_mc_swim" end
+
+    local speed = state.horizontalSpeed or 0
+    if state.crouching then
+        if speed > 0.65 then return "steve_mc_crouch_walk" end
+        return "steve_mc_crouch"
     end
 
-    local player_index = m.playerIndex or 0
-    local info = m.marioObj.header.gfx.animInfo
-    if info == nil then
-        return
-    end
+    -- Minecraft's limb cycle follows horizontal movement rather than the
+    -- SM64 grounded action flag, so walking/running continues during jumps.
+    if speed < 0.8 then return "steve_mc_idle" end
+    if state.sprinting or speed >= 6.6 then return "steve_mc_run" end
+    return "steve_mc_walk"
+end
 
-    local base_animation_id = info.animID
-    local clip_name = clip_by_mario_animation[base_animation_id]
-
-    -- Minecraft has no separate run key animation state: sprinting increases
-    -- the walk-cycle speed while retaining the same humanoid limb equation.
-    if m.playerIndex == 0
-        and ACT_WALKING ~= nil
-        and m.action == ACT_WALKING
-        and SteveCraft.physics ~= nil
-        and type(SteveCraft.physics.is_sprinting) == "function"
-        and SteveCraft.physics.is_sprinting() then
-        clip_name = "steve_mc_run"
-    end
-
-    if clip_name == nil then
-        active_clip_by_player[player_index] = nil
-        previous_base_animation_by_player[player_index] = base_animation_id
-        return
-    end
-
-    -- Re-apply only when the game changes its native animation state. This
-    -- avoids resetting the custom cycle to frame zero on every Mario update.
-    if active_clip_by_player[player_index] ~= clip_name
-        or previous_base_animation_by_player[player_index] ~= base_animation_id then
-        SET_ANIMATION(m.marioObj, clip_name)
-        -- Match mario_set_animation_internal(): the next engine update advances
-        -- from frame -1 to frame 0, even when the previous clip was longer.
-        info.animFrame = -1
-        info.prevAnimFrame = -1
-        info.animFrameAccelAssist = -0x10000
-        info.animAccel = 0x10000
-        active_clip_by_player[player_index] = clip_name
-    end
-
+local function reset_clip_frame(info)
+    if info == nil then return end
+    info.animFrame = -1
+    info.prevAnimFrame = -1
+    info.animFrameAccelAssist = -0x10000
     info.animAccel = 0x10000
-    previous_base_animation_by_player[player_index] = base_animation_id
+    info.animTimer = 0
 end
 
-hook_event(HOOK_MARIO_UPDATE, apply_minecraft_animation)
+-- Apply Minecraft's own humanoid clip directly to the detached Steve object.
+-- This deliberately does not inspect gPlayerSyncTable or reuse Mario's action
+-- animation ID; those are the two things that previously made the detached
+-- model inherit the Mario run/idle pose.
+function animations.update_visual(m, visual_object)
+    if m == nil or visual_object == nil then return false end
+    if visual_object.header == nil or visual_object.header.gfx == nil then return false end
+
+    local index = m.playerIndex or 0
+    local state = current_motion(m)
+    local clip_name = select_clip(state)
+    local info = visual_object.header.gfx.animInfo
+    if info == nil then return false end
+
+    local changed = active_visual_by_player[index] ~= visual_object
+        or active_clip_by_player[index] ~= clip_name
+    if changed then
+        local ok = pcall(SET_ANIMATION, visual_object, clip_name)
+        if not ok then
+            active_visual_by_player[index] = nil
+            active_clip_by_player[index] = nil
+            return false
+        end
+        reset_clip_frame(info)
+        active_visual_by_player[index] = visual_object
+        active_clip_by_player[index] = clip_name
+    end
+
+    local speed = state.horizontalSpeed or 0
+    local speed_scale = 1.0
+    if clip_name == "steve_mc_walk" then
+        speed_scale = math.max(0.45, math.min(1.35, speed / 4.0))
+    elseif clip_name == "steve_mc_run" then
+        speed_scale = math.max(0.75, math.min(1.65, speed / 7.0))
+    elseif clip_name == "steve_mc_crouch_walk" then
+        speed_scale = math.max(0.45, math.min(1.0, speed / 2.5))
+    end
+    info.animAccel = math.floor(0x10000 * speed_scale + 0.5)
+
+    animations.activeClipByPlayer = animations.activeClipByPlayer or {}
+    animations.activeClipByPlayer[index] = clip_name
+    return true
+end
+
+function animations.reset_player(player_index)
+    local index = player_index or 0
+    active_visual_by_player[index] = nil
+    active_clip_by_player[index] = nil
+end
+
+function animations.get_active_clip(player_index)
+    return active_clip_by_player[player_index or 0]
+end
+
+animations.customClipsReady = true
+print("[SteveCraft 64] Independent Minecraft humanoid animation controller ready")

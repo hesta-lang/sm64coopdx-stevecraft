@@ -2,47 +2,59 @@
 
 ## Goal
 
-Separate the player representation from the entity that SM64CoopDX simulates, without creating two competing physics bodies.
+Keep Steve's visual model independent from SM64CoopDX's Mario mesh and normal locomotion, while retaining one engine-facing MarioState bridge for object interactions, health, networking and level systems.
 
 ## Current implementation
 
-- **Physical authority:** the engine's existing `MarioState` and `marioObj`. They continue to own movement, surface collision resolution, gravity, hit reactions, and the native camera's follow target.
-- **Visual representation:** a separate, local-only Steve DynOS object is created for each player on each client. It has no interaction type, no hitbox, no gravity, and no independent movement controller. The native Mario body is hidden with zero alpha while the proxy is attached, preserving non-alpha model flags; the original body state is restored when the proxy is destroyed.
-- **Transform:** the visual object copies position and orientation from the matching Mario object every object update.
-- **Animation:** the visual copies the source object's animation descriptor, frame, timing, animation table, and scale. Steve's generated GeoLayout uses the same animated player hierarchy, so the normal player animation data can drive the detached mesh.
-- **Head and torso:** Steve's GeoLayout uses the standard Mario head/torso Geo ASM callbacks. The visual object's `globalPlayerIndex` is set from `gNetworkPlayers[playerIndex].globalIndex`, allowing those callbacks to resolve the correct player's body-state data.
-- **Multiplayer:** each client creates non-synchronized render-only copies for the local and remote Mario states. This avoids sending duplicate visual entities over the network; player motion remains synchronized by the game's existing player system.
-- **First person:** the detached full body is hidden while the game's first-person mode is active. The existing Steve hand viewmodel remains responsible for the arm on screen.
+- **Engine bridge:** MarioState and marioObj remain registered with SM64CoopDX so the level can process interactions, damage, network state and the host camera. SteveCraft redirects the local player's ordinary locomotion into its own Lua action and resolves the intercepted movement steps itself.
+- **Visual representation:** a separate, local-only Steve DynOS object is created for each player on each client. It has no interaction type, hitbox, gravity or physics body.
+- **Body visibility:** the native Mario body is hidden with zero alpha while the proxy is attached. The native Mario shadow and detached Steve actor shadow are also hidden. Original Mario body/shadow visibility is restored when the proxy is destroyed.
+- **Transform:** Steve follows `MarioState.pos` directly. It follows yaw only; pitch and roll are forced to zero so acrobatic Mario orientation cannot tip the Minecraft body sideways. The potentially delayed native marioObj graphical transform is not used as positional authority.
+- **GeoLayout:** Steve's detached GeoLayout is sanitized to remove Mario-only alpha, head, torso and part-offset callbacks. Remaining player-state switches are retained for cap/body variants.
+- **Animation:** `animations.lua` registers independent Minecraft humanoid clips and applies them directly to the detached Steve visual object. The controller reads SteveCraft's movement state; it does not depend on Mario's current animation ID or the DynOS model ID stored in player sync. Current clips are idle, walk, run, crouch, crouch-walk and swim. Walking/running animation continues in air while horizontal speed remains.
+- **First person:** the detached body is hidden in first person. A separate 4×12×4 Steve right-arm actor is placed in camera space using first-person yaw/pitch, with movement bob and a B-button swing. Its screen-space placement is calculated from camera forward/right/up axes rather than Mario's wrist offset.
+- **Multiplayer:** each client creates non-synchronized render-only copies for local and remote player states. Existing player networking remains responsible for the engine-facing player data.
 
-## Triangle collision adapter
+## Movement and collision bridge
 
-`tri_collider.lua` is a Lua adaptation of SkyCraft's `TriCollider.java` and `SkyTri.java` (MIT). `sm64_collision_adapter.lua` samples actual SM64 floor, ceiling, and wall triangles through the documented Lua API, then returns a pre-clipped movement vector. The normal SM64 physics step is not cancelled.
+The local Steve controller writes position and velocity through MarioState's writable vector components and intercepts ground, air and water step hooks. The native geometry-input prepass is also bypassed; `steve_geometry.lua` repopulates the basic floor, ceiling, water and poison-gas contact fields without moving the player.
 
-The feature is controlled by `SteveCraft.physics.set_triangle_collision_enabled(boolean)`. It is enabled by default when its API is present. Disable it if it causes extra bumps, sticking, or slope jitter; no Android in-game run has validated those interactions yet.
+The collision source is still SM64CoopDX level surfaces. `sm64_collision_adapter.lua` samples floor, ceiling and wall triangles; `tri_collider.lua` resolves a proposed movement vector against those triangles. The normal geometry and movement corrections are not the movement authority for Steve while isolation mode is active.
 
-The solver only handles triangle geometry. It does not implement gravity, jump velocity, sprint acceleration, water movement, or Minecraft block rules. MarioCraft gets those values from a separately running Minecraft Java client, which is not part of this Android mod.
+This is not Minecraft voxel/AABB collision. The current footprint is radial, height and block-to-SM64 scale remain approximate, and level-specific warp/death-plane/PSS triggers, health, damage, interaction processing and networking remain engine-owned.
 
 ## Public Lua API
 
 `SteveCraft.proxy` exposes:
 
-- `update(marioState, modelId)`: register/update one player and ensure its Steve visual exists.
+- `update(marioState, modelId)`: register/update one player and ensure the Steve visual exists.
 - `owns_mario_state(marioState)`: check whether that Mario state is managed by the proxy.
 - `is_attached(playerIndex)`: check whether the separate Steve object is available.
-- `get_state(playerIndex)`: read a copy of position, velocity, rotation, action, floor height, health, and head position.
-- `get_camera_anchor(playerIndex)`: read the physical proxy's position, head position, and yaw.
-- `get_physical_object(playerIndex)`: access the Mario collision/physics object.
+- `get_state(playerIndex)`: read a copy of position, velocity, rotation, action, floor height, health and head position.
+- `get_camera_anchor(playerIndex)`: read the physical proxy's position, head position and yaw.
+- `get_physical_object(playerIndex)`: access the Mario collision/engine bridge object.
 - `get_visual_object(playerIndex)`: access the separate Steve render object.
 - `destroy(playerIndex)` / `reset()`: remove visual proxies.
 
-## Important limits
+`SteveCraft.physics.get_animation_state(marioState)` exposes the current Minecraft movement values used by the detached animation controller: horizontal/vertical speed, grounded/water/air state, crouching and sprinting.
 
-This is a representation/authority split, not a complete Minecraft physics port. The movement layer writes through the one MarioState. A SkyCraft-derived triangle pre-resolver can clip proposed ground/air displacement using surfaces sampled from the documented SM64CoopDX Lua collision API; the original engine step still runs afterward and remains the final contact authority. The visual Steve object never performs physics. This does not add Minecraft voxel/AABB collisions, full material friction, water/lava rules, or a new camera implementation.
+## Camera limits
 
-The camera remains attached to the existing physical player because the Lua API does not expose a supported writable Lakitu position/focus target. The proxy exposes a consistent camera anchor for future camera work, while NEWCAM and the engine continue to handle actual tracking and touch orbit.
+First-person eye height is adjusted to Minecraft's standing 1.62-block and crouching 1.27-block values using the writable `gFirstPersonCamera.offset.y` component. The native default first-person FOV is 70°; SteveCraft keeps the user's configured FOV rather than forcing it.
 
-The detached Steve model mirrors the engine's current animation descriptor. This preserves the current SM64 animation set; it does not yet replace those clips with Minecraft's original Java animation controllers.
+Third-person uses NEWCAM so Android touch orbit and native surface collision keep working. The Lua API exposes camera yaw, but not a writable final Camera/Lakitu position or focus, nor a Minecraft block VISUAL raycaster. Exact four-block third-person distance and Minecraft's eight-ray clipping therefore cannot yet be applied to the live camera without adding a C/C++ engine hook.
 
-## Safety rule
+## Validation and remaining work
 
-Never add independent gravity, velocity integration, or collision resolution to the Steve render object. Any future Minecraft-like movement code must write through the one physical MarioState authority and then let the engine resolve contacts. This prevents double movement, jitter, and mismatched camera/collision positions.
+Automated tests cover independent animation clip selection, proxy transform ownership, right-arm camera-space pose/swing, first-person eye-height conversion, camera perspective switching, physics isolation and the geometry adapter. These are unit/integration tests with mocks; they do not prove Android DynOS rendering.
+
+Still requires in-game Android verification:
+- actor regeneration and DynOS model resolution;
+- body proportions, head/torso separation and joint rotations;
+- idle, walk, run, crouch, swim and airborne movement animation;
+- first-person arm position, scale and swing;
+- standing/crouching eye height;
+- third-person touch orbit and clipping on walls;
+- local/remote player appearance and level interactions.
+
+The render-only Steve object must never gain a second gravity, movement or collision controller. All physical movement continues through the single MarioState bridge to avoid double movement and camera/position divergence.
