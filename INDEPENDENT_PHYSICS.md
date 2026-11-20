@@ -8,11 +8,11 @@ The mod does not modify SM64CoopDX C/C++ source or the APK.
 
 ## Native action replacement
 
-At load time, SteveCraft registers `ACT_STEVECRAFT_CONTROLLED` with `hook_mario_action()`. The action uses the currently unused cutscene-group slot `0x13F` so the ordinary stationary/moving/airborne/submerged Mario action handlers are not dispatched. It preserves reading/dialog actions needed for text UI.
+At load time, SteveCraft registers `ACT_STEVECRAFT_CONTROLLED` as an unused stationary-group action with `ACT_FLAG_CUSTOM_ACTION`, but without `ACT_FLAG_INTANGIBLE` or `ACT_FLAG_INVULNERABLE`. Its Lua callback suppresses native `act_idle()` while keeping the state eligible for object interactions and `mario_ready_to_speak()`. NPC dialogue and sign-reading remain available.
 
-`HOOK_BEFORE_MARIO_UPDATE` moves an attached local Steve into this action. `HOOK_BEFORE_SET_MARIO_ACTION` redirects subsequent native locomotion and physical-action transitions back to the Steve action. The native waiting-for-dialog action is itself overridden by the Steve callback, which preserves the engine's check for whether an NPC can start a conversation. The custom action calls the exposed ground, air and water step functions only as entry points: `HOOK_BEFORE_PHYS_STEP` returns SteveCraft's own step result before the engine's native movement resolver or gravity executes.
+`HOOK_BEFORE_MARIO_UPDATE` moves an attached local Steve into this action. `HOOK_BEFORE_SET_MARIO_ACTION` redirects subsequent native locomotion and physical-action transitions back to the Steve action. The custom action calls the exposed ground, air and water step functions only as entry points: `HOOK_BEFORE_PHYS_STEP` returns SteveCraft's own step result before the engine's native movement resolver or gravity executes.
 
-The custom action supplies Steve-specific animation selection. Its gravity action hook suppresses native `apply_gravity()` if any path requests it. The force-water-action hook prevents Mario from automatically switching Steve into Mario's native swimming/plunge actions.
+The custom action supplies Steve-specific animation selection. Its gravity action hook suppresses native `apply_gravity()` if any path requests it. The force-water-action hook prevents Mario from automatically switching Steve into Mario's native swimming/plunge actions. The hazard-surface hook blocks Mario's quicksand sinking, lava boosts and wind reactions for the local Steve. Terminal death actions remain native; warp/death-plane and PSS timers remain level mechanics.
 
 ## Native geometry replacement
 
@@ -40,9 +40,9 @@ The hidden Mario proxy keeps its engine object and interaction state, but its na
 
 ## Known side effects and unfinished work
 
-Using the cutscene action group intentionally skips native `mario_handle_special_floors()` and normal Mario quicksand/slide/swim/cutscene action dispatch. That means warp floors, lava/vertical-wind floor reactions, PSS timers, quicksand and other special-floor behaviors need SteveCraft implementations before all levels can be considered compatible. Door/object interaction handlers, health, damage, networking and the camera still live in the host engine; interactions can request action transitions, which are redirected to the Steve action.
+Because the controller action is stationary rather than cutscene-group, `mario_handle_special_floors()` still runs. The hazard hook blocks quicksand, lava and wind movement effects, but warp/death-plane and PSS timer triggers remain native level mechanics. Terminal death actions are also preserved. Door/object interactions and NPC dialogue continue to use the host engine and can request transitions back into the Steve controller action. Sign-reading actions remain native. Health, damage, networking and the camera remain engine-owned.
 
-Dialogs and sign-reading actions are preserved. Special cutscenes that require actual Mario movement are not fully reproduced. Remote players are not moved by this local isolation path.
+Special cutscenes that require actual Mario movement are not fully reproduced. Remote players are not moved by this local isolation path.
 
 This version still uses triangle geometry, not voxel collision. It does not provide exact Minecraft block material, moving-platform, fluid-current, lava, ladder, mount, status-effect or attribute behavior.
 
