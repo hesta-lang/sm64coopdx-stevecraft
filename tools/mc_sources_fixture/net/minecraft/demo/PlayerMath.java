@@ -20,6 +20,10 @@ public class PlayerMath {
         return Math.sqrt(input);
     }
 
+    public static boolean isNotZero(int value) {
+        return value != 0;
+    }
+
     public static int unsupportedSwitch(int value) {
         switch (value) {
             case 0: return 1;
