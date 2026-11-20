@@ -58,14 +58,10 @@ local function sync_render_transform(m, x, y, z)
 end
 
 local function set_contact(m, floor, floor_height, ceil, ceil_height)
-    if floor ~= nil then
-        set_field(m, "floor", floor)
-        set_field(m, "floorHeight", floor_height)
-    end
-    if ceil ~= nil then
-        set_field(m, "ceil", ceil)
-        set_field(m, "ceilHeight", ceil_height)
-    end
+    set_field(m, "floor", floor)
+    if floor ~= nil then set_field(m, "floorHeight", floor_height) end
+    set_field(m, "ceil", ceil)
+    if ceil ~= nil then set_field(m, "ceilHeight", ceil_height) end
 end
 
 local function clip_horizontal_momentum(state, requested, allowed)
@@ -142,10 +138,14 @@ function M.resolve(m, step_type, state, requested, config)
         else
             -- No floor within Minecraft's step-down range: let the action
             -- transition to its airborne state on the next update.
+            set_contact(m, nil, nil, ceil, ceil_height)
             state.vy = 0
             result = GROUND_STEP_LEFT_GROUND
         end
     elseif step_type == STEP_TYPE_AIR then
+        -- Below the level's valid floor range, let the native path run once so
+        -- SM64's existing out-of-bounds/warp behavior can take over.
+        if floor_height == nil and end_y < -8000 then return nil end
         local landed = move.y <= 0 and floor_height ~= nil
             and floor_height <= start_y + EPSILON
             and floor_height >= end_y - EPSILON
