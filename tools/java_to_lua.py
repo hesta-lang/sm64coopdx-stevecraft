@@ -130,7 +130,12 @@ class Body:
             return [pad+"local "+decl.group(2)+((" = "+expr(tokens(val[1:]),self.r,self.w)) if val else "")]
         raw=expr(e,self.r,self.w)
         raw=re.sub(r'\b([A-Za-z_$]\w*)\s*\+\+$',r'\1 = \1 + 1',raw)
-        raw=re.sub(r'\b([A-Za-z_$]\w*)\s*--
+        raw=re.sub(r'\b([A-Za-z_$]\w*)\s*--$',r'\1 = \1 - 1',raw)
+        compound=re.fullmatch(r'([A-Za-z_$]\w*)\s*(\+=|-=|\*=|/=|%=)\s*(.+)',raw)
+        if compound:
+            op=compound.group(2)[0]
+            raw=f"{compound.group(1)} = {compound.group(1)} {op} {compound.group(3)}"
+        return [pad+raw]
 
 def split_args(source):
     if not source.strip(): return []
