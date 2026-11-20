@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "tools/build_steve_actor.py"
+      - "tools/steve_geo_sanitizer.py"
+      - "tools/test_steve_geo_sanitizer.py"
       - "tools/build_steve_hand.py"
       - "tools/build_steve_skin_textures.py"
       - ".github/workflows/build-steve-actor.yml"
@@ -20,6 +22,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Test detached Steve GeoLayout alpha sanitization
+        run: python tools/test_steve_geo_sanitizer.py
 
       - name: Download Blender 3.6 LTS
         run: |
@@ -91,6 +96,10 @@ jobs:
           grep -q 'gsDPSetTextureImage' build/actor/actors/steve/model.inc.c
           if grep -R "CUSTOM_CMD" build/actor/actors/steve/geo.inc.c; then
             echo "Unsupported CUSTOM_CMD remains in generated GeoLayout"
+            exit 1
+          fi
+          if grep -R "geo_mirror_mario_set_alpha" build/actor/actors/steve/geo.inc.c; then
+            echo "Detached Steve must not inherit MarioBodyState alpha"
             exit 1
           fi
 
