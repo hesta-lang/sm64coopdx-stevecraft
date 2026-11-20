@@ -68,6 +68,8 @@ local clips = {
     { name = "steve_mc_idle", motion = { horizontalSpeed = 0, onGround = true } },
     { name = "steve_mc_walk", motion = { horizontalSpeed = 3, onGround = true } },
     { name = "steve_mc_run", motion = { horizontalSpeed = 7, onGround = true, sprinting = true } },
+    { name = "steve_mc_walk", motion = { horizontalSpeed = 3, onGround = false, verticalSpeed = 4 } },
+    { name = "steve_mc_idle", motion = { horizontalSpeed = 0, onGround = false, verticalSpeed = 4 } },
     { name = "steve_mc_crouch", motion = { horizontalSpeed = 0, onGround = true, crouching = true } },
     { name = "steve_mc_crouch_walk", motion = { horizontalSpeed = 1.5, onGround = true, crouching = true } },
     { name = "steve_mc_swim", motion = { horizontalSpeed = 1, onGround = false, inWater = true } },
