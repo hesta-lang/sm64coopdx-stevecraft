@@ -11,7 +11,7 @@ local wx, wz, forward = P.input_from_intent(32, 0, 0)
 assert(math.abs(wx) < 1e-6 and math.abs(wz - 0.98) < 1e-6)
 assert(math.abs(forward - 0.98) < 1e-6)
 
-local sx, sz = P.input_from_intent(32, 16384, 0)
+local sx, sz = P.input_from_intent(32, 8192, 0)
 assert(math.abs(sx - math.sqrt(0.5)) < 1e-5)
 assert(math.abs(sz - math.sqrt(0.5)) < 1e-5)
 
