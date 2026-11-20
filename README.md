@@ -4,7 +4,7 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 
 ## Versión
 
-**0.19.0-alpha** — aísla la locomoción de Steve mediante una acción Lua propia, sustituye el preprocesamiento geométrico nativo y sincroniza el renderizado con MarioState.
+**0.20.0-alpha** — aísla la locomoción de Steve mediante una acción Lua propia, sustituye el preprocesamiento geométrico nativo y sincroniza el renderizado con MarioState.
 
 ## Proxy físico/visual
 
