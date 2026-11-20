@@ -1,6 +1,6 @@
 # SteveCraft 64
 
-Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como Steve y mantiene el código de SteveCraft separado del motor. Usa un proxy físico basado en la entidad nativa del motor y un modelo Steve renderizado por separado.
+Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como Steve y mantiene el código de SteveCraft separado del motor. Usa MarioState como puente con el motor y un modelo Steve renderizado por separado; SteveCraft controla los pasos de movimiento interceptados.
 
 ## Versión
 
