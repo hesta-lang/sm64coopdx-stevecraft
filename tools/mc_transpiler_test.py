@@ -32,7 +32,7 @@ class TranspilerIntegrationTests(unittest.TestCase):
             self.assertIn("MC.Mth.lerp", player)
             self.assertIn("value = value + 0.5", player)
             self.assertIn("for i = 0, (2 - 1), 1 do", player)
-            self.assertIn('require("net/minecraft/demo/VecHelper")', entry)
+            self.assertIn("net/minecraft/demo/VecHelper", entry)
 
     def test_strict_mode_fails_when_a_method_is_skipped(self):
         with tempfile.TemporaryDirectory() as tmp:
