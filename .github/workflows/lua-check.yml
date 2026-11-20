@@ -1,4 +1,4 @@
-name: Lua syntax check
+name: Lua syntax and proxy tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   syntax:
-    name: Validate Lua scripts
+    name: Validate Lua scripts and proxy adapter
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -26,3 +26,6 @@ jobs:
             echo "Checking $file"
             luac5.4 -p "$file"
           done < <(find . -type f -name '*.lua' -print0)
+
+      - name: Run proxy behavior tests
+        run: lua5.4 tools/test_proxy.lua
