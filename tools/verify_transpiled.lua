@@ -28,6 +28,10 @@ for i,args in ipairs(rotations) do close(Mth.rotLerpRad(args[1],args[2],args[3])
 local xs={-2.0,0.0,0.3,1.0,5.0}
 for i,x in ipairs(xs) do close(HumanoidModel.quadraticArmUpdate({},x),tonumber(expected["quadratic."..(i-1)]),1e-5) end
 local head={}; assert(HumanoidModel.getHead({head=head})==head)
+local leftArm={id="leftArm"}; local rightArm={id="rightArm"}
+local humanoid={head=head,leftArm=leftArm,rightArm=rightArm}
+assert(HumanoidModel.getArm(humanoid,MC.HumanoidArm.LEFT).id==expected["arm.0"])
+assert(HumanoidModel.getArm(humanoid,MC.HumanoidArm.RIGHT).id==expected["arm.1"])
 local parts={"head","body","leftArm","rightArm","leftLeg","rightLeg"}
 local indexes={0,3,5}; local random={calls=0}
 function random:nextInt(bound) assert(bound==#parts); self.calls=self.calls+1; return indexes[self.calls] end

@@ -11,9 +11,9 @@ from pathlib import Path
 TOKEN = re.compile(r'''//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[0-7_]+|(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?[fFdD]?|\d+[lL]?|[A-Za-z_$][\w$]*|>>>=|<<=|>>=|==|!=|<=|>=|&&|\|\||\+\+|--|\+=|-=|\*=|/=|%=|<<|>>>|>>|::|->|[{}()\[\];,.?:+\-*/%<>=!&|^~]''')
 TYPE = r'(?:byte|short|int|long|float|double|boolean|char|String|[\w$.]+(?:\[\])?)'
 RETURN_TYPE = r'(?:' + TYPE + r'|[\w$.]+\s*<\s*[\w$.,?\s]+\s*>)'
-IMPORT_ADAPTERS = {"net.minecraft.util.Util": "MC.Util"}
+IMPORT_ADAPTERS = {"net.minecraft.util.Util": "MC.Util", "net.minecraft.world.entity.HumanoidArm": "MC.HumanoidArm"}
 MTH_CONSTANTS = {"PI", "HALF_PI", "TWO_PI", "DEG_TO_RAD", "RAD_TO_DEG"}
-ENGINE_API_TYPES = {"ModelPart", "PoseStack", "HumanoidArm", "HumanoidModel", "AvatarRenderState", "HumanoidRenderState", "ArmedEntityRenderState", "MeshDefinition", "CubeDeformation", "CubeListBuilder", "PartDefinition", "PartPose", "ArmorModelSet", "RenderTypes", "RenderType", "EquipmentSlot", "ItemStack", "InteractionHand", "RandomSource", "SpearAnimations", "AnimationUtils", "Identifier", "Maps", "Map", "Set", "Function", "EntityModel", "ArmedModel", "HeadedModel", "Ease", "SwingDescription"}
+ENGINE_API_TYPES = {"ModelPart", "PoseStack", "HumanoidModel", "AvatarRenderState", "HumanoidRenderState", "ArmedEntityRenderState", "MeshDefinition", "CubeDeformation", "CubeListBuilder", "PartDefinition", "PartPose", "ArmorModelSet", "RenderTypes", "RenderType", "EquipmentSlot", "ItemStack", "InteractionHand", "RandomSource", "SpearAnimations", "AnimationUtils", "Identifier", "Maps", "Map", "Set", "Function", "EntityModel", "ArmedModel", "HeadedModel", "Ease", "SwingDescription"}
 ENGINE_API_METHODS = {"translateAndRotate", "addOrReplaceChild", "retainPartsAndChildren", "retainExactParts", "getRoot", "getChild", "animateCrossbowCharge", "animateCrossbowHold", "thirdPersonHandUse", "thirdPersonAttackHand", "entityCutout", "entityTranslucent"}
 
 MATH = {"abs":"math.abs","sqrt":"math.sqrt","sin":"math.sin","cos":"math.cos",
@@ -121,6 +121,16 @@ class Body:
         if self.t[self.i]=="return":
             self.i+=1; e=self.take_expr({";"})
             if self.i<len(self.t): self.i+=1
+            ternary=split_ternary(e)
+            if ternary:
+                condition,when_true,when_false=ternary
+                if not condition or not when_true or not when_false:
+                    raise ValueError("malformed return ternary expression")
+                return [pad+"if "+expr(condition,self.r,self.w)+" then",
+                        pad+"    return "+expr(when_true,self.r,self.w),
+                        pad+"else",
+                        pad+"    return "+expr(when_false,self.r,self.w),
+                        pad+"end"]
             return [pad+"return"+(" "+expr(e,self.r,self.w) if e else "")]
         if self.t[self.i] in ("break","continue"):
             op=self.t[self.i]; self.i+=1
@@ -145,6 +155,33 @@ class Body:
             raw=f"{compound.group(1)} = {compound.group(1)} {op} {compound.group(3)}"
         return [pad+raw]
 
+def split_ternary(ts):
+    """Split one top-level Java conditional expression without eager branch evaluation."""
+    depth=0; question=-1; colon=-1
+    for i, token in enumerate(ts):
+        if token in ("(", "["): depth += 1
+        elif token in (")", "]"): depth -= 1
+        elif depth == 0:
+            if token == "?":
+                if question >= 0: return None
+                question = i
+            elif token == ":" and question >= 0:
+                colon = i
+                break
+    if question <= 0 or colon <= question + 1 or colon >= len(ts) - 1:
+        return None
+    if "?" in ts[colon + 1:]:
+        return None
+    return ts[:question], ts[question + 1:colon], ts[colon + 1:]
+
+
+def is_single_return_ternary(body_tokens):
+    if not body_tokens or body_tokens[0] != "return":
+        return False
+    expression = body_tokens[1:-1] if body_tokens[-1] == ";" else body_tokens[1:]
+    return split_ternary(expression) is not None
+
+
 def validate_method_tokens(bt, where):
     joined = " ".join(bt)
     if "super" in bt:
@@ -155,8 +192,8 @@ def validate_method_tokens(bt, where):
         raise ValueError("object construction requires an explicit constructor adapter: " + target)
     if "->" in bt or "::" in bt:
         raise ValueError("lambda/method reference requires a functional-interface adapter")
-    if "?" in bt and ":" in bt:
-        raise ValueError("ternary conditional operator is unsupported")
+    if "?" in bt and ":" in bt and not is_single_return_ternary(bt):
+        raise ValueError("ternary conditional operator is unsupported outside a single return expression")
     if re.search(r'\(\s*(?:byte|short|int|long|float|double|char)\s*\)', joined):
         raise ValueError("primitive casts require Java narrowing/overflow semantics")
     for i, token in enumerate(bt):

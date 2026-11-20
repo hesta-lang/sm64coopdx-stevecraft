@@ -46,9 +46,9 @@ class TranspilerIntegrationTests(unittest.TestCase):
             )
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             data = json.loads(report.read_text())
-            self.assertEqual(data["translated_methods"], 3)
-            self.assertEqual(len(data["skipped_methods"]), 7)
-            self.assertEqual(data["strict_blockers"], 7)
+            self.assertEqual(data["translated_methods"], 4)
+            self.assertEqual(len(data["skipped_methods"]), 6)
+            self.assertEqual(data["strict_blockers"], 6)
             self.assertFalse(data["skipped_files"])
             reasons = " | ".join(item["reason"] for item in data["skipped_methods"])
             self.assertIn("super calls", reasons)
@@ -60,6 +60,9 @@ class TranspilerIntegrationTests(unittest.TestCase):
             player = (output / "net/minecraft/client/model/player/PlayerModel.lua").read_text()
             self.assertIn("function HumanoidModel:getHead()", humanoid)
             self.assertIn("function HumanoidModel:quadraticArmUpdate(x)", humanoid)
+            self.assertIn("function HumanoidModel:getArm(arm)", humanoid)
+            self.assertIn("local HumanoidArm = MC.HumanoidArm", humanoid)
+            self.assertIn("if arm == HumanoidArm . LEFT then", humanoid)
             self.assertNotIn("function HumanoidModel:getArm(", humanoid)
             self.assertIn("local Util = MC.Util", player)
             self.assertIn("function PlayerModel:getRandomBodyPart(random)", player)
@@ -79,6 +82,27 @@ class TranspilerIntegrationTests(unittest.TestCase):
             self.assertEqual(len(data["files_seen"]), 1)
             self.assertTrue(data["files_seen"][0].endswith("PlayerModel.java"))
             self.assertEqual(data["generated_modules"], ["net/minecraft/client/model/player/PlayerModel.lua"])
+
+    def test_non_return_ternary_remains_blocked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "src" / "net" / "minecraft" / "demo" / "Ternary.java"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "package net.minecraft.demo; public class Ternary { "
+                "public int choose(boolean flag) { int value = flag ? 1 : 2; return value; } }",
+                encoding="utf-8"
+            )
+            report = Path(tmp) / "report.json"
+            run = subprocess.run(
+                [sys.executable, str(TRANSPILER), "--input", str(source.parent),
+                 "--output", str(Path(tmp) / "lua"), "--report", str(report)],
+                capture_output=True, text=True
+            )
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            data = json.loads(report.read_text())
+            self.assertEqual(data["translated_methods"], 0)
+            self.assertEqual(len(data["skipped_methods"]), 1)
+            self.assertIn("ternary conditional operator", data["skipped_methods"][0]["reason"])
 
     def test_strict_mode_fails_when_a_method_is_skipped(self):
         with tempfile.TemporaryDirectory() as tmp:

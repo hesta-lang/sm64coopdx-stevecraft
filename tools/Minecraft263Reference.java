@@ -1,5 +1,7 @@
 import java.util.List;
 public final class Minecraft263Reference {
+ enum HumanoidArm { LEFT, RIGHT }
+ public static String getArm(final HumanoidArm arm){return arm==HumanoidArm.LEFT?"leftArm":"rightArm";}
  private static final float[] SIN=new float[65536];
  static { for(int i=0;i<SIN.length;i++) SIN[i]=(float)Math.sin(i/10430.378350470453); }
  public static float sin(final double i){return SIN[(int)((long)(i*10430.378350470453)&65535L)];}
@@ -33,6 +35,7 @@ public final class Minecraft263Reference {
   for(int i=0;i<rotations.length;i++)emit("rot."+i,rotLerpRad(rotations[i][0],rotations[i][1],rotations[i][2]));
   final float[] xs={-2.0F,0.0F,0.3F,1.0F,5.0F}; for(int i=0;i<xs.length;i++)emit("quadratic."+i,quadraticArmUpdate(xs[i]));
   emit("clamp.0",clampFloat(5.0F,6.0F,3.0F)); emit("clamp.1",clampFloat(7.0F,6.0F,3.0F)); emit("clamp.2",clampFloat(5.0F,0.0F,4.0F));
+  System.out.println("arm.0="+getArm(HumanoidArm.LEFT)); System.out.println("arm.1="+getArm(HumanoidArm.RIGHT));
   final List<String> parts=List.of("head","body","leftArm","rightArm","leftLeg","rightLeg");
   final int[] indexes={0,3,5}; for(int i=0;i<indexes.length;i++)System.out.println("random."+i+"="+getRandomBodyPart(parts,new FixedRandom(indexes[i])));
  }

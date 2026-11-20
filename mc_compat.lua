@@ -1,4 +1,4 @@
-local MC = { Mth = {}, Util = {} }
+local MC = { Mth = {}, Util = {}, HumanoidArm = { LEFT = "LEFT", RIGHT = "RIGHT" } }
 local function float32(value) return (string.unpack("f", string.pack("f", value))) end
 MC.Mth.PI=float32(math.pi); MC.Mth.HALF_PI=float32(math.pi/2); MC.Mth.TWO_PI=float32(math.pi*2)
 MC.Mth.DEG_TO_RAD=float32(math.pi/180); MC.Mth.RAD_TO_DEG=float32(180/math.pi)

@@ -81,7 +81,9 @@ def main():
     body,line=find_method(source,method_name); methods.append(body)
     selected.append({"name":method_name,"source_line":line,"signature":body.split("{",1)[0].strip()})
    wrapper=[f"package {spec['package']};"]
-   if spec["class"]=="PlayerModel": wrapper.append("import net.minecraft.util.Util;")
+   for imported in info["imports"]:
+    if imported in ("net.minecraft.util.Util","net.minecraft.world.entity.HumanoidArm"):
+     wrapper.append(f"import {imported};")
    wrapper.extend(["","// Source-derived method excerpts only; the full class is not copied.",info["class_declaration"]])
    for field in spec["fixture_fields"]:
     declaration=next((line.strip() for line in source.splitlines()

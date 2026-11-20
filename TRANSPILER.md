@@ -10,10 +10,10 @@ CI resolves NeoForm Runtime 2.0.31 and runs net.neoforged:neoform:26.3-1@zip for
 
 | Class | Translated methods | Public API coverage |
 | --- | --- | ---: |
-| HumanoidModel | getHead; private quadraticArmUpdate | 1/13 |
+| HumanoidModel | getHead; getArm; private quadraticArmUpdate | 2/13 |
 | PlayerModel | getRandomBodyPart | 1/5 |
 
-Across the two listed public API surfaces, 2/18 methods are translated (11.1%). The private quadraticArmUpdate helper is counted separately. This is selected-method coverage, not full-class translation.
+Across the two listed public API surfaces, 3/18 methods are translated (16.7%). The private quadraticArmUpdate helper is counted separately. This is selected-method coverage, not full-class translation.
 
 HumanoidModel<T> extends EntityModel<T>, implements ArmedModel<T> and HeadedModel, and is bounded by HumanoidRenderState. Its constructor and model-part fields are inventoried. Its wider API depends on ModelPart, PoseStack, geometry builders, render types, equipment/arm enums, animation helpers and render-state classes.
 
@@ -23,7 +23,7 @@ The CI source report records exact imports, class declarations, inheritance, imp
 
 ## Converter rules and adapters
 
-The converter fails closed on super calls, object construction, ternary expressions, lambdas/method references, primitive casts and identified engine APIs without an adapter. Unsupported methods are omitted and reported rather than approximated. It also normalizes Java floating-point suffixes and supports package-qualified class filters.
+The converter fails closed on super calls, object construction, ternary expressions outside a single return expression, lambdas/method references, primitive casts and identified engine APIs without an adapter. A top-level return ternary is lowered to lazy Lua if/else branches; HumanoidArm.LEFT/RIGHT are mapped through an explicit enum adapter. Unsupported methods are omitted and reported rather than approximated. It also normalizes Java floating-point suffixes and supports package-qualified class filters.
 
 The explicit compatibility layer contains 20 named Mth helpers, including the 65,536-entry sine/cosine lookup table, float sqrt and rotLerpRad, plus the float/double Mth.clamp overload and Util.getRandom. Mth.clamp has distinct int/long and float/double overloads; overload resolution is not implemented, so int/long calls are not covered. fastFloor was removed because it is not in the 26.3 Mth API surface. Lua cannot preserve all Java long precision, overflow or every float rounding boundary.
 
