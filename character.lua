@@ -1,6 +1,6 @@
 -- SteveCraft 64 - independent Steve player representation.
--- Mario remains the engine-owned physical/collision proxy. Steve is rendered
--- by the separate object managed in proxy.lua.
+-- MarioState remains the engine-facing state and interaction proxy. SteveCraft
+-- owns locomotion and Steve is rendered by the separate object in proxy.lua.
 
 SteveCraft = SteveCraft or {}
 
