@@ -33,6 +33,9 @@ class Minecraft263InventoryTests(unittest.TestCase):
   data=json.loads(MANIFEST.read_text(encoding="utf-8")); compat=COMPAT.read_text(encoding="utf-8")
   mth=next(x for x in data["targets"] if x["class"]=="net.minecraft.util.Mth")
   self.assertNotIn("fastFloor",mth["ported_methods"])
+  self.assertEqual(mth["status"],"partial_manual_port_source_inventory_verified")
+  self.assertEqual(mth["source_inventory"]["source_entry"],"net/minecraft/util/Mth.java")
+  self.assertEqual(mth["source_inventory"]["verified_methods"],mth["ported_methods"])
   for method in mth["ported_methods"]:
    with self.subTest(method=method): self.assertIn(f"function MC.Mth.{method}(",compat)
   self.assertIn("function MC.Util.getRandom(",compat)

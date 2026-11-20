@@ -64,7 +64,7 @@
    "class": "net.minecraft.util.Mth",
    "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/util/mth/",
    "role": "mathematical foundation for model animation",
-   "status": "partial_manual_port",
+   "status": "partial_manual_port_source_inventory_verified",
    "api_surface_count": 114,
    "ported_methods": [
     "clamp",
@@ -102,7 +102,40 @@
     "Java overload resolution is not implemented; clamp maps to float/double semantics, not int/long semantics.",
     "Lua numbers do not preserve all Java int/long overflow, long precision, or every float rounding boundary."
    ],
-   "remaining": "20 named helpers are manually adapted from a 114-method API surface; no complete Mth transpilation is claimed."
+   "remaining": "20 named helpers are manually adapted from a 114-method API surface; no complete Mth transpilation is claimed.",
+   "source_inventory": {
+    "source_entry": "net/minecraft/util/Mth.java",
+    "api_surface_count": 114,
+    "verified_methods": [
+     "clamp",
+     "lerp",
+     "sign",
+     "wrapDegrees",
+     "absMax",
+     "degreesDifference",
+     "degreesDifferenceAbs",
+     "rotateIfNecessary",
+     "approach",
+     "approachDegrees",
+     "positiveModulo",
+     "frac",
+     "square",
+     "cube",
+     "equal",
+     "clampedLerp",
+     "sin",
+     "cos",
+     "sqrt",
+     "rotLerpRad"
+    ],
+    "verified_constants": [
+     "PI",
+     "HALF_PI",
+     "TWO_PI",
+     "DEG_TO_RAD",
+     "RAD_TO_DEG"
+    ]
+   }
   },
   {
    "class": "net.minecraft.client.model.HumanoidModel",

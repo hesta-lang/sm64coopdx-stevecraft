@@ -15,7 +15,13 @@ SPECS = [
   "selected_methods":["getRandomBodyPart","setupAnim","translateToHand","createMesh","createArmorMeshSet"],
   "api_methods":["createMesh","createArmorMeshSet","setupAnim","translateToHand","getRandomBodyPart"],"helper_methods":[],
   "field_names":["LEFT_SLEEVE","RIGHT_SLEEVE","LEFT_PANTS","RIGHT_PANTS","bodyParts","leftSleeve","rightSleeve","leftPants","rightPants","jacket","slim"],
-  "fixture_fields":["bodyParts","slim"],"api_surface_count":5}
+  "fixture_fields":["bodyParts","slim"],"api_surface_count":5},
+ {"class":"Mth","package":"net.minecraft.util","source_path":"net/minecraft/util/Mth.java",
+  "selected_methods":[],
+  "api_methods":["clamp","lerp","sign","wrapDegrees","absMax","degreesDifference","degreesDifferenceAbs","rotateIfNecessary","approach","approachDegrees","positiveModulo","frac","square","cube","equal","clampedLerp","sin","cos","sqrt","rotLerpRad"],
+  "helper_methods":[],
+  "field_names":["PI","HALF_PI","TWO_PI","DEG_TO_RAD","RAD_TO_DEG","SIN_QUANTIZATION","SIN_MASK","COS_OFFSET","SIN_SCALE","SIN"],
+  "fixture_fields":[],"api_surface_count":114}
 ]
 
 def method_header(name):
