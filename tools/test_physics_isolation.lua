@@ -119,7 +119,7 @@ SteveCraft = {
     proxy = { owns_mario_state = function(candidate) return candidate == mario end },
     sm64Collision = {
         is_available = function() return true end,
-        resolve = function(_, _, move)
+        resolve = function(_, move)
             return { x = move.x, y = move.y, z = move.z, surfaces = 1 }
         end,
     },
