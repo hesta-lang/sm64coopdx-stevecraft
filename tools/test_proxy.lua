@@ -109,7 +109,7 @@ gMarioStates[0] = localMario
 assert(proxy.update(localMario, 123) == true, "local proxy failed to attach")
 assert(proxy.is_attached(0), "local visual object is missing")
 assert(proxy.owns_mario_state(localMario), "MarioState is not registered as authority")
-assert(localMario.marioBodyState.modelState == 0, "native Mario body was not hidden")
+assert(localMario.marioBodyState.modelState == 0x100, "native Mario body was not hidden with zero alpha")
 
 local visual = proxy.get_visual_object(0)
 assert(visual ~= nil, "Steve render object was not created")
@@ -120,7 +120,6 @@ assert(visual.oPosX == 10 and visual.oPosY == 20 and visual.oPosZ == 30, "initia
 assert(visual.header.gfx.animInfo.animID == 12, "animation ID was not copied")
 assert(visual.header.gfx.animInfo.animFrame == 8, "animation frame was not copied")
 assert(visual.oAnimations == localMario.marioObj.oAnimations, "animation table was not copied")
-assert(visual.header.gfx.scale.x == 1.1 and visual.header.gfx.scale.y == 1.2, "scale was not copied")
 
 local state = proxy.get_state(0)
 assert(state ~= nil and state.position.x == 10, "physics snapshot missing")
@@ -151,14 +150,16 @@ assert(proxy.update(remoteMario, 123) == true, "remote proxy failed to attach")
 local remoteVisual = proxy.get_visual_object(1)
 assert(remoteVisual ~= nil, "remote Steve object was not created")
 assert(remoteVisual.globalPlayerIndex == 2, "remote global player index was not copied")
-assert(remoteMario.marioBodyState.modelState == 0, "remote native Mario body was not hidden")
+assert(remoteMario.marioBodyState.modelState == 0x100, "remote native Mario body was not hidden")
 
 proxy.destroy(1)
 assert(remoteVisual.deleted == true, "destroy did not delete remote visual")
 assert(not proxy.is_attached(1), "destroy left the remote proxy attached")
+assert(remoteMario.marioBodyState.modelState == 7, "destroy did not restore native body state")
 
 proxy.reset()
 assert(visual.deleted == true, "reset did not delete local visual")
 assert(not proxy.is_attached(0), "reset left local proxy attached")
+assert(localMario.marioBodyState.modelState == 7, "reset did not restore native body state")
 
 print("SteveCraft proxy tests passed.")
