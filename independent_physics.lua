@@ -18,7 +18,7 @@ end
 local function safe_query(fn, ...)
     if type(fn) ~= "function" then return nil, nil end
     local ok, height, surface = pcall(fn, ...)
-    if not ok or not finite(height) then return nil, nil end
+    if not ok or not finite(height) or surface == nil then return nil, nil end
     return height, surface
 end
 
