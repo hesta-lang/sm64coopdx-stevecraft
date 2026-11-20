@@ -18,7 +18,7 @@ camera.lua conecta el port de ángulos con las tres perspectivas del mod:
 
 1. Primera persona: cámara de brazo/viewmodel de Steve.
 2. Tercera persona trasera: NEWCAM, rotación táctil y colisión nativa.
-3. Tercera persona frontal: misma cámara nativa con yaw inicial invertido 180 grados.
+3. Tercera persona frontal: misma cámara nativa con el yaw de órbita igual al yaw de avance de Steve (el campo de SM64 describe foco→cámara, no la dirección óptica).
 
 La API Lua documentada deja Camera.yaw como campo editable, pero Camera.pos, Camera.focus y las posiciones de LakituState son de solo lectura. Por tanto, el mod no puede trasladar el resultado XYZ de Camera.getMaxZoom directamente a la cámara nativa. NEWCAM sigue calculando el posicionamiento final y su prevención de clipping.
 
