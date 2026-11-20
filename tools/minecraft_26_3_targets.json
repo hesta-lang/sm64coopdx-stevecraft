@@ -1,0 +1,63 @@
+{
+  "minecraft_version": "26.3",
+  "reference": {
+    "name": "MC 26.x decompiled source browser",
+    "url": "https://mc-packet-reference.netlify.app/26.x/",
+    "note": "Unofficial reference index. This manifest records class metadata and implementation status; it does not copy Minecraft source files."
+  },
+  "targets": [
+    {
+      "class": "net.minecraft.util.Mth",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/util/mth/",
+      "role": "shared mathematical foundation",
+      "status": "partial_manual_port",
+      "api_surface_count": 114,
+      "ported_methods": [
+        "clamp", "lerp", "sign", "wrapDegrees", "fastFloor", "absMax",
+        "degreesDifference", "degreesDifferenceAbs", "rotateIfNecessary",
+        "approach", "approachDegrees", "positiveModulo", "frac", "square",
+        "cube", "equal", "clampedLerp"
+      ],
+      "remaining": "The full overloaded Mth class is not translated. Java integer overflow, long precision, primitive narrowing, and exact float behavior are not guaranteed by Lua numbers."
+    },
+    {
+      "class": "net.minecraft.client.model.HumanoidModel",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/model/humanoidmodel/",
+      "role": "base humanoid model and animation",
+      "status": "inventoried_not_transpiled",
+      "extends": "net.minecraft.client.model.EntityModel<T>",
+      "implements": ["ArmedModel<T>", "HeadedModel"],
+      "generic_bound": "T extends net.minecraft.client.renderer.entity.state.HumanoidRenderState",
+      "api_surface_count": 13,
+      "key_fields": ["head", "hat", "body", "rightArm", "leftArm", "rightLeg", "leftLeg"],
+      "blockers": [
+        "generic inheritance and constructors",
+        "ModelPart/CubeListBuilder/PartDefinition object graph",
+        "PoseStack and renderer APIs",
+        "overloaded methods and collection/map APIs",
+        "super calls and animation state classes"
+      ]
+    },
+    {
+      "class": "net.minecraft.client.model.player.PlayerModel",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/model/player/playermodel/",
+      "role": "Steve player model, overlays and first-person arm transforms",
+      "status": "inventoried_not_transpiled",
+      "extends": "net.minecraft.client.model.HumanoidModel<net.minecraft.client.renderer.entity.state.AvatarRenderState>",
+      "api_surface_count": 5,
+      "key_fields": ["leftSleeve", "rightSleeve", "leftPants", "rightPants", "jacket", "slim"],
+      "blockers": [
+        "HumanoidModel inheritance",
+        "ModelPart hierarchy and geometry builders",
+        "List.of and collection handling",
+        "method references/lambdas and generic ArmorModelSet",
+        "PoseStack and render-state integration"
+      ],
+      "important_behavior": [
+        "spectator visibility of body and limbs",
+        "hat/jacket/sleeve/pants visibility flags",
+        "slim-arm offset during hand transform"
+      ]
+    }
+  ]
+}
