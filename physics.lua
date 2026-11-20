@@ -333,7 +333,19 @@ local function is_preserved_native_action(action)
     if ACT_FLAG_WATER_OR_TEXT ~= nil and (action & ACT_FLAG_WATER_OR_TEXT) ~= 0 then
         return true
     end
-    return (ACT_READING_SIGN ~= nil and action == ACT_READING_SIGN)
+    if ACT_READING_SIGN ~= nil and action == ACT_READING_SIGN then return true end
+
+    -- Preserve the engine's terminal/death presentation. These are not normal
+    -- locomotion actions; SteveCraft replaces the regular movement loop.
+    return (ACT_STANDING_DEATH ~= nil and action == ACT_STANDING_DEATH)
+        or (ACT_QUICKSAND_DEATH ~= nil and action == ACT_QUICKSAND_DEATH)
+        or (ACT_ELECTROCUTION ~= nil and action == ACT_ELECTROCUTION)
+        or (ACT_SUFFOCATION ~= nil and action == ACT_SUFFOCATION)
+        or (ACT_DEATH_ON_STOMACH ~= nil and action == ACT_DEATH_ON_STOMACH)
+        or (ACT_DEATH_ON_BACK ~= nil and action == ACT_DEATH_ON_BACK)
+        or (ACT_EATEN_BY_BUBBA ~= nil and action == ACT_EATEN_BY_BUBBA)
+        or (ACT_DROWNING ~= nil and action == ACT_DROWNING)
+        or (ACT_WATER_DEATH ~= nil and action == ACT_WATER_DEATH)
 end
 
 local function before_set_mario_action(m, incoming_action, action_arg)
