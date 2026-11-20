@@ -246,8 +246,9 @@ function P.water_vertical_step(velocity_y, jump_held, descend_held, gravity)
     local gravity_frame, drag_frame = P.tick_coefficients(
         finite_or(gravity, P.DEFAULT_GRAVITY) / 16.0, 0.8
     )
-    local next_y = (finite_or(velocity_y, 0) + impulse_frame - gravity_frame) * drag_frame
-    return next_y, impulse_frame, gravity_frame, drag_frame
+    local requested_y = finite_or(velocity_y, 0) + impulse_frame
+    local next_y = (requested_y - gravity_frame) * drag_frame
+    return requested_y, next_y, impulse_frame, gravity_frame, drag_frame
 end
 
 function P.apply_water_drag(vx, vy, vz, options)
