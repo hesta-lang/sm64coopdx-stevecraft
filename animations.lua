@@ -363,12 +363,8 @@ local function select_clip(state)
         return "steve_mc_crouch"
     end
 
-    if not state.onGround then
-        -- Vanilla HumanoidModel does not add a jump/fall leg cycle. Its neutral
-        -- pose retains the subtle two-arm idle bob while airborne.
-        return "steve_mc_idle"
-    end
-
+    -- Minecraft's limb cycle follows horizontal movement rather than the
+    -- SM64 grounded action flag, so walking/running continues during jumps.
     if speed < 0.8 then return "steve_mc_idle" end
     if state.sprinting or speed >= 6.6 then return "steve_mc_run" end
     return "steve_mc_walk"
