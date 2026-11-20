@@ -19,11 +19,14 @@ physics.independentMode = physics.independentMode ~= false
 physics.nativeGeometryDisabled = physics.nativeGeometryDisabled ~= false
 physics.triangleCollisionEnabled = physics.triangleCollisionEnabled == true
 
--- Override ACT_WAITING_FOR_DIALOG with Steve's controller. This action is
--- already in the cutscene group (so normal Mario action/cancel handlers are
--- bypassed) and mario_ready_to_speak() explicitly allows NPC dialog starts
--- while Mario is in this state.
-local ACT_STEVECRAFT_CONTROLLED = ACT_WAITING_FOR_DIALOG
+-- Unique stationary-group custom action. It has neither INTANGIBLE nor
+-- INVULNERABLE flags, so object/NPC interactions and mario_ready_to_speak()
+-- continue to work. The registered action hook suppresses native act_idle().
+local ACT_STEVECRAFT_CONTROLLED = 0x3F
+    | ACT_FLAG_STATIONARY
+    | ACT_FLAG_CUSTOM_ACTION
+    | ACT_FLAG_ALLOW_FIRST_PERSON
+    | ACT_FLAG_PAUSE_EXIT
 
 -- This unit conversion is provisional and must be calibrated in a live level.
 local WORLD_UNITS_PER_BLOCK = MinecraftPhysics.WORLD_UNITS_PER_BLOCK
@@ -330,7 +333,7 @@ local function is_preserved_native_action(action)
     if ACT_FLAG_WATER_OR_TEXT ~= nil and (action & ACT_FLAG_WATER_OR_TEXT) ~= 0 then
         return true
     end
-    return ACT_READING_SIGN ~= nil and action == ACT_READING_SIGN
+    return (ACT_READING_SIGN ~= nil and action == ACT_READING_SIGN)
 end
 
 local function before_set_mario_action(m, incoming_action, action_arg)
@@ -654,6 +657,16 @@ hook_event(HOOK_BEFORE_MARIO_UPDATE, before_mario_update)
 hook_event(HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS, override_mario_geometry_inputs)
 hook_event(HOOK_ALLOW_FORCE_WATER_ACTION, function(m)
     if isolation_active() and is_local_steve(m) then
+        return false
+    end
+end)
+hook_event(HOOK_ALLOW_HAZARD_SURFACE, function(m, hazard_type)
+    if not isolation_active() or not is_local_steve(m) then return end
+    if hazard_type == HAZARD_TYPE_QUICKSAND
+        or hazard_type == HAZARD_TYPE_LAVA_FLOOR
+        or hazard_type == HAZARD_TYPE_LAVA_WALL
+        or hazard_type == HAZARD_TYPE_HORIZONTAL_WIND
+        or hazard_type == HAZARD_TYPE_VERTICAL_WIND then
         return false
     end
 end)
