@@ -649,6 +649,48 @@ function physics.is_sprinting()
     return physics.enabled and state ~= nil and state.sprinting == true
 end
 
+-- Read-only snapshot for Steve's detached animation/viewmodel systems.
+-- Returns Minecraft locomotion state, not Mario's action animation ID.
+function physics.get_animation_state(m)
+    if m == nil or m.playerIndex == nil then return nil end
+    local index = m.playerIndex
+    local motion = states[index]
+    local sprint = sprint_states[index]
+
+    local vx = motion ~= nil and motion.vx or (m.vel and m.vel.x) or 0
+    local vy = motion ~= nil and motion.vy or (m.vel and m.vel.y) or 0
+    local vz = motion ~= nil and motion.vz or (m.vel and m.vel.z) or 0
+    local inWater = motion ~= nil and motion.inWater == true
+        or (m.input ~= nil and INPUT_IN_WATER ~= nil and (m.input & INPUT_IN_WATER) ~= 0)
+    local onGround
+    if motion ~= nil and motion.onGround ~= nil then
+        onGround = motion.onGround == true
+    else
+        onGround = m.floorHeight ~= nil and m.pos ~= nil
+            and math.abs((m.pos.y or 0) - m.floorHeight) <= 6.0
+    end
+
+    local crouching = INPUT_Z_DOWN ~= nil and m.input ~= nil
+        and (m.input & INPUT_Z_DOWN) ~= 0
+    if not crouching and ACT_CROUCHING ~= nil then
+        crouching = m.action == ACT_CROUCHING
+            or (ACT_CROUCH_SLIDE ~= nil and m.action == ACT_CROUCH_SLIDE)
+    end
+
+    return {
+        vx = vx, vy = vy, vz = vz,
+        horizontalSpeed = math.sqrt(vx * vx + vz * vz),
+        verticalSpeed = vy,
+        onGround = onGround,
+        inWater = inWater,
+        airborne = not onGround and not inWater,
+        crouching = crouching,
+        sprinting = sprint ~= nil and sprint.sprinting == true,
+        usingItem = SteveCraft.usingItem == true,
+        action = m.action,
+    }
+end
+
 function physics.reset()
     states = {}
     sprint_states = {}
