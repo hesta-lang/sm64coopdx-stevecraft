@@ -13,7 +13,7 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 - El objeto visual no tiene hitbox, interacciones ni gravedad. No procesa movimiento ni colisiones.
 - El GeoLayout independiente ya no llama a `geo_mirror_mario_set_alpha`: esa rutina lee `MarioBodyState.modelState`, que el proxy pone a alfa cero para ocultar a Mario. Mantenerla también ocultaba a Steve y dejaba visible solo su sombra.
 - La posición y orientación visuales se leen directamente de `MarioState.pos` y `MarioState.faceAngle`; solo se reutiliza el descriptor/frame de animación compatible. No se copia la transformación gráfica potencialmente atrasada de Mario.
-- Se oculta también `marioObj.header.gfx.shadowInvisible` para que no quede la sombra negra del proxy original debajo de Steve.
+- Se ocultan las sombras nativas tanto del proxy Mario como del actor DynOS separado (`header.gfx.shadowInvisible`). Esta versión elimina las sombras negras generadas por SM64; todavía no dibuja una sombra de Minecraft propia.
 - El modelo de Steve conserva la jerarquía animada compatible con el esqueleto de jugador de SM64CoopDX.
 - Se asigna `globalPlayerIndex` al objeto visual para que las rutinas GeoLayout de cabeza y torso resuelvan el estado corporal del jugador correcto.
 - En primera persona se oculta el cuerpo visual independiente y se conserva el brazo viewmodel de Steve.
