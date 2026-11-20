@@ -318,44 +318,141 @@ function physics.is_triangle_collision_enabled()
     return physics.triangleCollisionEnabled == true
 end
 
-local function before_set_mario_action(m, incoming_action, action_arg)
-    if not physics.enabled or not is_local_steve(m) then return end
+local function is_preserved_native_action(action)
+    if action == nil then return false end
+    -- Keep text/dialog actions available. They do not own player locomotion.
+    return ACT_FLAG_WATER_OR_TEXT ~= nil
+        and (action & ACT_FLAG_WATER_OR_TEXT) ~= 0
+end
 
-    -- Minecraft has no SM64-style double/triple jump chain. Convert those
-    -- landing transitions into the same ordinary ground jump.
-    if incoming_action == ACT_DOUBLE_JUMP or incoming_action == ACT_TRIPLE_JUMP then
-        return ACT_JUMP
+local function before_set_mario_action(m, incoming_action, action_arg)
+    if not physics.enabled or not physics.independentMode or not is_local_steve(m) then return end
+    if incoming_action == ACT_STEVECRAFT_CONTROLLED or incoming_action == ACT_UNINITIALIZED then
+        return
     end
+    if is_preserved_native_action(incoming_action) then return end
+
+    -- All normal Mario action groups, plus physical cutscene actions, are
+    -- redirected into one Steve-owned controller action. Mario's native action
+    -- handlers no longer set walking, jump, fall, swim, knockback or slide speed.
+    return ACT_STEVECRAFT_CONTROLLED
 end
 
 local function on_set_mario_action(m)
-    if not physics.enabled or not is_local_steve(m) then return end
-    local state = get_motion_state(m)
+    if not physics.enabled or not physics.independentMode or not is_local_steve(m) then return end
+    if m.action ~= ACT_STEVECRAFT_CONTROLLED then return end
 
-    if m.action == ACT_JUMP then
-        -- Minecraft keeps horizontal momentum and adds its sprint-jump impulse.
-        state.jumpActive = true
-        state.vy = JUMP_VELOCITY
-        local sprint = sprint_states[m.playerIndex or 0] ~= nil
-            and sprint_states[m.playerIndex or 0].sprinting == true
-        state.vx, state.vz = MinecraftPhysics.sprint_jump_impulse(
-            state.vx, state.vz, (m.faceAngle and m.faceAngle.y) or 0,
-            sprint, WORLD_UNITS_PER_BLOCK
-        )
-        if m.vel ~= nil then
-            m.vel.x = state.vx
-            m.vel.y = state.vy
-            m.vel.z = state.vz
-        end
-    elseif m.action == ACT_FREEFALL then
-        if not state.jumpActive then
-            state.vy = (m.vel and m.vel.y) or 0.0
-        end
-        state.jumpActive = true
-    elseif not is_air_action(m.action) and not is_water_action(m.action) then
-        state.jumpActive = false
-        state.vy = 0.0
+    local state = get_motion_state(m)
+    state.vx, state.vy, state.vz = 0.0, 0.0, 0.0
+    state.jumpActive = false
+    state.pendingStep = nil
+    state.onGround = false
+    state.inWater = false
+    if m.vel ~= nil then
+        m.vel.x, m.vel.y, m.vel.z = 0.0, 0.0, 0.0
     end
+    if m.forwardVel ~= nil then m.forwardVel = 0.0 end
+end
+
+local function override_mario_geometry_inputs(m)
+    if not physics.enabled or not physics.independentMode or not physics.nativeGeometryDisabled
+        or not is_local_steve(m) then
+        return true
+    end
+
+    local state = get_motion_state(m)
+    local ok = SteveGeometry.update(m, state, {
+        unitsPerBlock = WORLD_UNITS_PER_BLOCK,
+        height = WORLD_UNITS_PER_BLOCK * 1.8,
+        stepHeight = WORLD_UNITS_PER_BLOCK * 0.6,
+        groundTolerance = 6.0,
+    })
+    if not ok and not warned then
+        print("[SteveCraft 64] Lua geometry sampling failed; native geometry remains disabled and movement will hold.")
+        warned = true
+    end
+    -- false cancels update_mario_geometry_inputs(), including its native wall
+    -- penetration correction, wall probes and Mario floor/ceiling corrections.
+    return false
+end
+
+local function before_mario_update(m)
+    if not physics.enabled or not physics.independentMode or not is_local_steve(m) then return end
+    if m.action == ACT_STEVECRAFT_CONTROLLED or is_preserved_native_action(m.action) then return end
+    set_mario_action(m, ACT_STEVECRAFT_CONTROLLED, 0)
+end
+
+local function update_steve_animation(m, state)
+    if type(set_character_animation) ~= "function" then return end
+    local target
+    if state.inWater then
+        target = CHAR_ANIM_WALKING
+    elseif not state.onGround then
+        target = (state.vy or 0) > 0 and CHAR_ANIM_SINGLE_JUMP or CHAR_ANIM_GENERAL_FALL
+    else
+        local speed = math.sqrt((state.vx or 0) ^ 2 + (state.vz or 0) ^ 2)
+        if speed < 0.8 then
+            target = CHAR_ANIM_IDLE_HEAD_LEFT
+        elseif speed < WORLD_UNITS_PER_BLOCK * 0.075 then
+            target = CHAR_ANIM_WALKING
+        else
+            target = CHAR_ANIM_RUNNING
+        end
+    end
+    if target ~= nil then pcall(set_character_animation, m, target) end
+end
+
+local function stevecraft_controlled_action(m)
+    if m == nil or not is_local_steve(m) then return false end
+    if not physics.enabled or not physics.independentMode then
+        set_mario_action(m, ACT_IDLE, 0)
+        return true
+    end
+
+    local state = get_motion_state(m)
+    update_sprint_input(m)
+
+    local input = m.input or 0
+    local jumpPressed = INPUT_A_PRESSED ~= nil and (input & INPUT_A_PRESSED) ~= 0
+    if state.inWater then
+        -- Minecraft swimming uses continuous vertical input instead of Mario's
+        -- native water-plunge, breaststroke and current routines.
+        if type(perform_water_step) == "function" then
+            perform_water_step(m)
+        end
+    else
+        if state.onGround and jumpPressed then
+            state.jumpActive = true
+            state.onGround = false
+            state.vy = JUMP_VELOCITY
+            local sprint = sprint_states[0] ~= nil and sprint_states[0].sprinting == true
+            state.vx, state.vz = MinecraftPhysics.sprint_jump_impulse(
+                state.vx, state.vz, (m.faceAngle and m.faceAngle.y) or 0,
+                sprint, WORLD_UNITS_PER_BLOCK
+            )
+        end
+
+        if state.onGround then
+            if type(perform_ground_step) == "function" then
+                local result = perform_ground_step(m)
+                if GROUND_STEP_LEFT_GROUND ~= nil and result == GROUND_STEP_LEFT_GROUND then
+                    state.onGround = false
+                end
+            end
+        else
+            if type(perform_air_step) == "function" then
+                local result = perform_air_step(m, 0)
+                if AIR_STEP_LANDED ~= nil and result == AIR_STEP_LANDED then
+                    state.onGround = true
+                    state.jumpActive = false
+                    state.vy = 0.0
+                end
+            end
+        end
+    end
+
+    update_steve_animation(m, state)
+    return false
 end
 
 local function vector_component(vector, key, fallback_index)
