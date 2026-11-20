@@ -21,7 +21,7 @@ local item_x, item_z = P.input_from_intent(32, 0, 0, { usingItem = true })
 assert(math.abs(item_z - 0.196) < 1e-6)
 
 local a, d, raw, drag = P.horizontal_parameters(true, 0.6, 0.1, false)
-assert(math.abs(raw - 0.1) < 1e-9)
+assert(math.abs(raw - (0.1 * 0.21600002 / (0.6 ^ 3))) < 1e-9)
 assert(math.abs(drag - 0.546) < 1e-9)
 assert(a > 0 and d > 0 and d < 1)
 
