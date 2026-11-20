@@ -128,8 +128,8 @@ SteveCraft = {
 -- Load the same modules and hooks used by the Android mod.
 dofile("physics.lua")
 
-local controlled = ACT_GROUP_CUTSCENE | 0x3F | ACT_FLAG_STATIONARY
-    | ACT_FLAG_CUSTOM_ACTION | ACT_FLAG_ALLOW_FIRST_PERSON | ACT_FLAG_PAUSE_EXIT
+local controlled = ACT_WAITING_FOR_DIALOG
+assert(actionId == ACT_WAITING_FOR_DIALOG, "Steve controller must use the dialog-compatible cutscene action")
 assert(actionId == controlled, "custom Steve locomotion action was not registered")
 assert(type(actionHooks.every_frame) == "function", "every-frame custom action callback missing")
 assert(events[HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS] ~= nil, "native geometry override hook not installed")
