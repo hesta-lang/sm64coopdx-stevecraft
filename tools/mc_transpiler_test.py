@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 TRANSPILER = ROOT / "tools" / "java_to_lua.py"
 FIXTURES = ROOT / "tools" / "mc_sources_fixture"
 
