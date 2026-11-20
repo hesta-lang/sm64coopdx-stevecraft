@@ -21,7 +21,7 @@ class TranspilerIntegrationTests(unittest.TestCase):
             )
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             data = json.loads(report.read_text())
-            self.assertEqual(data["translated_methods"], 4)
+            self.assertEqual(data["translated_methods"], 5)
             self.assertEqual(len(data["skipped_methods"]), 1)
             self.assertEqual(data["strict_blockers"], 1)
 
