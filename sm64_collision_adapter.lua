@@ -167,42 +167,50 @@ function adapter.collect(m, move, config)
 
     local endX, endY, endZ = startX + move.x, startY + move.y, startZ + move.z
     local triangles, seen = {}, {}
-
-    -- Collect floor planes at the destination footprint. Multiple small
-    -- samples avoid losing triangles that only cover part of the player's feet.
-    for _, sample in ipairs(FLOOR_SAMPLES) do
-        local x = endX + sample[1] * floorRadius
-        local z = endZ + sample[2] * floorRadius
-        safe_find_floor(x, endY + stepHeight + 1, z, triangles, seen)
-    end
-
-    -- Ceiling queries are sampled around the head, not just at the centre.
-    local headRadius = radius * 0.8
-    for _, sample in ipairs(CEILING_SAMPLES) do
-        local x = endX + sample[1] * headRadius
-        local z = endZ + sample[2] * headRadius
-        safe_find_ceil(x, endY + height - 1, z, triangles, seen)
-    end
-
-    -- Wall queries run along the proposed path and at three heights through
-    -- the player's body. This approximates the cylinder/slab collection used
-    -- by SkyCraft while leaving SM64's own solver as the final authority.
     local horizontal = math.sqrt(move.x * move.x + move.z * move.z)
-    local pathSegments = math.max(1, math.min(4, math.ceil(horizontal / (units * 0.3))))
-    local wallFrom = config.wasOnGround and stepHeight or units * 0.02
-    local wallOffsets = {
-        wallFrom,
-        (wallFrom + math.max(wallFrom, height - 2)) * 0.5,
-        math.max(wallFrom, height - 2),
-    }
 
-    for segment = 0, pathSegments do
-        local fraction = segment / pathSegments
-        local x = startX + move.x * fraction
-        local y = startY + move.y * fraction
-        local z = startZ + move.z * fraction
-        for _, offset in ipairs(wallOffsets) do
-            safe_find_walls(x, y, z, offset, radius, triangles, seen)
+    -- A downward step must query from the current feet height: querying from
+    -- the proposed end position can already be below the floor being sought.
+    if horizontal > 1e-8 or move.y < -1e-8 then
+        local floorQueryY = startY + stepHeight + 1
+        for _, sample in ipairs(FLOOR_SAMPLES) do
+            local x = endX + sample[1] * floorRadius
+            local z = endZ + sample[2] * floorRadius
+            safe_find_floor(x, floorQueryY, z, triangles, seen)
+        end
+    end
+
+    -- Find ceilings from the current head height, before a rising step crosses
+    -- them. No ceiling queries are needed while the proposed vertical move is down.
+    if move.y > 1e-8 then
+        local headRadius = radius * 0.8
+        local headQueryY = startY + height - 1
+        for _, sample in ipairs(CEILING_SAMPLES) do
+            local x = endX + sample[1] * headRadius
+            local z = endZ + sample[2] * headRadius
+            safe_find_ceil(x, headQueryY, z, triangles, seen)
+        end
+    end
+
+    -- Wall queries are only needed for horizontal movement. They run along the
+    -- proposed path and at three heights through the player's body.
+    if horizontal > 1e-8 then
+        local pathSegments = math.max(1, math.min(4, math.ceil(horizontal / (units * 0.3))))
+        local wallFrom = config.wasOnGround and stepHeight or units * 0.02
+        local wallOffsets = {
+            wallFrom,
+            (wallFrom + math.max(wallFrom, height - 2)) * 0.5,
+            math.max(wallFrom, height - 2),
+        }
+
+        for segment = 0, pathSegments do
+            local fraction = segment / pathSegments
+            local x = startX + move.x * fraction
+            local y = startY + move.y * fraction
+            local z = startZ + move.z * fraction
+            for _, offset in ipairs(wallOffsets) do
+                safe_find_walls(x, y, z, offset, radius, triangles, seen)
+            end
         end
     end
 
@@ -215,6 +223,10 @@ function adapter.collect(m, move, config)
 end
 
 function adapter.resolve(m, move, config)
+    if move ~= nil and math.abs(move.x or 0) < 1e-8
+        and math.abs(move.y or 0) < 1e-8 and math.abs(move.z or 0) < 1e-8 then
+        return { x = move.x or 0, y = move.y or 0, z = move.z or 0, surfaces = 0 }
+    end
     local triangles, dimensions = adapter.collect(m, move, config)
     if triangles == nil then return nil end
 
