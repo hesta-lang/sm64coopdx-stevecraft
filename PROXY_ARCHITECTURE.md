@@ -14,6 +14,14 @@ Separate the player representation from the entity that SM64CoopDX simulates, wi
 - **Multiplayer:** each client creates non-synchronized render-only copies for the local and remote Mario states. This avoids sending duplicate visual entities over the network; player motion remains synchronized by the game's existing player system.
 - **First person:** the detached full body is hidden while the game's first-person mode is active. The existing Steve hand viewmodel remains responsible for the arm on screen.
 
+## Triangle collision adapter
+
+`tri_collider.lua` is a Lua adaptation of SkyCraft's `TriCollider.java` and `SkyTri.java` (MIT). `sm64_collision_adapter.lua` samples actual SM64 floor, ceiling, and wall triangles through the documented Lua API, then returns a pre-clipped movement vector. The normal SM64 physics step is not cancelled.
+
+The feature is controlled by `SteveCraft.physics.set_triangle_collision_enabled(boolean)`. It is enabled by default when its API is present. Disable it if it causes extra bumps, sticking, or slope jitter; no Android in-game run has validated those interactions yet.
+
+The solver only handles triangle geometry. It does not implement gravity, jump velocity, sprint acceleration, water movement, or Minecraft block rules. MarioCraft gets those values from a separately running Minecraft Java client, which is not part of this Android mod.
+
 ## Public Lua API
 
 `SteveCraft.proxy` exposes:
@@ -29,7 +37,7 @@ Separate the player representation from the entity that SM64CoopDX simulates, wi
 
 ## Important limits
 
-This is a representation/authority split, not a Minecraft physics port. The current movement layer still edits the engine's Mario velocity and action state, and SM64CoopDX still resolves its original surfaces and walls. The proxy does not add Minecraft voxel/AABB collisions, block friction, water/lava rules, or a new camera implementation.
+This is a representation/authority split, not a complete Minecraft physics port. The movement layer writes through the one MarioState. A SkyCraft-derived triangle pre-resolver can clip proposed ground/air displacement using surfaces sampled from the documented SM64CoopDX Lua collision API; the original engine step still runs afterward and remains the final contact authority. The visual Steve object never performs physics. This does not add Minecraft voxel/AABB collisions, full material friction, water/lava rules, or a new camera implementation.
 
 The camera remains attached to the existing physical player because the Lua API does not expose a supported writable Lakitu position/focus target. The proxy exposes a consistent camera anchor for future camera work, while NEWCAM and the engine continue to handle actual tracking and touch orbit.
 
