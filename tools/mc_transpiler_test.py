@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TRANSPILER = ROOT / "tools" / "java_to_lua.py"
 FIXTURES = ROOT / "tools" / "mc_sources_fixture"
-MC_FIXTURES = ROOT / "tools" / "minecraft_26_3_fixtures"
+MC_FIXTURES = ROOT / "tools" / "minecraft_26_3_fixture_tree"
 
 class TranspilerIntegrationTests(unittest.TestCase):
     def test_java_subset_generates_modules_and_reports_unsupported_syntax(self):
