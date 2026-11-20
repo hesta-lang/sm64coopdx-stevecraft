@@ -26,7 +26,7 @@ assert(math.abs(drag - 0.546) < 1e-9)
 assert(a > 0 and d > 0 and d < 1)
 
 local ice_a, ice_d, ice_raw = P.horizontal_parameters(true, 0.98, 0.1, false)
-assert(ice_raw > 0.1)
+assert(ice_raw < 0.1)
 assert(ice_d > d)
 local air_a, air_d, air_raw = P.horizontal_parameters(false, 0.6, 0.1, false)
 assert(math.abs(air_raw - 0.02) < 1e-9)
