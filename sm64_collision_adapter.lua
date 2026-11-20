@@ -63,14 +63,14 @@ local function is_walkable(surface, normalY)
     return explicitlyWalkable and ny >= 0.4
 end
 
-local function add_surface(surface, triangles, seen)
+local function add_surface(surface, triangles, seen, floorQueryResult)
     if surface == nil or is_ignored_surface(surface) then return end
     local key = point_key(surface)
     if key == nil or seen[key] then return end
 
     local normal = surface.normal
     if normal == nil then return end
-    local walkable = is_walkable(surface, normal.y)
+    local walkable = floorQueryResult == true or is_walkable(surface, normal.y)
 
     local triangle = SteveCraft.triCollision.make_triangle(
         surface.vertex1,
@@ -106,7 +106,7 @@ local CEILING_SAMPLES = {
 local function safe_find_floor(x, y, z, triangles, seen)
     local ok, floorHeight, surface = pcall(find_floor, x, y, z)
     if ok and surface ~= nil then
-        add_surface(surface, triangles, seen)
+        add_surface(surface, triangles, seen, true)
     end
     return ok and floorHeight or nil
 end
