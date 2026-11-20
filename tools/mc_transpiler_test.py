@@ -76,7 +76,9 @@ class TranspilerIntegrationTests(unittest.TestCase):
                 "public static double clamp(double value,double min,double max) { "
                 "return value<min?min:Math.min(value,max); } "
                 "public static double approach(double current,double target,double step) { "
-                "return current+Mth.clamp(target-current,-step,step); } }",
+                "return current+Mth.clamp(target-current,-step,step); } "
+                "public static long lfloor(double value) { return (long)Math.floor(value); } "
+                "public static double frac(double num) { return num-lfloor(num); } }",
                 encoding="utf-8"
             )
             output = Path(tmp) / "lua"
@@ -91,6 +93,8 @@ class TranspilerIntegrationTests(unittest.TestCase):
             self.assertIn("function Mth.approach", generated)
             self.assertIn("Mth.clamp", generated)
             self.assertNotIn("MC.Mth.clamp", generated)
+            self.assertIn("function Mth.frac", generated)
+            self.assertIn("MC.Mth.lfloor", generated)
 
     def test_qualified_class_filter_selects_the_requested_package(self):
         with tempfile.TemporaryDirectory() as tmp:

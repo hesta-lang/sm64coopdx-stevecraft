@@ -28,7 +28,7 @@ class Minecraft263SourceExtractionTests(unittest.TestCase):
    humanoid=(output/"net/minecraft/client/model/HumanoidModel.java").read_text()
    self.assertIn("import net.minecraft.world.entity.HumanoidArm;",humanoid)
    mth=data["classes"][2]; self.assertEqual(mth["class"],"net.minecraft.util.Mth"); self.assertEqual(mth["api_surface_count"],114)
-   expected={"clamp":["double","double","double"],"clampedLerp":["double","double","double"],"absMax":["double","double"],"equal":["double","double"],"sign":["double"],"lerp":["double","double","double"],"square":["double"],"frac":["double"],"atan2":["double","double"],"inverseLerp":["double","double","double"],"clampedMap":["double","double","double","double","double"],"map":["double","double","double","double","double"],"lengthSquared":["double","double","double"],"length":["double","double","double"]}
+   expected={"clamp":["double","double","double"],"clampedLerp":["double","double","double"],"absMax":["double","double"],"equal":["double","double"],"sign":["double"],"lerp":["double","double","double"],"square":["double"],"frac":["double"],"lfloor":["double"],"inverseLerp":["double","double","double"],"clampedMap":["double","double","double","double","double"],"map":["double","double","double","double","double"],"lengthSquared":["double","double","double"],"length":["double","double","double"]}
    selected={item["name"]:item for item in mth["selected_methods_extracted"]}
    self.assertEqual(set(selected),set(expected))
    for name,params in expected.items():
@@ -39,11 +39,11 @@ class Minecraft263SourceExtractionTests(unittest.TestCase):
    self.assertEqual(translated.returncode,0,translated.stdout+translated.stderr)
    result=json.loads(transpile_report.read_text()); self.assertEqual(result["translated_methods"],13,result)
    self.assertEqual(result["strict_blockers"],1,result); self.assertEqual(len(result["skipped_methods"]),1,result); self.assertFalse(result["skipped_files"],result)
-   self.assertEqual(result["skipped_methods"][0]["method"],"atan2")
+   self.assertEqual(result["skipped_methods"][0]["method"],"lfloor")
    self.assertIn("primitive casts",result["skipped_methods"][0]["reason"])
    generated=(lua_out/"net/minecraft/util/Mth.lua").read_text()
-   for call in ["Mth.lerp(","Mth.inverseLerp(","Mth.clampedLerp(","Mth.lengthSquared(","function Mth.frac("]: self.assertIn(call,generated)
-   self.assertNotIn("function Mth.atan2(",generated)
+   for call in ["Mth.lerp(","Mth.inverseLerp(","Mth.clampedLerp(","Mth.lengthSquared(","function Mth.frac(","MC.Mth.lfloor("]: self.assertIn(call,generated)
+   self.assertNotIn("function Mth.lfloor(",generated)
    self.assertIn("MC.java_float(1.0E-5)",generated)
    java_out=Path(tmp)/"java-source"; java_out.mkdir()
    compiled=subprocess.run(["javac","-d",str(java_out),str(output/"net/minecraft/util/Mth.java"),str(ROOT/"tools"/"Minecraft263RealSourceRunner.java")],capture_output=True,text=True)
@@ -56,7 +56,10 @@ class Minecraft263SourceExtractionTests(unittest.TestCase):
    self.assertEqual(reference["clampedLerp.middle"],"5.0")
    self.assertEqual(reference["length3"],"7.0")
    self.assertEqual(reference["frac.negative"],"0.75")
+   self.assertEqual(reference["lfloor.negative"],"-2.0")
+   self.assertEqual(reference["lfloor.positive"],"2.0")
+   self.assertEqual(reference["lfloor.nan"],"0.0")
    self.assertEqual(set(selected),set(expected))
    self.assertIn("atan2",mth["api_methods"])
-   self.assertEqual(selected["atan2"]["parameter_types"],["double","double"])
+   self.assertIn("lfloor",mth["api_methods"])
 if __name__=="__main__": unittest.main()

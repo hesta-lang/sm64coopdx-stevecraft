@@ -21,7 +21,7 @@ MATH = {"abs":"math.abs","sqrt":"math.sqrt","sin":"math.sin","cos":"math.cos","a
         "min":"math.min","max":"math.max","pow":"math.pow"}
 MTH = {"abs":"math.abs","sqrt":"MC.Mth.sqrt","sin":"MC.Mth.sin","cos":"MC.Mth.cos",
        "floor":"math.floor","ceil":"math.ceil","clamp":"MC.Mth.clamp",
-       "lerp":"MC.Mth.lerp","sign":"MC.Mth.sign","wrapDegrees":"MC.Mth.wrapDegrees",
+       "lerp":"MC.Mth.lerp","sign":"MC.Mth.sign","wrapDegrees":"MC.Mth.wrapDegrees","lfloor":"MC.Mth.lfloor",
        "absMax":"MC.Mth.absMax","rotLerpRad":"MC.Mth.rotLerpRad"}
 
 def tokens(source):
@@ -51,10 +51,14 @@ def expr(ts, report, where, class_name=None, class_methods=()):
     s=re.sub(r'\bMth\s*\.\s*(PI|HALF_PI|TWO_PI|DEG_TO_RAD|RAD_TO_DEG)\b',lambda m:'MC.Mth.'+m.group(1),s)
     def mth_call(match):
         method = match.group(1)
+        if class_name == "Mth" and method == "lfloor":
+            return "MC.Mth.lfloor"
         if class_name == "Mth" and method in class_methods:
             return f"Mth.{method}"
         return MTH.get(method, "MC.Mth." + method)
     s=re.sub(r'\bMth\s*\.\s*(\w+)',mth_call,s)
+    if class_name == "Mth":
+        s=re.sub(r'(?<![\w$.])lfloor\s*\(', "MC.Mth.lfloor(", s)
     if class_name and class_methods:
         own_pattern="|".join(re.escape(x) for x in sorted(class_methods,key=len,reverse=True))
         s=re.sub(rf'(?<![\w$.])({own_pattern})\s*\(',lambda m:f"{class_name}.{m.group(1)}(",s)

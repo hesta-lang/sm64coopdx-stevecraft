@@ -11,7 +11,8 @@ public class Mth {
  public static int sign(final double number) { if(number==0.0) { return 0; } else { return number>0.0 ? 1 : -1; } }
  public static double lerp(final double alpha1,final double p0,final double p1) { return p0+alpha1*(p1-p0); }
  public static double square(final double x) { return x*x; }
- public static double frac(final double number) { return number-Math.floor(number); }
+ public static double frac(final double num) { return num-lfloor(num); }
+ public static long lfloor(final double value) { return (long)Math.floor(value); }
  public static double atan2(final double y,final double x) { return (double)((int)y)+x; }
  public static double inverseLerp(final double value,final double min,final double max) { return (value-min)/(max-min); }
  public static double clampedMap(final double value,final double fromMin,final double fromMax,final double toMin,final double toMax) { return clampedLerp(inverseLerp(value,fromMin,fromMax),toMin,toMax); }

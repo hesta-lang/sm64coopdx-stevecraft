@@ -23,7 +23,8 @@ public final class Minecraft263Reference {
  public static double mthMap(final double value,final double fromMin,final double fromMax,final double toMin,final double toMax){return mthLerp(mthInverseLerp(value,fromMin,fromMax),toMin,toMax);}
  public static double mthLengthSquared(final double x,final double y,final double z){return x*x+y*y+z*z;}
  public static double mthLength(final double x,final double y,final double z){return Math.sqrt(mthLengthSquared(x,y,z));}
- public static double mthFrac(final double number){return number-Math.floor(number);}
+ public static long mthLfloor(final double value){return (long)Math.floor(value);}
+ public static double mthFrac(final double number){return number-mthLfloor(number);}
 
  interface RandomSource{int nextInt(int bound);}
  static final class FixedRandom implements RandomSource{private final int index;FixedRandom(final int index){this.index=index;}@Override public int nextInt(final int bound){if(bound<=0||index<0||index>=bound)throw new IllegalArgumentException("bound/index");return index;}}
@@ -42,6 +43,8 @@ public final class Minecraft263Reference {
   emitDouble("real.absMax",mthAbsMax(-7.0,3.0));emitDouble("real.square",mthSquare(-3.0));emitDouble("real.inverseLerp",mthInverseLerp(5.0,0.0,10.0));
   emitDouble("real.clampedMap",mthClampedMap(15.0,0.0,10.0,20.0,40.0));emitDouble("real.map",mthMap(15.0,0.0,10.0,20.0,40.0));emitDouble("real.lengthSquared3",mthLengthSquared(2.0,3.0,6.0));emitDouble("real.length3",mthLength(2.0,3.0,6.0));
   emitDouble("real.frac.negative",mthFrac(-1.25));emitDouble("real.frac.positive",mthFrac(2.25));
+  emitDouble("real.frac.nan",mthFrac(Double.NaN));emitDouble("real.frac.posinf",mthFrac(Double.POSITIVE_INFINITY));emitDouble("real.frac.neginf",mthFrac(Double.NEGATIVE_INFINITY));
+  emitDouble("real.lfloor.negative",mthLfloor(-1.25));emitDouble("real.lfloor.positive",mthLfloor(2.25));emitDouble("real.lfloor.nan",mthLfloor(Double.NaN));emitDouble("real.lfloor.posinf",mthLfloor(Double.POSITIVE_INFINITY));emitDouble("real.lfloor.neginf",mthLfloor(Double.NEGATIVE_INFINITY));
 
   System.out.println("real.sign.negative="+mthSign(-4.0));System.out.println("real.sign.zero="+mthSign(-0.0));System.out.println("real.sign.nan="+mthSign(Double.NaN));
   System.out.println("real.equal.near="+mthEqual(1.0,1.000001));System.out.println("real.equal.far="+mthEqual(1.0,1.00002));

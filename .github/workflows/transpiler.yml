@@ -192,8 +192,10 @@ jobs:
           assert actual_mth==expected_mth,(actual_mth,expected_mth,r)
           reasons=" | ".join(x["reason"] for x in r["skipped_methods"])
           for x in ("super calls","ternary conditional operator","object construction","lambda/method reference","unadapted Minecraft engine type/API","primitive casts"): assert x in reasons,r
-          atan2_skip=[x for x in r["skipped_methods"] if x["class"]=="Mth" and x["method"]=="atan2"]
-          assert len(atan2_skip)==1 and "primitive casts" in atan2_skip[0]["reason"],r
+          lfloor_skip=[x for x in r["skipped_methods"] if x["class"]=="Mth" and x["method"]=="lfloor"]
+          assert len(lfloor_skip)==1 and "primitive casts" in lfloor_skip[0]["reason"],r
+          mth_source=next(x for x in json.loads(Path("build/minecraft-26.3-source-report.json").read_text())["classes"] if x["class"]=="net.minecraft.util.Mth")
+          assert "atan2" in mth_source["api_methods"] and not any(x["name"]=="atan2" for x in mth_source["selected_methods_extracted"]),mth_source
           print("Translated real Minecraft methods:",r["translated_methods"],"including 13 emitted Mth double helpers; skipped conservatively:",len(r["skipped_methods"]))
           PY
       - name: Compile extracted Mth source as Java reference

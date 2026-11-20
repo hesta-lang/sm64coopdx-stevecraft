@@ -43,6 +43,9 @@ real_close("absMax",RealMth.absMax(-7.0,3.0));real_close("square",RealMth.square
 real_close("clampedMap",RealMth.clampedMap(15.0,0.0,10.0,20.0,40.0));real_close("map",RealMth.map(15.0,0.0,10.0,20.0,40.0))
 real_close("lengthSquared3",RealMth.lengthSquared(2.0,3.0,6.0));real_close("length3",RealMth.length(2.0,3.0,6.0))
 real_close("frac.negative",RealMth.frac(-1.25));real_close("frac.positive",RealMth.frac(2.25))
+real_close("lfloor.negative",MC.Mth.lfloor(-1.25));real_close("lfloor.positive",MC.Mth.lfloor(2.25));real_close("lfloor.nan",MC.Mth.lfloor(0/0))
+real_close("lfloor.posinf",MC.Mth.lfloor(math.huge));real_close("lfloor.neginf",MC.Mth.lfloor(-math.huge))
+assert(RealMth.frac(0/0)~=RealMth.frac(0/0));assert(RealMth.frac(math.huge)==math.huge);assert(RealMth.frac(-math.huge)==-math.huge)
 
 assert(RealMth.sign(-4.0)==tonumber(realExpected["sign.negative"]));assert(RealMth.sign(-0.0)==tonumber(realExpected["sign.zero"]));assert(RealMth.sign(0/0)==tonumber(realExpected["sign.nan"]))
 assert(RealMth.equal(1.0,1.000001)==(realExpected["equal.near"]=="true"));assert(RealMth.equal(1.0,1.00002)==(realExpected["equal.far"]=="true"))

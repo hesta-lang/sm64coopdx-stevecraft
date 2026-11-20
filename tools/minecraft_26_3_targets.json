@@ -61,7 +61,7 @@
       "PlayerModel.getRandomBodyPart",
       "Mth.frac(double)"
     ],
-    "note": "16 public API signatures are source-transpiled (16/132). HumanoidModel.quadraticArmUpdate is one additional private helper. Mth.atan2(double,double) is extracted but blocked by primitive casts. The 20 manual Mth compatibility functions are not counted as source-transpiled methods. Coverage is selected-signature coverage, not full-class translation."
+    "note": "16 public API signatures are source-transpiled (16/132). HumanoidModel.quadraticArmUpdate is one additional private helper. Mth.lfloor(double) is extracted but uses a tested manual adapter; Mth.atan2(double,double) is not emitted because of primitive casts and lookup-table dependencies. The 21 manual Mth compatibility functions are not counted as source-transpiled methods."
   },
   "runtime_validation": {
     "lua_5_4_validated": true,
@@ -98,7 +98,8 @@
         "sin",
         "cos",
         "sqrt",
-        "rotLerpRad"
+        "rotLerpRad",
+        "lfloor"
       ],
       "ported_constants": [
         "PI",
@@ -115,7 +116,7 @@
         "Lua numbers do not preserve all Java int/long overflow, long precision, or every float rounding boundary.",
         "Mth.cube(float) and Mth.approach(float,float,float) are intentionally not source-transpiled until binary32 rounding is modeled at each arithmetic boundary."
       ],
-      "remaining": "13 selected double-signature methods are emitted from the exact 26.3 source; the other 101 API signatures are not transpiled. The extracted atan2(double,double) candidate is blocked by primitive casts. The 20 compatibility helpers listed under ported_methods remain separate hand-written Lua adapters.",
+      "remaining": "13 selected double-signature methods are emitted from the exact 26.3 source; the other 101 API signatures are not transpiled. lfloor(double) is extracted but blocked by primitive casts and is provided by a separately tested MC.Mth.lfloor adapter. atan2(double,double) is source-present but not selected because its body requires cast and lookup-table semantics.",
       "source_inventory": {
         "source_entry": "net/minecraft/util/Mth.java",
         "api_surface_count": 114,
@@ -139,7 +140,8 @@
           "sin",
           "cos",
           "sqrt",
-          "rotLerpRad"
+          "rotLerpRad",
+          "lfloor"
         ],
         "verified_constants": [
           "PI",
@@ -186,8 +188,12 @@
       },
       "unsupported_methods": [
         {
+          "signature": "lfloor(double)",
+          "reason": "primitive cast from double to long requires Java saturation and NaN semantics; MC.Mth.lfloor is an explicit tested adapter"
+        },
+        {
           "signature": "atan2(double,double)",
-          "reason": "primitive casts require Java narrowing/overflow semantics; the method is extracted but not emitted"
+          "reason": "source body uses primitive casts and SIN/ASIN lookup-table dependencies; no translation is emitted"
         }
       ]
     },

@@ -25,6 +25,8 @@ class Minecraft263InventoryTests(unittest.TestCase):
   self.assertNotIn("atan2(double,double)",mth["transpiled_methods"])
   self.assertNotIn("cube(double)",mth["transpiled_methods"]);self.assertNotIn("approach(double,double,double)",mth["transpiled_methods"])
   self.assertTrue(any(x["signature"]=="atan2(double,double)" and "primitive casts" in x["reason"] for x in mth["unsupported_methods"]))
+  self.assertTrue(any(x["signature"]=="lfloor(double)" and "primitive cast" in x["reason"] for x in mth["unsupported_methods"]))
+  self.assertIn("lfloor",mth["ported_methods"])
   self.assertEqual(data["coverage"]["public_api_methods_translated"],16);self.assertEqual(data["coverage"]["public_api_methods_total"],132)
   self.assertAlmostEqual(data["coverage"]["public_api_coverage_percent"],12.1,places=1);self.assertFalse(data["runtime_validation"]["stevecraft_runtime_validated"])
  def test_mth_helpers_match_compatibility_functions(self):

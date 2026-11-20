@@ -18,6 +18,14 @@ public final class Minecraft263RealSourceRunner {
   number("length3",Mth.length(2.0,3.0,6.0));
   number("frac.negative",Mth.frac(-1.25));
   number("frac.positive",Mth.frac(2.25));
+  number("frac.nan",Mth.frac(Double.NaN));
+  number("frac.posinf",Mth.frac(Double.POSITIVE_INFINITY));
+  number("frac.neginf",Mth.frac(Double.NEGATIVE_INFINITY));
+  number("lfloor.negative",Mth.lfloor(-1.25));
+  number("lfloor.positive",Mth.lfloor(2.25));
+  number("lfloor.nan",Mth.lfloor(Double.NaN));
+  number("lfloor.posinf",Mth.lfloor(Double.POSITIVE_INFINITY));
+  number("lfloor.neginf",Mth.lfloor(Double.NEGATIVE_INFINITY));
 
   System.out.println("sign.negative="+Mth.sign(-4.0));
   System.out.println("sign.zero="+Mth.sign(-0.0));

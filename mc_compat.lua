@@ -5,6 +5,14 @@ MC.Mth.PI=float32(math.pi); MC.Mth.HALF_PI=float32(math.pi/2); MC.Mth.TWO_PI=flo
 MC.Mth.DEG_TO_RAD=float32(math.pi/180); MC.Mth.RAD_TO_DEG=float32(180/math.pi)
 -- 26.3 float/double overload; int/long overloads require Java overload resolution.
 function MC.Mth.clamp(value, low, high) if value < low then return low end return math.min(value, high) end
+-- Java (long) Math.floor(double): NaN -> 0 and saturating signed-long bounds.
+function MC.Mth.lfloor(value)
+ if value~=value then return 0 end
+ local limit=9223372036854775808.0
+ if value>=limit then return limit end
+ if value<=-limit then return -limit end
+ return math.floor(value)
+end
 function MC.Mth.lerp(delta, start_value, end_value) return start_value + delta * (end_value - start_value) end
 function MC.Mth.sign(value) if value == 0 then return 0 end if value > 0 then return 1 end return -1 end
 function MC.Mth.wrapDegrees(value)
