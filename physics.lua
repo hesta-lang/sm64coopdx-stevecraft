@@ -59,6 +59,11 @@ local function is_air_action(action)
         or (ACT_FREEFALL ~= nil and action == ACT_FREEFALL)
 end
 
+local function is_water_action(action)
+    return ACT_FLAG_SWIMMING ~= nil and action ~= nil
+        and (action & ACT_FLAG_SWIMMING) ~= 0
+end
+
 local function get_motion_state(m)
     local index = m.playerIndex or 0
     local state = states[index]
@@ -320,7 +325,7 @@ local function on_set_mario_action(m)
             state.vy = (m.vel and m.vel.y) or 0.0
         end
         state.jumpActive = true
-    elseif not is_air_action(m.action) then
+    elseif not is_air_action(m.action) and not is_water_action(m.action) then
         state.jumpActive = false
         state.vy = 0.0
     end
@@ -516,12 +521,13 @@ local function after_mario_update(m)
     update_sprint_input(m)
 
     if state ~= nil then
-        if not is_air_action(m.action) then
+        local swimming = is_water_action(m.action)
+        if not is_air_action(m.action) and not swimming then
             state.jumpActive = false
             state.vy = 0.0
         end
 
-        if not is_ground_action(m.action) and not is_air_action(m.action) then
+        if not is_ground_action(m.action) and not is_air_action(m.action) and not swimming then
             states[0] = nil
         end
     end
