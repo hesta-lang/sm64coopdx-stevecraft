@@ -230,7 +230,7 @@ def translate_file(path, root, outroot, report, strict):
     source=path.read_text(encoding="utf-8")
     pkg=re.search(r'\bpackage\s+([\w.]+)\s*;',source)
     package=pkg.group(1) if pkg else ""
-    cls=re.search(r'(?m)^[ \t]*(?:(?:public|protected|private)\s+)?(?:(?:final|abstract|static)\s+)*class\s+(\w+)',source)
+    cls=re.search(r'(?m)(?:^[ \t]*|;[ \t]*)(?:(?:public|protected|private)\s+)?(?:(?:final|abstract|static)\s+)*class\s+(\w+)',source)
     if not cls:
         report["skipped_files"].append({"file":str(path),"reason":"no top-level class"})
         return
