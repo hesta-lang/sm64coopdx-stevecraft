@@ -2,10 +2,10 @@
  "minecraft_version":"26.3",
  "source_pipeline":{
   "provider":"NeoForm Runtime (NFRT)","runtime_coordinate":"net.neoforged:neoform-runtime:2.0.31",
-  "neoform_coordinate":"net.neoforged:neoform:26.3-1@zip","distribution":"client","result":"gameSources",
+  "neoform_coordinate":"net.neoforged:neoform:26.3-1@zip","distribution":"joined","result":"gameSources",
   "launcher_manifest":"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
   "mapping_namespace":"Mojang official mappings","full_source_committed":false,
-  "note":"CI obtains Minecraft 26.3 client sources through NeoForm from Mojang artifacts and mappings, extracts selected methods, and does not commit the full source archive."
+  "note":"CI obtains Minecraft 26.3 joined-distribution sources through NeoForm from Mojang artifacts and mappings, extracts selected methods, and does not commit the full source archive."
  },
  "source_report":{
   "artifact":"build/minecraft-26.3-source-report.json",
