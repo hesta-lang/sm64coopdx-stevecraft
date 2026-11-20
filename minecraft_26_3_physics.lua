@@ -164,6 +164,94 @@ function P.sprint_jump_impulse(vx, vz, body_yaw, sprinting, units_per_block)
         finite_or(vz, 0) + math.cos(yaw) * impulse
 end
 
+-- Reconcile Minecraft momentum with the displacement actually accepted by
+-- the host collision solver. A wall normal is projected out to preserve sliding;
+-- when no usable normal is available, only the clipped axes are cleared.
+function P.reconcile_horizontal_velocity(vx, vz, has_wall, normal_x, normal_z, blocked_x, blocked_z)
+    vx, vz = finite_or(vx, 0), finite_or(vz, 0)
+    normal_x, normal_z = finite_or(normal_x, 0), finite_or(normal_z, 0)
+    local normal_length_squared = normal_x * normal_x + normal_z * normal_z
+
+    if has_wall and normal_length_squared > 1.0e-8 then
+        local into_wall = vx * normal_x + vz * normal_z
+        vx = vx - normal_x * (into_wall / normal_length_squared)
+        vz = vz - normal_z * (into_wall / normal_length_squared)
+    else
+        if blocked_x then vx = 0 end
+        if blocked_z then vz = 0 end
+    end
+    return vx, vz
+end
+
+-- Minecraft's vertical delta is already moved before gravity/drag is applied.
+-- A ceiling contact clips an upward move and must stop cached upward momentum.
+function P.reconcile_vertical_velocity(velocity_y, requested_delta_y, actual_delta_y, epsilon)
+    velocity_y = finite_or(velocity_y, 0)
+    requested_delta_y = finite_or(requested_delta_y, 0)
+    actual_delta_y = finite_or(actual_delta_y, 0)
+    epsilon = math.max(0, finite_or(epsilon, 0.5))
+    if requested_delta_y > 0 and actual_delta_y < requested_delta_y - epsilon then
+        return 0, true
+    end
+    return velocity_y, false
+end
+
+-- Fluid travel helpers ported from the inspected LivingEntity travel path.
+-- They are available to the adapter, but are not enabled by the current Mario
+-- submerged actions until a reliable Lua medium/surface mapping is supplied.
+function P.water_movement_speed(movement_speed, efficiency, on_ground)
+    movement_speed = math.max(0, finite_or(movement_speed, P.DEFAULT_MOVEMENT_SPEED))
+    efficiency = clamp(finite_or(efficiency, 0), 0, 1)
+    if not on_ground then efficiency = efficiency * 0.5 end
+    return 0.02 + (movement_speed - 0.02) * efficiency
+end
+
+local function fluid_fall_adjustment(velocity_y, gravity, was_falling, sprinting)
+    gravity = finite_or(gravity, P.DEFAULT_GRAVITY)
+    velocity_y = finite_or(velocity_y, 0)
+    if gravity == 0 or sprinting then return velocity_y end
+    if was_falling
+        and math.abs(velocity_y - 0.005) >= 0.003
+        and math.abs(velocity_y - gravity / 16) < 0.003 then
+        return -0.003
+    end
+    return velocity_y - gravity / 16
+end
+
+function P.apply_water_drag(vx, vy, vz, options)
+    options = options or {}
+    local sprinting = options.sprinting == true
+    local slowdown = finite_or(options.slowdownOverride, 0)
+    if slowdown <= 0 then slowdown = sprinting and 0.9 or 0.8 end
+    local efficiency = clamp(finite_or(options.efficiency, 0), 0, 1)
+    if not options.onGround then efficiency = efficiency * 0.5 end
+    slowdown = slowdown + (0.54600006 - slowdown) * efficiency
+
+    vx = finite_or(vx, 0) * slowdown
+    vz = finite_or(vz, 0) * slowdown
+    vy = finite_or(vy, 0) * 0.8
+    vy = fluid_fall_adjustment(
+        vy, options.gravity, options.wasFalling == true, sprinting
+    )
+    return vx, vy, vz, slowdown
+end
+
+function P.apply_lava_drag(vx, vy, vz, options)
+    options = options or {}
+    local gravity = finite_or(options.gravity, P.DEFAULT_GRAVITY)
+    vx, vy, vz = finite_or(vx, 0), finite_or(vy, 0), finite_or(vz, 0)
+    if options.deep == true then
+        return vx * 0.5, vy * 0.5 - gravity / 4, vz * 0.5
+    end
+    vx = vx * 0.5
+    vz = vz * 0.5
+    vy = vy * 0.8
+    vy = fluid_fall_adjustment(
+        vy, gravity, options.wasFalling == true, options.sprinting == true
+    )
+    return vx, vy - gravity / 4, vz
+end
+
 -- Source-side sprint trigger: forward impulse rising edge, configurable
 -- Minecraft sprint window, and stop while forward is released/blocked.
 function P.update_sprint(state, forward_impulse, can_start, sprint_window_frames)
