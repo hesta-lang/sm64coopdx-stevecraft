@@ -88,8 +88,9 @@ function P.input_from_intent(intended_magnitude, intended_yaw, body_yaw, options
     return world_x, world_z, forward, side
 end
 
--- Convert one Minecraft per-tick velocity recurrence into an equivalent
--- steady-state 30-FPS recurrence. It does not change the 20 TPS source model.
+-- Convert one Minecraft per-tick affine velocity recurrence into its
+-- fractional 30-FPS step. With constant input, 1.5 frame steps compose to the
+-- original 20-TPS recurrence; position scale is 20/30 block units per frame.
 function P.tick_coefficients(acceleration_per_tick, drag_per_tick, units_per_block)
     local acceleration = finite_or(acceleration_per_tick, 0)
     local drag = clamp(finite_or(drag_per_tick, 1), 0.0, 1.0)
