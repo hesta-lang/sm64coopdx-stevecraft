@@ -10,12 +10,23 @@ local MinecraftPhysics = require("minecraft_26_3_physics")
 require("tri_collider")
 require("sm64_collision_adapter")
 local IndependentPhysics = require("independent_physics")
+local SteveGeometry = require("steve_geometry")
 
 physics.enabled = physics.enabled ~= false
 physics.reference = "Minecraft Java Edition 26.3 LocalPlayer / LivingEntity / Entity / Camera"
 -- SteveCraft owns the local player movement step whenever its surface adapter is available.
 physics.independentMode = physics.independentMode ~= false
+physics.nativeGeometryDisabled = physics.nativeGeometryDisabled ~= false
 physics.triangleCollisionEnabled = physics.triangleCollisionEnabled == true
+
+-- Free cutscene-group action slot (0x13F) used only to dispatch SteveCraft's
+-- custom Lua locomotion. It is not a Mario movement action.
+local ACT_STEVECRAFT_CONTROLLED = ACT_GROUP_CUTSCENE
+    | 0x3F
+    | ACT_FLAG_STATIONARY
+    | ACT_FLAG_CUSTOM_ACTION
+    | ACT_FLAG_ALLOW_FIRST_PERSON
+    | ACT_FLAG_PAUSE_EXIT
 
 -- This unit conversion is provisional and must be calibrated in a live level.
 local WORLD_UNITS_PER_BLOCK = MinecraftPhysics.WORLD_UNITS_PER_BLOCK
@@ -85,6 +96,10 @@ local function get_motion_state(m)
             vz = (m.vel and m.vel.z) or 0.0,
             vy = (m.vel and m.vel.y) or 0.0,
             jumpActive = false,
+            onGround = false,
+            inWater = false,
+            lastFloorSurface = nil,
+            lastFloorHeight = nil,
             pendingStep = nil,
         }
         states[index] = state
