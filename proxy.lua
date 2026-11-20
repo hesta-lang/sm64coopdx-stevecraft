@@ -1,16 +1,17 @@
 -- SteveCraft 64 - independent Steve render / Mario physical proxy.
 --
--- MarioState and its marioObj remain the ONLY physics and collision authority.
+-- MarioState remains the engine-facing state/interaction proxy, but SteveCraft
+-- owns player locomotion and its collision solver in isolation mode.
 -- Each client creates one local, non-colliding Steve render object per player.
--- That object follows the matching MarioState and mirrors Mario's animation
--- descriptor. No second controller, gravity solver, or collision body is made.
+-- It follows MarioState's position/rotation and mirrors the compatible animation
+-- descriptor. The hidden Mario object is retained only for engine integration.
 
 SteveCraft = SteveCraft or {}
 SteveCraft.proxy = SteveCraft.proxy or {}
 local proxy = SteveCraft.proxy
 
 proxy.version = "1.0.0-alpha"
-proxy.reference = "SM64CoopDX MarioState + detached Steve render object"
+proxy.reference = "SteveCraft locomotion + MarioState engine bridge + detached Steve render object"
 
 local records = {}
 local behaviorId = nil
@@ -408,4 +409,4 @@ if type(hook_event) == "function" then
     end
 end
 
-print("[SteveCraft] Independent Steve visual proxy initialized; Mario remains the physics authority.")
+print("[SteveCraft] Steve visual proxy initialized; Mario native body and shadow are hidden.")
