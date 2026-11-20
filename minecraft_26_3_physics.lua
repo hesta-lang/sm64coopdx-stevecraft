@@ -114,9 +114,10 @@ function P.horizontal_parameters(on_ground, block_friction, movement_speed, spri
     movement_speed = math.max(0.0, finite_or(movement_speed, P.DEFAULT_MOVEMENT_SPEED))
     if on_ground then
         if sprinting then movement_speed = movement_speed * P.SPRINT_SPEED_MODIFIER end
-        if block_friction > 0.6 then
-            movement_speed = movement_speed * P.GROUND_SPEED_FACTOR / (block_friction ^ 3)
-        end
+        -- LivingEntity.getFrictionInfluencedSpeed applies this factor for
+        -- every block slipperiness (0.6 default => multiplier 1.0).
+        movement_speed = movement_speed * P.GROUND_SPEED_FACTOR
+            / math.max(1.0e-9, block_friction ^ 3)
         local drag = block_friction * P.DEFAULT_AIR_FRICTION
         local accel_frame, drag_frame = P.tick_coefficients(movement_speed, drag)
         return accel_frame, drag_frame, movement_speed, drag
