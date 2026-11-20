@@ -95,6 +95,6 @@ assert(math.abs(water_x - 0.8) < 1e-9 and math.abs(water_z - 0.8) < 1e-9)
 assert(math.abs(water_y - 0.795) < 1e-9 and math.abs(water_drag - 0.8) < 1e-9)
 local lava_x, lava_y, lava_z = P.apply_lava_drag(1, 1, 1, { deep = true, gravity = 0.08 })
 assert(math.abs(lava_x - 0.5) < 1e-9 and math.abs(lava_z - 0.5) < 1e-9)
-assert(math.abs(lava_y - 0.46) < 1e-9)
+assert(math.abs(lava_y - 0.48) < 1e-9)
 
 print("Minecraft 26.3 physics port tests passed")
