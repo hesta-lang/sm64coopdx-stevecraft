@@ -10,6 +10,9 @@ local PI = math.pi
 
 physics.enabled = physics.enabled ~= false
 physics.reference = "Minecraft Java 1.21.11 LocalPlayer / LivingEntity / AbstractClientPlayer"
+-- SkyCraft/MarioCraft triangle pre-clipping is supplementary to SM64 collision.
+-- It is enabled by default when the documented SM64 Lua query API is present.
+physics.triangleCollisionEnabled = physics.triangleCollisionEnabled ~= false
 
 -- Provisional model-scale conversion. Calibrate in a real level before treating
 -- these SM64 units as an exact Minecraft block equivalent.
@@ -43,14 +46,15 @@ end
 
 local function is_local_steve(m)
     local character = SteveCraft.character
+    local proxy = SteveCraft.proxy
     return m ~= nil
         and m.playerIndex == 0
         and character ~= nil
         and character.ready
         and character.modelId ~= nil
-        and gPlayerSyncTable ~= nil
-        and gPlayerSyncTable[0] ~= nil
-        and gPlayerSyncTable[0].modelId == character.modelId
+        and proxy ~= nil
+        and type(proxy.owns_mario_state) == "function"
+        and proxy.owns_mario_state(m)
 end
 
 local function is_ground_action(action)
@@ -255,6 +259,76 @@ local function update_horizontal_velocity(m, step_type, state, sprinting)
     end
 end
 
+
+local triangleCollisionWarned = false
+
+local function apply_triangle_collision(m, step_type, state)
+    if not physics.triangleCollisionEnabled then return false end
+
+    local adapter = SteveCraft.sm64Collision
+    if adapter == nil or type(adapter.resolve) ~= "function" then
+        return false
+    end
+
+    local move = {
+        x = (m.vel and m.vel.x) or 0.0,
+        y = (m.vel and m.vel.y) or 0.0,
+        z = (m.vel and m.vel.z) or 0.0,
+    }
+    local config = {
+        unitsPerBlock = WORLD_UNITS_PER_BLOCK,
+        wasOnGround = step_type == STEP_TYPE_GROUND,
+    }
+
+    local ok, allowed = pcall(adapter.resolve, m, move, config)
+    if not ok then
+        if not triangleCollisionWarned then
+            print("[SteveCraft] Triangle collision query failed; retaining native SM64 movement.")
+            triangleCollisionWarned = true
+        end
+        return false
+    end
+    if allowed == nil then return false end
+
+    -- Only pre-clip the proposed displacement. The engine still performs
+    -- its normal Mario physics step, contacts, floor actions and interactions.
+    if allowed.x ~= move.x or allowed.y ~= move.y or allowed.z ~= move.z then
+        m.vel.x = allowed.x
+        m.vel.y = allowed.y
+        m.vel.z = allowed.z
+
+        -- Keep cached momentum consistent with the fraction of the move that
+        -- survived pre-clipping, so the next frame does not keep pushing into
+        -- a surface that the triangle pass already found.
+        if state ~= nil then
+            if math.abs(move.x) > 1e-8 then
+                state.vx = state.vx * (allowed.x / move.x)
+            elseif allowed.x == 0 then
+                state.vx = 0
+            end
+            if math.abs(move.z) > 1e-8 then
+                state.vz = state.vz * (allowed.z / move.z)
+            elseif allowed.z == 0 then
+                state.vz = 0
+            end
+        end
+
+        if m.forwardVel ~= nil then
+            m.forwardVel = math.sqrt(allowed.x * allowed.x + allowed.z * allowed.z)
+        end
+        return true
+    end
+    return false
+end
+
+function physics.set_triangle_collision_enabled(enabled)
+    physics.triangleCollisionEnabled = enabled == true
+end
+
+function physics.is_triangle_collision_enabled()
+    return physics.triangleCollisionEnabled == true
+end
+
 local function before_set_mario_action(m, incoming_action, action_arg)
     if not physics.enabled or not is_local_steve(m) then return end
 
@@ -349,6 +423,7 @@ local function before_physics_step(m, step_type, step_arg)
         if m.slideVelZ ~= nil then m.slideVelZ = 0.0 end
         state.vx = 0.0
         state.vz = 0.0
+        apply_triangle_collision(m, step_type, state)
         return
     end
 
@@ -356,6 +431,7 @@ local function before_physics_step(m, step_type, step_arg)
         and sprint_states[index] ~= nil
         and sprint_states[index].sprinting == true
     update_horizontal_velocity(m, step_type, state, sprint)
+    apply_triangle_collision(m, step_type, state)
 end
 
 local function after_mario_update(m)
