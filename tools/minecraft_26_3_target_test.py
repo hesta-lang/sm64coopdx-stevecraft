@@ -12,6 +12,9 @@ class Minecraft263InventoryTests(unittest.TestCase):
   self.assertEqual(pipeline["neoform_coordinate"],"net.neoforged:neoform:26.3-1@zip")
   self.assertEqual(pipeline["distribution"],"joined")
   self.assertEqual(pipeline["result"],"gameSources")
+  self.assertEqual(pipeline["artifact_manifest"],"build/nfrt-artifact-manifest.properties")
+  self.assertEqual(pipeline["tool_artifact_override"]["coordinate"],"net.neoforged.installertools:installertools:4.0.17:fatjar")
+  self.assertIn("exact 4.0.17",pipeline["tool_artifact_override"]["method"])
   self.assertFalse(pipeline["full_source_committed"])
   targets={x["class"]:x for x in data["targets"]}
   self.assertEqual(set(targets),{"net.minecraft.util.Mth","net.minecraft.client.model.HumanoidModel","net.minecraft.client.model.player.PlayerModel"})
