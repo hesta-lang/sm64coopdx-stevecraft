@@ -322,9 +322,13 @@ end
 
 local function is_preserved_native_action(action)
     if action == nil then return false end
-    -- Keep text/dialog actions available. They do not own player locomotion.
-    return ACT_FLAG_WATER_OR_TEXT ~= nil
-        and (action & ACT_FLAG_WATER_OR_TEXT) ~= 0
+    -- These actions own UI/dialog flow, not normal locomotion. All other
+    -- native player actions are redirected to the SteveCraft controller.
+    if ACT_FLAG_WATER_OR_TEXT ~= nil and (action & ACT_FLAG_WATER_OR_TEXT) ~= 0 then
+        return true
+    end
+    return (ACT_READING_SIGN ~= nil and action == ACT_READING_SIGN)
+        or (ACT_WAITING_FOR_DIALOG ~= nil and action == ACT_WAITING_FOR_DIALOG)
 end
 
 local function before_set_mario_action(m, incoming_action, action_arg)
@@ -494,10 +498,13 @@ local function before_physics_step(m, step_type, step_arg)
     if m.vel == nil or m.pos == nil or m.intendedMag == nil or m.intendedYaw == nil
         or STEP_TYPE_GROUND == nil or STEP_TYPE_AIR == nil then
         if not warned then
-            print("[SteveCraft 64] Physics API fields unavailable; keeping SM64 movement.")
+            print("[SteveCraft 64] Movement bindings unavailable; native step blocked for safety.")
             warned = true
         end
-        return
+        if step_type == STEP_TYPE_WATER then return WATER_STEP_NONE or 0 end
+        if step_type == STEP_TYPE_GROUND then return GROUND_STEP_NONE or 0 end
+        if step_type == STEP_TYPE_AIR then return AIR_STEP_NONE or 0 end
+        return 0
     end
 
     -- A successful override cancels the native ground/air/water resolver.
