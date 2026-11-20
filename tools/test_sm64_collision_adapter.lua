@@ -12,7 +12,7 @@ local floorSurface = {
     vertex1 = { x = -10, y = 0, z = -10 },
     vertex2 = { x = 10, y = 0, z = -10 },
     vertex3 = { x = 10, y = 0, z = 10 },
-    normal = { x = 0, y = 1, z = 0 },
+    normal = { x = 0.8, y = 0.6, z = 0 },
 }
 
 local wallA = {
@@ -79,6 +79,8 @@ local clearResult = adapter.resolve(mario, clearMove, {
 })
 assert(clearResult ~= nil, "adapter should return a resolved displacement")
 assert(clearResult.surfaces >= 1, "adapter should collect the floor triangle")
+local sampledTriangles = adapter.collect(mario, clearMove, { unitsPerBlock = 1, wasOnGround = true })
+assert(sampledTriangles[1].walkable == true, "a surface returned by find_floor must be treated as walkable")
 assert(math.abs(clearResult.x - clearMove.x) < 1e-8, "clear movement should be preserved")
 
 local wallMove = { x = 1, y = 0, z = 0 }
