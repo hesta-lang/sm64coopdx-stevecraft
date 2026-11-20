@@ -7,11 +7,14 @@ SteveCraft.physics = SteveCraft.physics or {}
 local physics = SteveCraft.physics
 local PI = math.pi
 local MinecraftPhysics = require("minecraft_26_3_physics")
+require("tri_collider")
+require("sm64_collision_adapter")
+local IndependentPhysics = require("independent_physics")
 
 physics.enabled = physics.enabled ~= false
 physics.reference = "Minecraft Java Edition 26.3 LocalPlayer / LivingEntity / Entity / Camera"
--- Native SM64 already performs authoritative surface collision. Keep the
--- additional SkyCraft pre-clip opt-in to avoid solving the same wall twice.
+-- SteveCraft owns the local player movement step whenever its surface adapter is available.
+physics.independentMode = physics.independentMode ~= false
 physics.triangleCollisionEnabled = physics.triangleCollisionEnabled == true
 
 -- This unit conversion is provisional and must be calibrated in a live level.
@@ -338,6 +341,19 @@ local function vector_component(vector, key, fallback_index)
     return type(value) == "number" and value or 0
 end
 
+local function independent_collision_config(on_ground)
+    return {
+        unitsPerBlock = WORLD_UNITS_PER_BLOCK,
+        -- Minecraft dimensions: 0.6 blocks wide and 1.8 blocks tall.
+        -- The current triangle solver approximates the horizontal footprint radially.
+        radius = WORLD_UNITS_PER_BLOCK * 0.3,
+        height = WORLD_UNITS_PER_BLOCK * 1.8,
+        stepHeight = WORLD_UNITS_PER_BLOCK * 0.6,
+        floorRadius = WORLD_UNITS_PER_BLOCK * 0.25,
+        wasOnGround = on_ground == true,
+    }
+end
+
 local function before_physics_step(m, step_type, step_arg)
     if not is_local_steve(m) then
         if m ~= nil then
@@ -361,8 +377,9 @@ local function before_physics_step(m, step_type, step_arg)
         return
     end
 
-    local ground = step_type == STEP_TYPE_GROUND and is_ground_action(m.action)
-    local air = step_type == STEP_TYPE_AIR and is_air_action(m.action)
+    -- A successful override cancels the native ground/air/water resolver.
+    local ground = step_type == STEP_TYPE_GROUND
+    local air = step_type == STEP_TYPE_AIR
     local water = step_type == STEP_TYPE_WATER
         and ACT_FLAG_SWIMMING ~= nil
         and (m.action & ACT_FLAG_SWIMMING) ~= 0
@@ -377,9 +394,6 @@ local function before_physics_step(m, step_type, step_arg)
         and sprint_states[index].sprinting == true
 
     if water then
-        -- perform_water_step() has its own floor/ceiling/wall solver and calls
-        -- the same hook with STEP_TYPE_WATER. Do not send this move through the
-        -- triangular ground/air pre-clip a second time.
         local wish_x, wish_z = input_direction(m)
         local on_floor = m.floorHeight ~= nil
             and math.abs((m.pos.y or 0) - m.floorHeight) <= 1.0
@@ -390,46 +404,71 @@ local function before_physics_step(m, step_type, step_arg)
                 SteveCraft.waterMovementEfficiency or 0,
                 on_floor, sprint
             )
-
         local input = m.input or 0
         local jump_held = INPUT_A_DOWN ~= nil and (input & INPUT_A_DOWN) ~= 0
         local descend_held = INPUT_Z_DOWN ~= nil and (input & INPUT_Z_DOWN) ~= 0
         local move_y, next_y = MinecraftPhysics.water_vertical_step(
-            state.vy, jump_held, descend_held,
-            MinecraftPhysics.DEFAULT_GRAVITY
+            state.vy, jump_held, descend_held, MinecraftPhysics.DEFAULT_GRAVITY
         )
-
         m.vel.x, m.vel.y, m.vel.z = move_x, move_y, move_z
         state.vx, state.vy, state.vz = next_x, next_y, next_z
+
+        if physics.independentMode then
+            local result = IndependentPhysics.resolve(
+                m, step_type, state,
+                { x = move_x, y = move_y, z = move_z },
+                independent_collision_config(on_floor)
+            )
+            if type(result) == "number" then
+                state.pendingStep = nil
+                state.independentStep = true
+                return result
+            end
+        end
+
         state.pendingStep = {
             medium = "water",
             startX = m.pos.x or 0,
             startY = m.pos.y or 0,
             startZ = m.pos.z or 0,
-            requestedX = move_x,
-            requestedY = move_y,
-            requestedZ = move_z,
-            wasGround = on_floor,
-            wasAir = false,
+            requestedX = move_x, requestedY = move_y, requestedZ = move_z,
+            wasGround = on_floor, wasAir = false,
         }
         return
     end
 
-    -- Build the requested Minecraft displacement first. SM64's native
-    -- perform_ground_step/perform_air_step clips against its level surfaces.
-    -- The actual delta is reconciled after Mario's complete physics update.
     update_horizontal_velocity(m, step_type, state, sprint)
-    if air and state.jumpActive then
+    if air then
+        if not state.jumpActive then
+            state.vy = (m.vel and m.vel.y) or state.vy or 0.0
+        end
         m.vel.y = state.vy or 0.0
+    else
+        state.vy = 0.0
+        m.vel.y = 0.0
     end
 
-    apply_triangle_collision(m, step_type, state)
+    if physics.independentMode then
+        local requested = {
+            x = (m.vel and m.vel.x) or 0.0,
+            y = (m.vel and m.vel.y) or 0.0,
+            z = (m.vel and m.vel.z) or 0.0,
+        }
+        local result = IndependentPhysics.resolve(
+            m, step_type, state, requested, independent_collision_config(ground)
+        )
+        if type(result) == "number" then
+            state.pendingStep = nil
+            state.independentStep = true
+            return result
+        end
+    end
 
+    -- Safe fallback to the previous native-step integration if surface sampling fails.
+    apply_triangle_collision(m, step_type, state)
     state.pendingStep = {
         medium = "air_ground",
-        startX = m.pos.x or 0,
-        startY = m.pos.y or 0,
-        startZ = m.pos.z or 0,
+        startX = m.pos.x or 0, startY = m.pos.y or 0, startZ = m.pos.z or 0,
         requestedX = (m.vel and m.vel.x) or 0,
         requestedY = (m.vel and m.vel.y) or 0,
         requestedZ = (m.vel and m.vel.z) or 0,
