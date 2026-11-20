@@ -20,9 +20,10 @@ class Minecraft263InventoryTests(unittest.TestCase):
   self.assertIn("net.minecraft.client.model.HumanoidModel",player["extends"])
   self.assertIn("getHead",humanoid["transpiled_methods"]);self.assertIn("getArm",humanoid["transpiled_methods"]);self.assertIn("quadraticArmUpdate",humanoid["transpiled_methods"])
   self.assertEqual(player["transpiled_methods"],["getRandomBodyPart"]);self.assertEqual(humanoid["coverage"]["public_api_methods_translated"],2)
-  self.assertEqual(mth["coverage"]["public_api_methods_translated"],12);self.assertEqual(mth["coverage"]["public_api_methods_total"],114);self.assertEqual(len(mth["transpiled_methods"]),12)
-  self.assertEqual(data["coverage"]["public_api_methods_translated"],15);self.assertEqual(data["coverage"]["public_api_methods_total"],132)
-  self.assertAlmostEqual(data["coverage"]["public_api_coverage_percent"],11.4,places=1);self.assertFalse(data["runtime_validation"]["stevecraft_runtime_validated"])
+  self.assertEqual(mth["coverage"]["public_api_methods_translated"],15);self.assertEqual(mth["coverage"]["public_api_methods_total"],114);self.assertEqual(len(mth["transpiled_methods"]),15)
+  self.assertTrue({"cube(double)","frac(double)","approach(double,double,double)"}.issubset(set(mth["transpiled_methods"])))
+  self.assertEqual(data["coverage"]["public_api_methods_translated"],18);self.assertEqual(data["coverage"]["public_api_methods_total"],132)
+  self.assertAlmostEqual(data["coverage"]["public_api_coverage_percent"],13.6,places=1);self.assertFalse(data["runtime_validation"]["stevecraft_runtime_validated"])
  def test_mth_helpers_match_compatibility_functions(self):
   data=json.loads(MANIFEST.read_text(encoding="utf-8"));compat=COMPAT.read_text(encoding="utf-8")
   mth=next(x for x in data["targets"] if x["class"]=="net.minecraft.util.Mth")

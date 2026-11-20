@@ -49,7 +49,12 @@ def expr(ts, report, where, class_name=None, class_methods=()):
     s=re.sub(r'\bMath\s*\.\s*E\b', 'math.exp(1)', s)
     s=re.sub(r'\bMath\s*\.\s*(\w+)',lambda m:MATH.get(m.group(1),"math."+m.group(1)),s)
     s=re.sub(r'\bMth\s*\.\s*(PI|HALF_PI|TWO_PI|DEG_TO_RAD|RAD_TO_DEG)\b',lambda m:'MC.Mth.'+m.group(1),s)
-    s=re.sub(r'\bMth\s*\.\s*(\w+)',lambda m:MTH.get(m.group(1),"MC.Mth."+m.group(1)),s)
+    def mth_call(match):
+        method = match.group(1)
+        if class_name == "Mth" and method in class_methods:
+            return f"Mth.{method}"
+        return MTH.get(method, "MC.Mth." + method)
+    s=re.sub(r'\bMth\s*\.\s*(\w+)',mth_call,s)
     if class_name and class_methods:
         own_pattern="|".join(re.escape(x) for x in sorted(class_methods,key=len,reverse=True))
         s=re.sub(rf'(?<![\w$.])({own_pattern})\s*\(',lambda m:f"{class_name}.{m.group(1)}(",s)

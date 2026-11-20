@@ -16,6 +16,13 @@ public final class Minecraft263RealSourceRunner {
   number("map",Mth.map(15.0,0.0,10.0,20.0,40.0));
   number("lengthSquared3",Mth.lengthSquared(2.0,3.0,6.0));
   number("length3",Mth.length(2.0,3.0,6.0));
+  number("cube.negative",Mth.cube(-2.0));
+  number("cube.positive",Mth.cube(3.0));
+  number("frac.negative",Mth.frac(-1.25));
+  number("frac.positive",Mth.frac(2.25));
+  number("approach.up",Mth.approach(2.0,10.0,3.0));
+  number("approach.down",Mth.approach(10.0,2.0,3.0));
+  number("approach.reach",Mth.approach(2.0,4.0,10.0));
   System.out.println("sign.negative="+Mth.sign(-4.0));
   System.out.println("sign.zero="+Mth.sign(-0.0));
   System.out.println("sign.nan="+Mth.sign(Double.NaN));

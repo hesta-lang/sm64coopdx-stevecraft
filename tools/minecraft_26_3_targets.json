@@ -1,440 +1,449 @@
 {
- "minecraft_version": "26.3",
- "source_pipeline": {
-  "provider": "NeoForm Runtime (NFRT)",
-  "runtime_coordinate": "net.neoforged:neoform-runtime:2.0.31",
-  "neoform_coordinate": "net.neoforged:neoform:26.3-1@zip",
-  "distribution": "joined",
-  "result": "gameSources",
-  "launcher_manifest": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
-  "mapping_namespace": "Mojang official mappings",
-  "full_source_committed": false,
-  "artifact_manifest": "build/nfrt-artifact-manifest.properties",
-  "tool_artifact_override": {
-   "coordinate": "net.neoforged.installertools:installertools:4.0.17:fatjar",
-   "method": "Build the exact 4.0.17 Maven module with its declared runtime dependencies into the fatjar classifier expected by NeoForm Runtime; no older tool version is substituted."
+  "minecraft_version": "26.3",
+  "source_pipeline": {
+    "provider": "NeoForm Runtime (NFRT)",
+    "runtime_coordinate": "net.neoforged:neoform-runtime:2.0.31",
+    "neoform_coordinate": "net.neoforged:neoform:26.3-1@zip",
+    "distribution": "joined",
+    "result": "gameSources",
+    "launcher_manifest": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+    "mapping_namespace": "Mojang official mappings",
+    "full_source_committed": false,
+    "artifact_manifest": "build/nfrt-artifact-manifest.properties",
+    "tool_artifact_override": {
+      "coordinate": "net.neoforged.installertools:installertools:4.0.17:fatjar",
+      "method": "Build the exact 4.0.17 Maven module with its declared runtime dependencies into the fatjar classifier expected by NeoForm Runtime; no older tool version is substituted."
+    },
+    "note": "CI obtains Minecraft 26.3 joined-distribution sources through NeoForm from Mojang artifacts and mappings, extracts selected methods, and does not commit the full source archive."
   },
-  "note": "CI obtains Minecraft 26.3 joined-distribution sources through NeoForm from Mojang artifacts and mappings, extracts selected methods, and does not commit the full source archive."
- },
- "source_report": {
-  "artifact": "build/minecraft-26.3-source-report.json",
-  "fields": [
-   "imports",
-   "class_declaration",
-   "extends",
-   "implements",
-   "fields_present_in_source",
-   "constructors",
-   "api_methods",
-   "methods_present_in_source",
-   "engine_api_type_references",
-   "engine_api_calls",
-   "selected_methods_extracted"
-  ],
-  "note": "This generated report is the source of truth for exact imports and declarations from the NeoForm archive."
- },
- "reference": {
-  "name": "MC 26.x decompiled source browser",
-  "url": "https://mc-packet-reference.netlify.app/26.x/",
-  "note": "Secondary, unofficial cross-check only; CI source input is generated separately through NeoForm."
- },
- "coverage": {
-  "public_api_methods_translated": 15,
-  "public_api_methods_total": 132,
-  "public_api_coverage_percent": 11.4,
-  "private_helpers_translated": 1,
-  "translated_method_names": [
-   "Mth.clamp(double)",
-   "Mth.clampedLerp(double)",
-   "Mth.absMax(double)",
-   "Mth.equal(double)",
-   "Mth.sign(double)",
-   "Mth.lerp(double)",
-   "Mth.square(double)",
-   "Mth.inverseLerp(double)",
-   "Mth.clampedMap(double)",
-   "Mth.map(double)",
-   "Mth.lengthSquared(double, double, double)",
-   "Mth.length(double, double, double)",
-   "HumanoidModel.getHead",
-   "HumanoidModel.getArm",
-   "PlayerModel.getRandomBodyPart"
-  ],
-  "note": "15 public API signatures are source-transpiled (15/132). HumanoidModel.quadraticArmUpdate is one additional private helper. The 20 manual Mth compatibility functions are not counted as source-transpiled methods. Coverage is selected-signature coverage, not full-class translation."
- },
- "runtime_validation": {
-  "lua_5_4_validated": true,
-  "java_reference_equivalence_tested": true,
-  "stevecraft_runtime_validated": false,
-  "sm64coopdx_integration_validated": false,
-  "apk_modified": false,
-  "sm64coopdx_repository_modified": false
- },
- "targets": [
-  {
-   "class": "net.minecraft.util.Mth",
-   "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/util/mth/",
-   "role": "mathematical foundation for model animation",
-   "status": "partial_source_transpilation_and_manual_adapters",
-   "api_surface_count": 114,
-   "ported_methods": [
-    "clamp",
-    "lerp",
-    "sign",
-    "wrapDegrees",
-    "absMax",
-    "degreesDifference",
-    "degreesDifferenceAbs",
-    "rotateIfNecessary",
-    "approach",
-    "approachDegrees",
-    "positiveModulo",
-    "frac",
-    "square",
-    "cube",
-    "equal",
-    "clampedLerp",
-    "sin",
-    "cos",
-    "sqrt",
-    "rotLerpRad"
-   ],
-   "ported_constants": [
-    "PI",
-    "HALF_PI",
-    "TWO_PI",
-    "DEG_TO_RAD",
-    "RAD_TO_DEG"
-   ],
-   "removed_from_previous_inventory": {
-    "fastFloor": "Not present in Minecraft 26.3 Mth API surface."
-   },
-   "overload_limits": [
-    "Java overload resolution is not implemented; clamp maps to float/double semantics, not int/long semantics.",
-    "Lua numbers do not preserve all Java int/long overflow, long precision, or every float rounding boundary."
-   ],
-   "remaining": "12 selected double-signature methods are emitted from the exact 26.3 source; the other 102 API signatures are not transpiled. The 20 compatibility helpers listed under ported_methods remain separate manual Lua adapters.",
-   "source_inventory": {
-    "source_entry": "net/minecraft/util/Mth.java",
-    "api_surface_count": 114,
-    "verified_methods": [
-     "clamp",
-     "lerp",
-     "sign",
-     "wrapDegrees",
-     "absMax",
-     "degreesDifference",
-     "degreesDifferenceAbs",
-     "rotateIfNecessary",
-     "approach",
-     "approachDegrees",
-     "positiveModulo",
-     "frac",
-     "square",
-     "cube",
-     "equal",
-     "clampedLerp",
-     "sin",
-     "cos",
-     "sqrt",
-     "rotLerpRad"
+  "source_report": {
+    "artifact": "build/minecraft-26.3-source-report.json",
+    "fields": [
+      "imports",
+      "class_declaration",
+      "extends",
+      "implements",
+      "fields_present_in_source",
+      "constructors",
+      "api_methods",
+      "methods_present_in_source",
+      "engine_api_type_references",
+      "engine_api_calls",
+      "selected_methods_extracted"
     ],
-    "verified_constants": [
-     "PI",
-     "HALF_PI",
-     "TWO_PI",
-     "DEG_TO_RAD",
-     "RAD_TO_DEG"
-    ],
-    "transpiled_signatures": [
-     "clamp(double,double,double)",
-     "clampedLerp(double,double,double)",
-     "absMax(double,double)",
-     "equal(double,double)",
-     "sign(double)",
-     "lerp(double,double,double)",
-     "square(double)",
-     "inverseLerp(double,double,double)",
-     "clampedMap(double,double,double,double,double)",
-     "map(double,double,double,double,double)",
-     "lengthSquared(double,double,double)",
-     "length(double,double,double)"
-    ]
-   },
-   "transpiled_methods": [
-    "clamp(double,double,double)",
-    "clampedLerp(double,double,double)",
-    "absMax(double,double)",
-    "equal(double,double)",
-    "sign(double)",
-    "lerp(double,double,double)",
-    "square(double)",
-    "inverseLerp(double,double,double)",
-    "clampedMap(double,double,double,double,double)",
-    "map(double,double,double,double,double)",
-    "lengthSquared(double,double,double)",
-    "length(double,double,double)"
-   ],
-   "coverage": {
-    "public_api_methods_translated": 12,
-    "public_api_methods_total": 114,
-    "public_api_coverage_percent": 10.5
-   }
+    "note": "This generated report is the source of truth for exact imports and declarations from the NeoForm archive."
   },
-  {
-   "class": "net.minecraft.client.model.HumanoidModel",
-   "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/model/humanoidmodel/",
-   "role": "base humanoid model, geometry construction and animation",
-   "status": "partial_transpilation_verified_source",
-   "extends": "net.minecraft.client.model.EntityModel<T>",
-   "implements": [
-    "ArmedModel<T>",
-    "HeadedModel"
-   ],
-   "generic_bound": "T extends net.minecraft.client.renderer.entity.state.HumanoidRenderState",
-   "api_surface_count": 13,
-   "fields": {
-    "instance": [
-     "head",
-     "hat",
-     "body",
-     "rightArm",
-     "leftArm",
-     "rightLeg",
-     "leftLeg"
+  "reference": {
+    "name": "MC 26.x decompiled source browser",
+    "url": "https://mc-packet-reference.netlify.app/26.x/",
+    "note": "Secondary, unofficial cross-check only; CI source input is generated separately through NeoForm."
+  },
+  "coverage": {
+    "public_api_methods_translated": 18,
+    "public_api_methods_total": 132,
+    "public_api_coverage_percent": 13.6,
+    "private_helpers_translated": 1,
+    "translated_method_names": [
+      "Mth.clamp(double)",
+      "Mth.clampedLerp(double)",
+      "Mth.absMax(double)",
+      "Mth.equal(double)",
+      "Mth.sign(double)",
+      "Mth.lerp(double)",
+      "Mth.square(double)",
+      "Mth.inverseLerp(double)",
+      "Mth.clampedMap(double)",
+      "Mth.map(double)",
+      "Mth.lengthSquared(double, double, double)",
+      "Mth.length(double, double, double)",
+      "HumanoidModel.getHead",
+      "HumanoidModel.getArm",
+      "PlayerModel.getRandomBodyPart",
+      "Mth.cube(double)",
+      "Mth.frac(double)",
+      "Mth.approach(double,double,double)"
     ],
-    "static": [
-     "BABY_TRANSFORMER",
-     "OVERLAY_SCALE",
-     "HAT_OVERLAY_SCALE",
-     "LEGGINGS_OVERLAY_SCALE",
-     "DUCK_WALK_ROTATION",
-     "SPYGLASS_ARM_ROT_Y",
-     "SPYGLASS_ARM_ROT_X",
-     "SPYGLASS_ARM_CROUCH_ROT_X",
-     "HIGHEST_SHIELD_BLOCKING_ANGLE",
-     "LOWEST_SHIELD_BLOCKING_ANGLE",
-     "HORIZONTAL_SHIELD_MOVEMENT_LIMIT",
-     "TOOT_HORN_XROT_BASE",
-     "TOOT_HORN_YROT_BASE",
-     "ADULT_ARMOR_PARTS_PER_SLOT",
-     "BABY_ARMOR_PARTS_PER_SLOT"
-    ]
-   },
-   "constructors": [
-    "HumanoidModel(final ModelPart root)",
-    "HumanoidModel(final ModelPart root, final Function<Identifier, RenderType> renderType)"
-   ],
-   "api_methods": [
-    "createMesh(CubeDeformation,float)",
-    "createArmorMeshSet(CubeDeformation,CubeDeformation)",
-    "createBabyArmorMeshSet(CubeDeformation,CubeDeformation,PartPose)",
-    "createArmorMeshSet(Function<CubeDeformation,MeshDefinition>,Map<EquipmentSlot,Set<String>>,CubeDeformation,CubeDeformation)",
-    "setupAnim(T)",
-    "setupSwimAnimation(T,float,float)",
-    "setupAttackAnimation(T)",
-    "translateToHand(HumanoidRenderState,HumanoidArm,PoseStack)",
-    "getArm(HumanoidArm)",
-    "getHead()",
-    "ArmPose.isTwoHanded()",
-    "ArmPose.affectsOffhandPose()",
-    "ArmPose.animateUseItem(S extends ArmedEntityRenderState,PoseStack,float,HumanoidArm,ItemStack)"
-   ],
-   "private_helpers": [
-    "createBaseArmorMesh(CubeDeformation)",
-    "createBabyArmorMesh(CubeDeformation,PartPose)",
-    "poseRightArm(T)",
-    "poseLeftArm(T)",
-    "poseBlockingArm(ModelPart,boolean)",
-    "quadraticArmUpdate(float)"
-   ],
-   "transpiled_methods": [
-    "getHead",
-    "getArm",
-    "quadraticArmUpdate"
-   ],
-   "unsupported_methods": [
+    "note": "18 public API signatures are source-transpiled (18/132). HumanoidModel.quadraticArmUpdate is one additional private helper. The 20 manual Mth compatibility functions are not counted as source-transpiled methods. Coverage is selected-signature coverage, not full-class translation."
+  },
+  "runtime_validation": {
+    "lua_5_4_validated": true,
+    "java_reference_equivalence_tested": true,
+    "stevecraft_runtime_validated": false,
+    "sm64coopdx_integration_validated": false,
+    "apk_modified": false,
+    "sm64coopdx_repository_modified": false
+  },
+  "targets": [
     {
-     "method": "setupAnim",
-     "reason": "super dispatch and inherited animation state"
+      "class": "net.minecraft.util.Mth",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/util/mth/",
+      "role": "mathematical foundation for model animation",
+      "status": "partial_source_transpilation_and_manual_adapters",
+      "api_surface_count": 114,
+      "ported_methods": [
+        "clamp",
+        "lerp",
+        "sign",
+        "wrapDegrees",
+        "absMax",
+        "degreesDifference",
+        "degreesDifferenceAbs",
+        "rotateIfNecessary",
+        "approach",
+        "approachDegrees",
+        "positiveModulo",
+        "frac",
+        "square",
+        "cube",
+        "equal",
+        "clampedLerp",
+        "sin",
+        "cos",
+        "sqrt",
+        "rotLerpRad"
+      ],
+      "ported_constants": [
+        "PI",
+        "HALF_PI",
+        "TWO_PI",
+        "DEG_TO_RAD",
+        "RAD_TO_DEG"
+      ],
+      "removed_from_previous_inventory": {
+        "fastFloor": "Not present in Minecraft 26.3 Mth API surface."
+      },
+      "overload_limits": [
+        "Java overload resolution is not implemented; clamp maps to float/double semantics, not int/long semantics.",
+        "Lua numbers do not preserve all Java int/long overflow, long precision, or every float rounding boundary."
+      ],
+      "remaining": "15 selected double-signature methods are emitted from the exact 26.3 source; the other 99 API signatures are not transpiled. The 20 compatibility helpers listed under ported_methods remain separate manual Lua adapters.",
+      "source_inventory": {
+        "source_entry": "net/minecraft/util/Mth.java",
+        "api_surface_count": 114,
+        "verified_methods": [
+          "clamp",
+          "lerp",
+          "sign",
+          "wrapDegrees",
+          "absMax",
+          "degreesDifference",
+          "degreesDifferenceAbs",
+          "rotateIfNecessary",
+          "approach",
+          "approachDegrees",
+          "positiveModulo",
+          "frac",
+          "square",
+          "cube",
+          "equal",
+          "clampedLerp",
+          "sin",
+          "cos",
+          "sqrt",
+          "rotLerpRad"
+        ],
+        "verified_constants": [
+          "PI",
+          "HALF_PI",
+          "TWO_PI",
+          "DEG_TO_RAD",
+          "RAD_TO_DEG"
+        ],
+        "transpiled_signatures": [
+          "clamp(double,double,double)",
+          "clampedLerp(double,double,double)",
+          "absMax(double,double)",
+          "equal(double,double)",
+          "sign(double)",
+          "lerp(double,double,double)",
+          "square(double)",
+          "inverseLerp(double,double,double)",
+          "clampedMap(double,double,double,double,double)",
+          "map(double,double,double,double,double)",
+          "lengthSquared(double,double,double)",
+          "length(double,double,double)",
+          "cube(double)",
+          "frac(double)",
+          "approach(double,double,double)"
+        ]
+      },
+      "transpiled_methods": [
+        "clamp(double,double,double)",
+        "clampedLerp(double,double,double)",
+        "absMax(double,double)",
+        "equal(double,double)",
+        "sign(double)",
+        "lerp(double,double,double)",
+        "square(double)",
+        "inverseLerp(double,double,double)",
+        "clampedMap(double,double,double,double,double)",
+        "map(double,double,double,double,double)",
+        "lengthSquared(double,double,double)",
+        "length(double,double,double)",
+        "cube(double)",
+        "frac(double)",
+        "approach(double,double,double)"
+      ],
+      "coverage": {
+        "public_api_methods_translated": 15,
+        "public_api_methods_total": 114,
+        "public_api_coverage_percent": 13.2
+      }
     },
     {
-     "method": "setupSwimAnimation",
-     "reason": "ModelPart graph, float overloads and state dependencies"
+      "class": "net.minecraft.client.model.HumanoidModel",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/model/humanoidmodel/",
+      "role": "base humanoid model, geometry construction and animation",
+      "status": "partial_transpilation_verified_source",
+      "extends": "net.minecraft.client.model.EntityModel<T>",
+      "implements": [
+        "ArmedModel<T>",
+        "HeadedModel"
+      ],
+      "generic_bound": "T extends net.minecraft.client.renderer.entity.state.HumanoidRenderState",
+      "api_surface_count": 13,
+      "fields": {
+        "instance": [
+          "head",
+          "hat",
+          "body",
+          "rightArm",
+          "leftArm",
+          "rightLeg",
+          "leftLeg"
+        ],
+        "static": [
+          "BABY_TRANSFORMER",
+          "OVERLAY_SCALE",
+          "HAT_OVERLAY_SCALE",
+          "LEGGINGS_OVERLAY_SCALE",
+          "DUCK_WALK_ROTATION",
+          "SPYGLASS_ARM_ROT_Y",
+          "SPYGLASS_ARM_ROT_X",
+          "SPYGLASS_ARM_CROUCH_ROT_X",
+          "HIGHEST_SHIELD_BLOCKING_ANGLE",
+          "LOWEST_SHIELD_BLOCKING_ANGLE",
+          "HORIZONTAL_SHIELD_MOVEMENT_LIMIT",
+          "TOOT_HORN_XROT_BASE",
+          "TOOT_HORN_YROT_BASE",
+          "ADULT_ARMOR_PARTS_PER_SLOT",
+          "BABY_ARMOR_PARTS_PER_SLOT"
+        ]
+      },
+      "constructors": [
+        "HumanoidModel(final ModelPart root)",
+        "HumanoidModel(final ModelPart root, final Function<Identifier, RenderType> renderType)"
+      ],
+      "api_methods": [
+        "createMesh(CubeDeformation,float)",
+        "createArmorMeshSet(CubeDeformation,CubeDeformation)",
+        "createBabyArmorMeshSet(CubeDeformation,CubeDeformation,PartPose)",
+        "createArmorMeshSet(Function<CubeDeformation,MeshDefinition>,Map<EquipmentSlot,Set<String>>,CubeDeformation,CubeDeformation)",
+        "setupAnim(T)",
+        "setupSwimAnimation(T,float,float)",
+        "setupAttackAnimation(T)",
+        "translateToHand(HumanoidRenderState,HumanoidArm,PoseStack)",
+        "getArm(HumanoidArm)",
+        "getHead()",
+        "ArmPose.isTwoHanded()",
+        "ArmPose.affectsOffhandPose()",
+        "ArmPose.animateUseItem(S extends ArmedEntityRenderState,PoseStack,float,HumanoidArm,ItemStack)"
+      ],
+      "private_helpers": [
+        "createBaseArmorMesh(CubeDeformation)",
+        "createBabyArmorMesh(CubeDeformation,PartPose)",
+        "poseRightArm(T)",
+        "poseLeftArm(T)",
+        "poseBlockingArm(ModelPart,boolean)",
+        "quadraticArmUpdate(float)"
+      ],
+      "transpiled_methods": [
+        "getHead",
+        "getArm",
+        "quadraticArmUpdate"
+      ],
+      "unsupported_methods": [
+        {
+          "method": "setupAnim",
+          "reason": "super dispatch and inherited animation state"
+        },
+        {
+          "method": "setupSwimAnimation",
+          "reason": "ModelPart graph, float overloads and state dependencies"
+        },
+        {
+          "method": "setupAttackAnimation",
+          "reason": "switch, SwingDescription, Ease, HumanoidArm and SpearAnimations"
+        },
+        {
+          "method": "translateToHand",
+          "reason": "PoseStack and ModelPart.translateAndRotate"
+        },
+        {
+          "method": "createMesh",
+          "reason": "MeshDefinition/CubeListBuilder/PartDefinition construction"
+        },
+        {
+          "method": "createArmorMeshSet",
+          "reason": "generic ArmorModelSet, collections and method references"
+        },
+        {
+          "method": "nested ArmPose methods",
+          "reason": "nested enum initialization and constructor/state dependencies"
+        }
+      ],
+      "engine_api_calls": [
+        "ModelPart.getChild",
+        "ModelPart.translateAndRotate",
+        "CubeListBuilder.create",
+        "CubeListBuilder.texOffs",
+        "CubeListBuilder.addBox",
+        "PartDefinition.addOrReplaceChild",
+        "PartDefinition.getChild",
+        "MeshDefinition.getRoot",
+        "ArmorModelSet.map",
+        "RenderTypes.entityCutout",
+        "RenderTypes.entityTranslucent",
+        "Mth.sin",
+        "Mth.cos",
+        "Mth.sqrt",
+        "Mth.lerp",
+        "Mth.rotLerpRad",
+        "Mth.clamp",
+        "AnimationUtils.animateCrossbowCharge",
+        "AnimationUtils.animateCrossbowHold",
+        "SpearAnimations.thirdPersonHandUse",
+        "SpearAnimations.thirdPersonAttackHand",
+        "Ease.outQuart",
+        "PoseStack",
+        "HumanoidArm",
+        "HumanoidRenderState",
+        "SwingDescription.hand",
+        "SwingDescription.asArm",
+        "SwingDescription.animation"
+      ],
+      "dependencies": [
+        "EntityModel<T>",
+        "HumanoidRenderState",
+        "ModelPart",
+        "PoseStack",
+        "CubeDeformation",
+        "CubeListBuilder",
+        "MeshDefinition",
+        "MeshTransformer",
+        "PartDefinition",
+        "PartPose",
+        "ArmorModelSet",
+        "RenderTypes",
+        "Mth",
+        "HumanoidArm",
+        "EquipmentSlot",
+        "ItemStack",
+        "SpearAnimations",
+        "AnimationUtils",
+        "Ease"
+      ],
+      "coverage": {
+        "public_api_methods_translated": 2,
+        "public_api_methods_total": 13,
+        "private_helpers_translated": 1
+      }
     },
     {
-     "method": "setupAttackAnimation",
-     "reason": "switch, SwingDescription, Ease, HumanoidArm and SpearAnimations"
-    },
-    {
-     "method": "translateToHand",
-     "reason": "PoseStack and ModelPart.translateAndRotate"
-    },
-    {
-     "method": "createMesh",
-     "reason": "MeshDefinition/CubeListBuilder/PartDefinition construction"
-    },
-    {
-     "method": "createArmorMeshSet",
-     "reason": "generic ArmorModelSet, collections and method references"
-    },
-    {
-     "method": "nested ArmPose methods",
-     "reason": "nested enum initialization and constructor/state dependencies"
+      "class": "net.minecraft.client.model.player.PlayerModel",
+      "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/model/player/playermodel/",
+      "role": "Steve player model, overlays and first-person hand transforms",
+      "status": "partial_transpilation_verified_source",
+      "extends": "net.minecraft.client.model.HumanoidModel<net.minecraft.client.renderer.entity.state.AvatarRenderState>",
+      "api_surface_count": 5,
+      "fields": {
+        "instance": [
+          "bodyParts",
+          "leftSleeve",
+          "rightSleeve",
+          "leftPants",
+          "rightPants",
+          "jacket",
+          "slim"
+        ],
+        "static": [
+          "LEFT_SLEEVE",
+          "RIGHT_SLEEVE",
+          "LEFT_PANTS",
+          "RIGHT_PANTS"
+        ]
+      },
+      "constructors": [
+        "PlayerModel(final ModelPart root, final boolean slim)"
+      ],
+      "api_methods": [
+        "createMesh(CubeDeformation,boolean)",
+        "createArmorMeshSet(CubeDeformation,CubeDeformation)",
+        "setupAnim(AvatarRenderState)",
+        "translateToHand(AvatarRenderState,HumanoidArm,PoseStack)",
+        "getRandomBodyPart(RandomSource)"
+      ],
+      "transpiled_methods": [
+        "getRandomBodyPart"
+      ],
+      "unsupported_methods": [
+        {
+          "method": "createMesh",
+          "reason": "HumanoidModel geometry factory and ModelPart/CubeListBuilder/PartDefinition APIs"
+        },
+        {
+          "method": "createArmorMeshSet",
+          "reason": "generic ArmorModelSet and lambda/stream mapping"
+        },
+        {
+          "method": "setupAnim",
+          "reason": "super dispatch and HumanoidModel state dependencies"
+        },
+        {
+          "method": "translateToHand",
+          "reason": "PoseStack, ModelPart transforms, HumanoidArm enum and ternary offset"
+        }
+      ],
+      "engine_api_calls": [
+        "HumanoidModel.createMesh",
+        "HumanoidModel.createArmorMeshSet",
+        "HumanoidModel.setupAnim",
+        "HumanoidModel.getArm",
+        "ModelPart.getChild",
+        "ModelPart.translateAndRotate",
+        "CubeListBuilder.create",
+        "CubeListBuilder.texOffs",
+        "CubeListBuilder.addBox",
+        "PartDefinition.addOrReplaceChild",
+        "PartDefinition.getChild",
+        "PartPose.offset",
+        "PartPose.ZERO",
+        "ArmorModelSet.map",
+        "RenderTypes.entityTranslucent",
+        "Util.getRandom",
+        "RandomSource.nextInt",
+        "PoseStack"
+      ],
+      "dependencies": [
+        "HumanoidModel<AvatarRenderState>",
+        "AvatarRenderState",
+        "ModelPart",
+        "PoseStack",
+        "CubeDeformation",
+        "CubeListBuilder",
+        "MeshDefinition",
+        "PartDefinition",
+        "PartPose",
+        "ArmorModelSet",
+        "RenderTypes",
+        "RandomSource",
+        "Util",
+        "HumanoidArm"
+      ],
+      "coverage": {
+        "public_api_methods_translated": 1,
+        "public_api_methods_total": 5
+      }
     }
-   ],
-   "engine_api_calls": [
-    "ModelPart.getChild",
-    "ModelPart.translateAndRotate",
-    "CubeListBuilder.create",
-    "CubeListBuilder.texOffs",
-    "CubeListBuilder.addBox",
-    "PartDefinition.addOrReplaceChild",
-    "PartDefinition.getChild",
-    "MeshDefinition.getRoot",
-    "ArmorModelSet.map",
-    "RenderTypes.entityCutout",
-    "RenderTypes.entityTranslucent",
-    "Mth.sin",
-    "Mth.cos",
-    "Mth.sqrt",
-    "Mth.lerp",
-    "Mth.rotLerpRad",
-    "Mth.clamp",
-    "AnimationUtils.animateCrossbowCharge",
-    "AnimationUtils.animateCrossbowHold",
-    "SpearAnimations.thirdPersonHandUse",
-    "SpearAnimations.thirdPersonAttackHand",
-    "Ease.outQuart",
-    "PoseStack",
-    "HumanoidArm",
-    "HumanoidRenderState",
-    "SwingDescription.hand",
-    "SwingDescription.asArm",
-    "SwingDescription.animation"
-   ],
-   "dependencies": [
-    "EntityModel<T>",
-    "HumanoidRenderState",
-    "ModelPart",
-    "PoseStack",
-    "CubeDeformation",
-    "CubeListBuilder",
-    "MeshDefinition",
-    "MeshTransformer",
-    "PartDefinition",
-    "PartPose",
-    "ArmorModelSet",
-    "RenderTypes",
-    "Mth",
-    "HumanoidArm",
-    "EquipmentSlot",
-    "ItemStack",
-    "SpearAnimations",
-    "AnimationUtils",
-    "Ease"
-   ],
-   "coverage": {
-    "public_api_methods_translated": 2,
-    "public_api_methods_total": 13,
-    "private_helpers_translated": 1
-   }
-  },
-  {
-   "class": "net.minecraft.client.model.player.PlayerModel",
-   "source_url": "https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/model/player/playermodel/",
-   "role": "Steve player model, overlays and first-person hand transforms",
-   "status": "partial_transpilation_verified_source",
-   "extends": "net.minecraft.client.model.HumanoidModel<net.minecraft.client.renderer.entity.state.AvatarRenderState>",
-   "api_surface_count": 5,
-   "fields": {
-    "instance": [
-     "bodyParts",
-     "leftSleeve",
-     "rightSleeve",
-     "leftPants",
-     "rightPants",
-     "jacket",
-     "slim"
-    ],
-    "static": [
-     "LEFT_SLEEVE",
-     "RIGHT_SLEEVE",
-     "LEFT_PANTS",
-     "RIGHT_PANTS"
-    ]
-   },
-   "constructors": [
-    "PlayerModel(final ModelPart root, final boolean slim)"
-   ],
-   "api_methods": [
-    "createMesh(CubeDeformation,boolean)",
-    "createArmorMeshSet(CubeDeformation,CubeDeformation)",
-    "setupAnim(AvatarRenderState)",
-    "translateToHand(AvatarRenderState,HumanoidArm,PoseStack)",
-    "getRandomBodyPart(RandomSource)"
-   ],
-   "transpiled_methods": [
-    "getRandomBodyPart"
-   ],
-   "unsupported_methods": [
-    {
-     "method": "createMesh",
-     "reason": "HumanoidModel geometry factory and ModelPart/CubeListBuilder/PartDefinition APIs"
-    },
-    {
-     "method": "createArmorMeshSet",
-     "reason": "generic ArmorModelSet and lambda/stream mapping"
-    },
-    {
-     "method": "setupAnim",
-     "reason": "super dispatch and HumanoidModel state dependencies"
-    },
-    {
-     "method": "translateToHand",
-     "reason": "PoseStack, ModelPart transforms, HumanoidArm enum and ternary offset"
-    }
-   ],
-   "engine_api_calls": [
-    "HumanoidModel.createMesh",
-    "HumanoidModel.createArmorMeshSet",
-    "HumanoidModel.setupAnim",
-    "HumanoidModel.getArm",
-    "ModelPart.getChild",
-    "ModelPart.translateAndRotate",
-    "CubeListBuilder.create",
-    "CubeListBuilder.texOffs",
-    "CubeListBuilder.addBox",
-    "PartDefinition.addOrReplaceChild",
-    "PartDefinition.getChild",
-    "PartPose.offset",
-    "PartPose.ZERO",
-    "ArmorModelSet.map",
-    "RenderTypes.entityTranslucent",
-    "Util.getRandom",
-    "RandomSource.nextInt",
-    "PoseStack"
-   ],
-   "dependencies": [
-    "HumanoidModel<AvatarRenderState>",
-    "AvatarRenderState",
-    "ModelPart",
-    "PoseStack",
-    "CubeDeformation",
-    "CubeListBuilder",
-    "MeshDefinition",
-    "PartDefinition",
-    "PartPose",
-    "ArmorModelSet",
-    "RenderTypes",
-    "RandomSource",
-    "Util",
-    "HumanoidArm"
-   ],
-   "coverage": {
-    "public_api_methods_translated": 1,
-    "public_api_methods_total": 5
-   }
-  }
- ]
+  ]
 }
