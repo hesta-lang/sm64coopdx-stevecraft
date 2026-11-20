@@ -100,11 +100,12 @@ local function apply_minecraft_front_yaw(m)
     local camera = m.area.camera
     if camera.yaw == nil then return end
 
-    local yaw_degrees = (m.faceAngle.y or 0) * (360.0 / 65536.0)
-    local view_yaw = MinecraftCamera.perspective_rotation(yaw_degrees, 0, true)
-    local sm64_yaw = math.floor((view_yaw * 65536.0 / 360.0) + 0.5) % 65536
-    camera.yaw = sm64_yaw
-    if camera.nextYaw ~= nil then camera.nextYaw = sm64_yaw end
+    -- SM64 Camera.yaw points from the focus toward the camera position.
+    -- For Minecraft front third-person, the camera is on the player's forward
+    -- side; therefore this orbit yaw is the player's own facing yaw, not +180.
+    local orbit_yaw = (m.faceAngle.y or 0) % 65536
+    camera.yaw = orbit_yaw
+    if camera.nextYaw ~= nil then camera.nextYaw = orbit_yaw end
 end
 
 local function enter_third_person(m, front)
