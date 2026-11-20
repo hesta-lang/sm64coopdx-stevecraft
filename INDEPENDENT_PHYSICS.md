@@ -36,7 +36,7 @@ When a Lua movement step cannot be resolved, SteveCraft returns a neutral step r
 
 Steve's detached DynOS actor now uses `MarioState.pos` and `MarioState.faceAngle` directly for its transform. Only animation descriptor/frame data are borrowed from Mario's object. This avoids copying a stale native transform or its graphical height corrections.
 
-The hidden Mario proxy keeps its engine object and interaction state, but its native body alpha and `header.gfx.shadowInvisible` are disabled so the old black Mario shadow does not remain underneath Steve. The original body/shadow visibility values are restored when the proxy is destroyed.
+The hidden Mario proxy keeps its engine object and interaction state, but its native body alpha and `header.gfx.shadowInvisible` are disabled. The detached Steve actor also has `header.gfx.shadowInvisible=true`, preventing either SM64-generated shadow from producing the black oval visible in the screenshot. No custom Minecraft-style shadow is drawn yet. The original Mario body/shadow visibility values are restored when the proxy is destroyed.
 
 ## Known side effects and unfinished work
 
