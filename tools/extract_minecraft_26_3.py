@@ -42,12 +42,28 @@ def find_class_header(source,name):
  if not match: raise RuntimeError(f"Class declaration not found: {name}")
  return match.group(0).strip()
 
+def class_extends(header):
+ match=re.search(r"\bclass\s+\w+",header)
+ if not match: return None
+ rest=header[match.end():].lstrip()
+ if rest.startswith("<"):
+  depth=0; end=None
+  for index,char in enumerate(rest):
+   if char=="<": depth+=1
+   elif char==">":
+    depth-=1
+    if depth==0:
+     end=index+1; break
+  if end is None: raise RuntimeError("Unclosed generic type parameters in class header")
+  rest=rest[end:]
+ parent=re.search(r"\bextends\s+(.+?)(?=\s+implements\s+|\s*\{)",rest)
+ return parent.group(1).strip() if parent else None
 def analyze_source(source,spec):
  name=spec["class"]; header=find_class_header(source,name)
  imports=re.findall(r"(?m)^[ \t]*import\s+([^;]+);",source)
  constructors=[m.group(0).split("{",1)[0].strip() for m in re.finditer(
   rf"(?m)^[ \t]*(?:public|protected|private)\s+{re.escape(name)}\s*\([^)]*\)\s*\{{",source)]
- ext=re.search(r"\bextends\s+(.+?)(?=\s+implements\s+|\s*\{)",header)
+ ext=class_extends(header)
  impl=re.search(r"\bimplements\s+(.+?)\s*\{",header)
  fields=[field for field in spec["field_names"] if re.search(rf"\b{re.escape(field)}\b",source)]
  methods=[method for method in spec["api_methods"]+spec["helper_methods"] if re.search(rf"\b{re.escape(method)}\s*\(",source)]
@@ -58,7 +74,7 @@ def analyze_source(source,spec):
  instance_names=["getChild","translateAndRotate","addOrReplaceChild","getRoot","retainPartsAndChildren","retainExactParts","map"]
  instance_calls={"instance."+x for x in instance_names if re.search(r"\.\s*"+re.escape(x)+r"\s*\(",source)}
  return {"class":spec["package"]+"."+name,"source_entry":spec["source_path"],"package":spec["package"],
-  "class_declaration":header,"extends":ext.group(1).strip() if ext else None,
+  "class_declaration":header,"extends":ext,
   "implements":[x.strip() for x in impl.group(1).split(",")] if impl else [],
   "imports":imports,"fields_present_in_source":fields,"constructors":constructors,
   "api_surface_count":spec["api_surface_count"],"api_methods":spec["api_methods"],"helper_methods":spec["helper_methods"],

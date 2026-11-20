@@ -19,6 +19,8 @@ class Minecraft263SourceExtractionTests(unittest.TestCase):
    self.assertIn("Util.getRandom",data["classes"][1]["engine_api_calls"])
    self.assertIn("net.minecraft.util.Util",data["classes"][1]["imports"])
    self.assertIn("net.minecraft.world.entity.HumanoidArm",data["classes"][0]["imports"])
+   self.assertEqual(data["classes"][0]["extends"],"EntityModel<T>")
+   self.assertEqual(data["classes"][1]["extends"],"HumanoidModel<AvatarRenderState>")
    player=(output/"net/minecraft/client/model/player/PlayerModel.java").read_text()
    self.assertIn("return Util.getRandom(this.bodyParts,random);",player)
    humanoid=(output/"net/minecraft/client/model/HumanoidModel.java").read_text()
