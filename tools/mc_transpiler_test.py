@@ -63,7 +63,6 @@ class TranspilerIntegrationTests(unittest.TestCase):
             self.assertIn("function HumanoidModel:getArm(arm)", humanoid)
             self.assertIn("local HumanoidArm = MC.HumanoidArm", humanoid)
             self.assertIn("if arm == HumanoidArm . LEFT then", humanoid)
-            self.assertNotIn("function HumanoidModel:getArm(", humanoid)
             self.assertIn("local Util = MC.Util", player)
             self.assertIn("function PlayerModel:getRandomBodyPart(random)", player)
             self.assertNotIn("function PlayerModel:setupAnim(", player)
