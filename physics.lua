@@ -48,14 +48,15 @@ local function is_local_steve(m)
 end
 
 local function is_ground_action(action)
-    return (ACT_IDLE ~= nil and action == ACT_IDLE)
-        or (ACT_WALKING ~= nil and action == ACT_WALKING)
-        or (ACT_START_CROUCHING ~= nil and action == ACT_START_CROUCHING)
-        or (ACT_CROUCHING ~= nil and action == ACT_CROUCHING)
-        or (ACT_STOP_CROUCHING ~= nil and action == ACT_STOP_CROUCHING)
+    if action == nil then return false end
+    if ACT_FLAG_AIR ~= nil and (action & ACT_FLAG_AIR) ~= 0 then return false end
+    if ACT_FLAG_SWIMMING ~= nil and (action & ACT_FLAG_SWIMMING) ~= 0 then return false end
+    return true
 end
 
 local function is_air_action(action)
+    if action == nil then return false end
+    if ACT_FLAG_AIR ~= nil then return (action & ACT_FLAG_AIR) ~= 0 end
     return (ACT_JUMP ~= nil and action == ACT_JUMP)
         or (ACT_DOUBLE_JUMP ~= nil and action == ACT_DOUBLE_JUMP)
         or (ACT_TRIPLE_JUMP ~= nil and action == ACT_TRIPLE_JUMP)
@@ -581,6 +582,22 @@ end
 
 function physics.is_enabled()
     return physics.enabled
+end
+
+-- Enabled by default: successful HOOK_BEFORE_PHYS_STEP overrides replace the
+-- native local-player movement resolver. Disable only for diagnosis/fallback.
+function physics.set_independent_mode(enabled)
+    physics.independentMode = enabled == true
+    states = {}
+    sprint_states = {}
+end
+
+function physics.is_independent_mode()
+    return physics.independentMode == true
+end
+
+function physics.is_independent_collision_available()
+    return IndependentPhysics.is_available()
 end
 
 function physics.is_sprinting()
