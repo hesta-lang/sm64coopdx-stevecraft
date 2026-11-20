@@ -19,7 +19,11 @@ SteveCraft still calls the engine's `find_floor`, `find_ceil` and wall-collision
 
 The current horizontal player footprint is an approximation: a radius of 0.3 Minecraft blocks and a height of 1.8 blocks. It is not a true rectangular AABB swept against a voxel grid. Step height defaults to 0.6 blocks. Scale remains provisional at 160 SM64 units per 1.8 m.
 
-The independent override is attempted for `STEP_TYPE_GROUND`, `STEP_TYPE_AIR` and `STEP_TYPE_WATER`. It falls back to the old native path when surface queries, collision sampling, or position writes fail. Special actions which do not call those three step functions are not universally replaced. Existing Mario health, damage, interactions, level bounds, camera, and networking remain part of the host engine.
+The independent override is attempted for `STEP_TYPE_GROUND`, `STEP_TYPE_AIR` and `STEP_TYPE_WATER`. It falls back to the old native path when surface queries, collision sampling, or position writes fail. Special actions which do not call those three step functions are not universally replaced.
+
+The native `update_mario_geometry_inputs()` prepass is intentionally still enabled. It populates floor/ceiling/water references and action input flags, but it also runs SM64's preliminary wall-position correction. Disabling that whole prepass with `HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS` would also remove flags such as off-floor and in-water and leave action code without valid contact state. The current stage replaces the actual ground/air/water movement step, not every native geometry/input calculation. A later stage needs a Lua replacement for those geometry-derived action inputs before safely disabling the prepass.
+
+Existing Mario health, damage, interactions, level bounds, camera, and networking remain part of the host engine.
 
 ## Toggle
 
