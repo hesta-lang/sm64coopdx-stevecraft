@@ -125,6 +125,13 @@ local function set_visual_transform(m, visualObject)
     end
     visualObject.oGraphYOffset = 0
 
+    -- Do not render a second SM64-style shadow under the detached player.
+    -- SteveCraft will need its own Minecraft-like shadow solution later.
+    local visualGfx = visualObject.header ~= nil and visualObject.header.gfx or nil
+    if visualGfx ~= nil then
+        visualGfx.shadowInvisible = true
+    end
+
     local networkPlayer = gNetworkPlayers ~= nil
         and gNetworkPlayers[m.playerIndex] or nil
     if networkPlayer ~= nil and networkPlayer.globalIndex ~= nil then
