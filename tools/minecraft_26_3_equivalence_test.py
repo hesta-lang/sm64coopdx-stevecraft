@@ -37,7 +37,7 @@ class Minecraft263EquivalenceTests(unittest.TestCase):
  def test_float_clamp_overload_inverted_bounds(self):
   for i,value in enumerate([6.0,3.0,4.0]):self.close(f"clamp.{i}",value)
  def test_mth_double_reference_operations(self):
-  values={"real.clamp.normal":2.0,"real.clamp.inverted":6.0,"real.lerp":3.0,"real.clampedLerp.low":3.0,"real.clampedLerp.middle":5.0,"real.clampedLerp.high":7.0,"real.absMax":7.0,"real.square":9.0,"real.inverseLerp":0.5,"real.clampedMap":40.0,"real.map":50.0,"real.lengthSquared3":49.0,"real.length3":7.0}
+  values={"real.clamp.normal":2.0,"real.clamp.inverted":6.0,"real.clamp.inverted.high":3.0,"real.lerp":3.0,"real.clampedLerp.low":3.0,"real.clampedLerp.middle":5.0,"real.clampedLerp.high":7.0,"real.absMax":7.0,"real.square":9.0,"real.inverseLerp":0.5,"real.clampedMap":40.0,"real.map":50.0,"real.lengthSquared3":49.0,"real.length3":7.0}
   for key,value in values.items():
    with self.subTest(key=key):self.close(key,value,1e-12)
   self.assertEqual(self.ref["real.sign.negative"],"-1");self.assertEqual(self.ref["real.sign.zero"],"0");self.assertEqual(self.ref["real.sign.nan"],"-1")

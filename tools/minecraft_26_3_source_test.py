@@ -49,6 +49,7 @@ class Minecraft263SourceExtractionTests(unittest.TestCase):
    self.assertEqual(executed.returncode,0,executed.stdout+executed.stderr)
    reference=dict(line.split("=",1) for line in executed.stdout.splitlines())
    self.assertEqual(reference["clamp.inverted"],"6.0")
+   self.assertEqual(reference["clamp.inverted.high"],"3.0")
    self.assertEqual(reference["clampedLerp.middle"],"5.0")
    self.assertEqual(reference["length3"],"7.0")
 if __name__=="__main__": unittest.main()

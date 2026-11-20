@@ -11,7 +11,7 @@ public final class Minecraft263Reference {
  public static float quadraticArmUpdate(final float x){return -65.0F*x+x*x;}
  public static float clampFloat(final float value,final float min,final float max){return value<min?min:Math.min(value,max);}
  // Source-shaped Java reference for the selected Minecraft 26.3 Mth double overloads.
- public static double mthClamp(final double value,final double min,final double max){return Math.max(min,Math.min(max,value));}
+ public static double mthClamp(final double value,final double min,final double max){return value<min?min:Math.min(value,max);}
  public static double mthLerp(final double alpha1,final double p0,final double p1){return p0+alpha1*(p1-p0);}
  public static double mthClampedLerp(final double factor,final double min,final double max){if(factor<0.0){return min;}else{return factor>1.0?max:mthLerp(factor,min,max);}}
  public static double mthAbsMax(final double a,final double b){return Math.max(Math.abs(a),Math.abs(b));}
@@ -35,7 +35,7 @@ public final class Minecraft263Reference {
   final float[][] rotations={{0.5F,3.0F,-3.0F},{1.0F,0.0F,7.0F},{0.25F,-2.9F,2.9F}};for(int i=0;i<rotations.length;i++)emit("rot."+i,rotLerpRad(rotations[i][0],rotations[i][1],rotations[i][2]));
   final float[] xs={-2.0F,0.0F,0.3F,1.0F,5.0F};for(int i=0;i<xs.length;i++)emit("quadratic."+i,quadraticArmUpdate(xs[i]));
   emit("clamp.0",clampFloat(5.0F,6.0F,3.0F));emit("clamp.1",clampFloat(7.0F,6.0F,3.0F));emit("clamp.2",clampFloat(5.0F,0.0F,4.0F));
-  emitDouble("real.clamp.normal",mthClamp(2.0,0.0,4.0));emitDouble("real.clamp.inverted",mthClamp(5.0,6.0,3.0));emitDouble("real.lerp",mthLerp(0.25,2.0,6.0));
+  emitDouble("real.clamp.normal",mthClamp(2.0,0.0,4.0));emitDouble("real.clamp.inverted",mthClamp(5.0,6.0,3.0));emitDouble("real.clamp.inverted.high",mthClamp(7.0,6.0,3.0));emitDouble("real.lerp",mthLerp(0.25,2.0,6.0));
   emitDouble("real.clampedLerp.low",mthClampedLerp(-1.0,3.0,7.0));emitDouble("real.clampedLerp.middle",mthClampedLerp(0.5,3.0,7.0));emitDouble("real.clampedLerp.high",mthClampedLerp(2.0,3.0,7.0));
   emitDouble("real.absMax",mthAbsMax(-7.0,3.0));emitDouble("real.square",mthSquare(-3.0));emitDouble("real.inverseLerp",mthInverseLerp(5.0,0.0,10.0));
   emitDouble("real.clampedMap",mthClampedMap(15.0,0.0,10.0,20.0,40.0));emitDouble("real.map",mthMap(15.0,0.0,10.0,20.0,40.0));emitDouble("real.lengthSquared3",mthLengthSquared(2.0,3.0,6.0));emitDouble("real.length3",mthLength(2.0,3.0,6.0));

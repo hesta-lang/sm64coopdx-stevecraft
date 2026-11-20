@@ -4,7 +4,7 @@ public class Mth {
  private static final int SIN_QUANTIZATION=65536, SIN_MASK=65535, COS_OFFSET=16384;
  private static final double SIN_SCALE=10430.378350470453;
  private static final float[] SIN=new float[65536];
- public static double clamp(final double value,final double min,final double max) { return Math.max(min,Math.min(max,value)); }
+ public static double clamp(final double value,final double min,final double max) { return value<min ? min : Math.min(value,max); }
  public static double clampedLerp(final double factor,final double min,final double max) { if(factor<0.0) { return min; } else { return factor>1.0 ? max : lerp(factor,min,max); } }
  public static double absMax(final double a,final double b) { return Math.max(Math.abs(a),Math.abs(b)); }
  public static boolean equal(final double a,final double b) { return Math.abs(b-a)<1.0E-5F; }

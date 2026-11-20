@@ -4,6 +4,7 @@ public final class Minecraft263RealSourceRunner {
  public static void main(final String[] args){
   number("clamp.normal",Mth.clamp(2.0,0.0,4.0));
   number("clamp.inverted",Mth.clamp(5.0,6.0,3.0));
+  number("clamp.inverted.high",Mth.clamp(7.0,6.0,3.0));
   number("lerp",Mth.lerp(0.25,2.0,6.0));
   number("clampedLerp.low",Mth.clampedLerp(-1.0,3.0,7.0));
   number("clampedLerp.middle",Mth.clampedLerp(0.5,3.0,7.0));

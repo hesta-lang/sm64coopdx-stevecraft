@@ -35,7 +35,7 @@ assert(Mth.approachDegrees(350,10,5)==355);assert(Mth.positiveModulo(-3,2)==1 an
 assert(Mth.square(3)==9 and Mth.cube(3)==27 and Mth.equal(1.0,1.000001))
 assert(Mth.clampedLerp(-1,3,7)==3 and Mth.clampedLerp(2,3,7)==7 and Mth.clampedLerp(0.5,3,7)==5)
 local function real_close(key,value,epsilon) close(value,tonumber(realExpected[key]),epsilon or 1e-12) end
-real_close("clamp.normal",RealMth.clamp(2.0,0.0,4.0));real_close("clamp.inverted",RealMth.clamp(5.0,6.0,3.0));real_close("lerp",RealMth.lerp(0.25,2.0,6.0))
+real_close("clamp.normal",RealMth.clamp(2.0,0.0,4.0));real_close("clamp.inverted",RealMth.clamp(5.0,6.0,3.0));real_close("clamp.inverted.high",RealMth.clamp(7.0,6.0,3.0));real_close("lerp",RealMth.lerp(0.25,2.0,6.0))
 real_close("clampedLerp.low",RealMth.clampedLerp(-1.0,3.0,7.0));real_close("clampedLerp.middle",RealMth.clampedLerp(0.5,3.0,7.0));real_close("clampedLerp.high",RealMth.clampedLerp(2.0,3.0,7.0))
 real_close("absMax",RealMth.absMax(-7.0,3.0));real_close("square",RealMth.square(-3.0));real_close("inverseLerp",RealMth.inverseLerp(5.0,0.0,10.0))
 real_close("clampedMap",RealMth.clampedMap(15.0,0.0,10.0,20.0,40.0));real_close("map",RealMth.map(15.0,0.0,10.0,20.0,40.0))
