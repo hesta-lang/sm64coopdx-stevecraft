@@ -84,9 +84,11 @@ for _, case in ipairs(clips) do
     assert(SteveCraft.animations.get_active_clip(0) == case.name)
 end
 
--- Repeated frames of the same state must not restart the loop.
-local before = #setCalls
+-- Enter walking once, then repeated frames of the same state must not
+-- restart the clip loop.
 mario.motion = { horizontalSpeed = 1.0, onGround = true }
+assert(SteveCraft.animations.update_visual(mario, visual))
+local before = #setCalls
 assert(SteveCraft.animations.update_visual(mario, visual))
 assert(#setCalls == before, "unchanged movement reset the walk cycle")
 assert(visual.header.gfx.animInfo.animAccel > 0)
