@@ -178,9 +178,11 @@ def translate_file(path, root, outroot, report, strict):
     class_body=source[body_start:i-1]
     # Fields: only static final, single primitive/String initializer.
     field_re=re.compile(rf'\b(?:public|protected|private)?\s*(?:static\s+)?final\s+({TYPE})\s+(\w+)\s*=\s*([^;]+);')
+    field_names=set()
     for f in field_re.finditer(class_body):
         typ,var,val=f.groups()
         if "static" not in f.group(0): continue
+        field_names.add(var)
         lines.append(f"{name}.{var} = {expr(tokens(val),report,name+'.'+var)}")
     # Methods. Non-static instance methods become colon methods and receive self.
     meth_re=re.compile(rf'((?:(?:public|protected|private|static|final|synchronized|native|abstract)\s+)*)({TYPE}|void)\s+(\w+)\s*\(([^)]*)\)\s*(?:throws\s+[\w.,\s]+)?\{{')
@@ -213,6 +215,8 @@ def translate_file(path, root, outroot, report, strict):
             translated=[]
             while lua.i<len(lua.t): translated+=lua.statement(1)
             if any("switch" in x or "->" in x for x in bt): raise ValueError("switch/lambda syntax unsupported")
+            for field_name in field_names:
+                translated=[re.sub(rf'\b{re.escape(field_name)}\b',f'{name}.{field_name}',line) for line in translated]
             if not any(x.strip() for x in translated): translated=["    -- empty"]
         except Exception as ex:
             report["skipped_methods"].append({"class":name,"method":mname,"reason":str(ex)})
