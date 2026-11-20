@@ -4,7 +4,7 @@ This pipeline belongs to the independent repository hesta-lang/sm64coopdx-stevec
 
 ## Source provenance
 
-CI resolves NeoForm Runtime 2.0.31 and runs net.neoforged:neoform:26.3-1@zip for the client distribution, writing the gameSources result. NeoForm generates mapped source from Mojang's version artifacts and official mappings. The full source archive is temporary; only selected method excerpts and a structured analysis report are uploaded. No full Minecraft source tree, client JAR, textures, or APK changes are committed. The public MC 26.x source browser is a secondary cross-check, not the source input.
+CI resolves NeoForm Runtime 2.0.31 and runs net.neoforged:neoform:26.3-1@zip for the joined distribution, writing the gameSources result. NeoForm generates mapped source from Mojang's version artifacts and official mappings. The full source archive is temporary; only selected method excerpts and a structured analysis report are uploaded. No full Minecraft source tree, client JAR, textures, or APK changes are committed. The public MC 26.x source browser is a secondary cross-check, not the source input.
 
 ## Selected classes and coverage
 
