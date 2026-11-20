@@ -13,15 +13,25 @@ Translate a deliberately limited subset of Minecraft Java source into Lua 5.4 mo
       --output build/minecraft-lua \
       --version 26.3
 
-Select individual classes with repeatable --class fully.qualified.ClassName arguments. Use --strict in CI or review builds to fail when a selected class has skipped methods or files.
+Select individual classes with repeatable --class fully. Use --strict in CI or review builds to fail when a selected class has skipped methods or files.
 
-Generated package directories preserve Java package names. Imported project classes become Lua require() calls. mc_compat.lua contains only the small Minecraft Mth functions implemented so far; engine-facing classes still need explicit adapters to SM64CoopDX APIs.
+Generated package directories preserve Java package names. Imported project classes become Lua require() calls. mc_compat.lua contains a limited Mth compatibility implementation; engine-facing classes still need explicit adapters to SM64CoopDX APIs.
+
+## Minecraft 26.3 target inventory
+
+tools/minecraft_26_3_targets.json records three real 26.3 targets and their dependency boundary:
+
+- net.minecraft.util.Mth: a partial, manually ported set of numeric helpers is available in mc_compat.lua. The complete overloaded Java class is not translated.
+- net.minecraft.client.model.HumanoidModel: inventoried, not yet transpiled. It depends on generic inheritance, constructors, model-part/geometry builder object graphs, pose stacks, collections, and renderer state.
+- net.minecraft.client.model.player.PlayerModel: inventoried, not yet transpiled. It extends HumanoidModel<AvatarRenderState> and contains the Steve overlay visibility and slim-arm behavior, but its methods depend on model geometry, collections, renderer types, and inherited behavior.
+
+The inventory references an unofficial decompiled source browser for class metadata. No Mojang source tree, JAR, texture, or generated Minecraft class file is included in this repository. The manifest test checks target identity, hierarchy, and the declared partial-port boundary; it does not claim that the full classes were transpiled.
 
 ## Current supported subset
 
 - Top-level Java classes and primitive/simple-reference method signatures.
 - Static final scalar constants and simple local declarations.
-- Arithmetic, comparisons, boolean expressions, Math calls, and the listed Mth mappings.
+- Arithmetic, comparisons, boolean expressions, Math calls, and listed Mth mappings.
 - if/else, while, simple constant-bound numeric for loops, return, and break.
 - Imports of other simple project classes and calls between generated modules.
 
@@ -29,8 +39,8 @@ Generated package directories preserve Java package names. Imported project clas
 
 Constructors and object lifecycle, inheritance and virtual dispatch, interfaces/generics, nested/anonymous classes, overload resolution, Java arrays and collections, lambdas/streams, switch, exceptions, reflection, synchronization, native methods, and engine rendering/entity/world systems are not translated. Unsupported methods are reported and omitted.
 
-Lua 5.4 has one general numeric type; this pipeline does not preserve Java long precision, integer overflow, exact narrowing-cast behavior, or all Java integer-division edge cases. The report emits warnings for casts and division. Such operations need explicit adapters or hand-written ports, then semantic tests.
+Lua 5.4 has one general numeric type; this pipeline does not preserve Java long precision, integer overflow, exact narrowing-cast behavior, or all Java integer-division edge cases. The current Mth compatibility helpers therefore do not claim exact Java integer semantics for all overloads.
 
-## Source and validation boundary
+## Validation boundary
 
-The repository does not bundle Minecraft source code, JARs, game assets, or generated Minecraft-derived modules. Provide a legally obtained source tree locally to the command. The committed Java files are synthetic fixtures only. GitHub Actions validates the converter against those fixtures; this is not yet evidence that an entire Minecraft 26.3 source tree can be translated or that generated modules work inside the game. Each translated subsystem must pass adapter-level tests before it is enabled in SteveCraft.
+GitHub Actions validates the Java-subset fixtures, the Lua runtime assertions, and the 26.3 target inventory. Fixture success is not evidence that the full HumanoidModel or PlayerModel source has been transpiled or that generated modules work inside SM64CoopDX. Each translated subsystem must pass adapter-level tests before it is enabled in SteveCraft.
