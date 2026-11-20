@@ -351,7 +351,7 @@ local function before_set_mario_action(m, incoming_action, action_arg)
 end
 
 local function on_set_mario_action(m)
-    if not physics.enabled or not physics.independentMode or not is_local_steve(m) then return end
+    if not isolation_active() or not is_local_steve(m) then return end
     if m.action ~= ACT_STEVECRAFT_CONTROLLED then return end
 
     local state = get_motion_state(m)
@@ -415,7 +415,7 @@ end
 
 local function stevecraft_controlled_action(m)
     if m == nil or not is_local_steve(m) then return false end
-    if not physics.enabled or not physics.independentMode then
+    if not isolation_active() then
         set_mario_action(m, ACT_IDLE, 0)
         return true
     end
