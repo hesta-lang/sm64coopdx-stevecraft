@@ -60,6 +60,13 @@ function C.interpolate_rotation(entity, partial_tick)
     return yaw, pitch
 end
 
+function C.perspective_rotation(yaw_degrees, pitch_degrees, front)
+    local yaw = finite(yaw_degrees, 0)
+    local pitch = finite(pitch_degrees, 0)
+    if front then return yaw + 180.0, -pitch end
+    return yaw, pitch
+end
+
 function C.direction(yaw_degrees, pitch_degrees)
     local yaw, pitch = finite(yaw_degrees, 0) * RAD, finite(pitch_degrees, 0) * RAD
     local cp = math.cos(pitch)
