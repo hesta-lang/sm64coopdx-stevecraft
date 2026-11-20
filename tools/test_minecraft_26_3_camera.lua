@@ -19,7 +19,7 @@ assert(math.abs(pitch - 15) < 1e-6)
 
 local rear = C.camera_pose(entity, "third_person_back", 1)
 assert(math.abs(rear.desiredDistance - 4) < 1e-6)
-assert(math.abs(rear.position.z - (20 - 4 * math.cos(30 * math.pi / 180))) < 1e-5)
+assert(math.abs(rear.position.z - (20 - 4 * math.cos(10 * math.pi / 180) * math.cos(30 * math.pi / 180))) < 1e-5)
 
 local front = C.camera_pose(entity, "third_person_front", 1)
 assert(math.abs(((front.yaw % 360) + 360) % 360 - 190) < 1e-6)
