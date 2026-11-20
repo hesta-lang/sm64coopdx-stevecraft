@@ -122,8 +122,10 @@ local function get_sprint_state(m)
 end
 
 local function input_options(m)
+    local input = m.input or 0
+    local sneaking = INPUT_Z_DOWN ~= nil and (input & INPUT_Z_DOWN) ~= 0
     return {
-        sneaking = MinecraftPhysics.is_sneaking_action(m.action),
+        sneaking = sneaking or MinecraftPhysics.is_sneaking_action(m.action),
         usingItem = SteveCraft.usingItem == true,
         itemUseSpeed = SteveCraft.itemUseSpeedMultiplier,
         sneakingSpeed = SteveCraft.sneakingSpeed,
@@ -584,100 +586,6 @@ local function before_physics_step(m, step_type, step_arg)
     return AIR_STEP_NONE
 end
 
-local function after_mario_update(m)
-    if m == nil or m.playerIndex ~= 0 then return end
-    if not is_local_steve(m) or not physics.enabled then
-        states[0] = nil
-        sprint_states[0] = nil
-        restore_sprint_fov()
-        return
-    end
-
-    -- HOOK_MARIO_UPDATE is after Mario's action/physics step. This is the
-    -- collision feedback phase corresponding to Entity.move() in Minecraft.
-    local state = states[0]
-    if state ~= nil and state.pendingStep ~= nil then
-        local pending = state.pendingStep
-        local actualX = (m.pos and m.pos.x or pending.startX) - pending.startX
-        local actualY = (m.pos and m.pos.y or pending.startY) - pending.startY
-        local actualZ = (m.pos and m.pos.z or pending.startZ) - pending.startZ
-
-        local expectedX, expectedZ = pending.requestedX, pending.requestedZ
-        if pending.wasGround and m.floor ~= nil and m.floor.normal ~= nil then
-            local normalY = vector_component(m.floor.normal, "y", 2)
-            expectedX = expectedX * normalY
-            expectedZ = expectedZ * normalY
-        end
-
-        local hasWall = m.wall ~= nil
-        local normalX = vector_component(m.wallNormal, "x", 1)
-        local normalZ = vector_component(m.wallNormal, "z", 3)
-        if normalX == 0 and normalZ == 0 and hasWall and m.wall.normal ~= nil then
-            normalX = vector_component(m.wall.normal, "x", 1)
-            normalZ = vector_component(m.wall.normal, "z", 3)
-        end
-
-        if pending.medium == "water" then
-            -- Water currents are added by SM64 after this hook, and its water
-            -- solver keeps wall results local. Do not mistake current drift for
-            -- player velocity or axis clipping. The water surface/floor clamp
-            -- is observable in the actual vertical displacement.
-            local verticalBlockedUp = pending.requestedY > 0
-                and actualY < pending.requestedY - math.max(1.0, math.abs(pending.requestedY) * 0.08)
-            local verticalBlockedDown = pending.requestedY < 0
-                and actualY > pending.requestedY + math.max(1.0, math.abs(pending.requestedY) * 0.08)
-            if verticalBlockedUp or verticalBlockedDown then
-                state.vy = 0
-            end
-        else
-            local toleranceX = math.max(1.0, math.abs(expectedX) * 0.25)
-            local toleranceZ = math.max(1.0, math.abs(expectedZ) * 0.25)
-            local blockedX = math.abs(actualX - expectedX) > toleranceX
-            local blockedZ = math.abs(actualZ - expectedZ) > toleranceZ
-
-            state.vx, state.vz = MinecraftPhysics.reconcile_horizontal_velocity(
-                state.vx, state.vz, hasWall, normalX, normalZ, blockedX, blockedZ
-            )
-        end
-
-        if pending.wasAir and state.jumpActive and is_air_action(m.action) then
-            local vertical, hitCeiling = MinecraftPhysics.reconcile_vertical_velocity(
-                pending.verticalVelocity,
-                pending.requestedY,
-                actualY,
-                math.max(1.0, math.abs(pending.requestedY) * 0.08)
-            )
-            if hitCeiling then
-                state.vy = 0
-            else
-                -- Do not read m.vel.y here: perform_air_step() has already
-                -- applied SM64's own gravity before this hook is called.
-                state.vy = MinecraftPhysics.apply_vertical_friction(vertical)
-            end
-        end
-
-        if m.forwardVel ~= nil and (hasWall or blockedX or blockedZ) then
-            m.forwardVel = math.sqrt(state.vx * state.vx + state.vz * state.vz)
-        end
-        state.pendingStep = nil
-    end
-
-    -- The resulting sprint state is consumed by the next physics step.
-    update_sprint_input(m)
-
-    if state ~= nil then
-        local swimming = is_water_action(m.action)
-        if not is_air_action(m.action) and not swimming then
-            state.jumpActive = false
-            state.vy = 0.0
-        end
-
-        if not is_ground_action(m.action) and not is_air_action(m.action) and not swimming then
-            states[0] = nil
-        end
-    end
-end
-
 function physics.set_enabled(enabled)
     physics.enabled = enabled == true
     states = {}
@@ -701,6 +609,14 @@ function physics.is_independent_mode()
     return physics.independentMode == true
 end
 
+function physics.set_native_geometry_disabled(disabled)
+    physics.nativeGeometryDisabled = disabled == true
+end
+
+function physics.is_native_geometry_disabled()
+    return physics.nativeGeometryDisabled == true
+end
+
 function physics.is_independent_collision_available()
     return IndependentPhysics.is_available()
 end
@@ -716,10 +632,23 @@ function physics.reset()
     restore_sprint_fov()
 end
 
+if type(hook_mario_action) == "function" and ACT_STEVECRAFT_CONTROLLED ~= nil then
+    hook_mario_action(ACT_STEVECRAFT_CONTROLLED, {
+        every_frame = stevecraft_controlled_action,
+        gravity = function() return true end,
+    })
+end
+
 hook_event(HOOK_BEFORE_SET_MARIO_ACTION, before_set_mario_action)
 hook_event(HOOK_ON_SET_MARIO_ACTION, on_set_mario_action)
+hook_event(HOOK_BEFORE_MARIO_UPDATE, before_mario_update)
+hook_event(HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS, override_mario_geometry_inputs)
+hook_event(HOOK_ALLOW_FORCE_WATER_ACTION, function(m)
+    if physics.enabled and physics.independentMode and is_local_steve(m) then
+        return false
+    end
+end)
 hook_event(HOOK_BEFORE_PHYS_STEP, before_physics_step)
-hook_event(HOOK_MARIO_UPDATE, after_mario_update)
 hook_event(HOOK_ON_LEVEL_INIT, physics.reset)
 hook_event(HOOK_ON_WARP, physics.reset)
 hook_event(HOOK_ON_EXIT, physics.reset)
