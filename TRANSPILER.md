@@ -2,45 +2,35 @@
 
 This pipeline belongs to the independent repository hesta-lang/sm64coopdx-stevecraft. It does not add SteveCraft code to the SM64CoopDX source tree and does not build or patch an APK.
 
-## Purpose
+## Source provenance
 
-Translate a deliberately limited subset of Minecraft Java source into Lua 5.4 modules that can be adapted for the SteveCraft mod. The converter is conservative: if a method contains unsupported syntax, it omits that entire method and records the reason in transpile-report.json. It does not emit guessed code.
+CI resolves NeoForm Runtime 2.0.31 and runs net.neoforged:neoform:26.3-1@zip for the client distribution, writing the gameSources result. NeoForm generates mapped source from Mojang's version artifacts and official mappings. The full source archive is temporary; only selected method excerpts and a structured analysis report are uploaded. No full Minecraft source tree, client JAR, textures, or APK changes are committed. The public MC 26.x source browser is a secondary cross-check, not the source input.
 
-## Run
+## Selected classes and coverage
 
-    python3 tools/java_to_lua.py \
-      --input /path/to/minecraft-java-sources \
-      --output build/minecraft-lua \
-      --version 26.3
+| Class | Translated methods | Public API coverage |
+| --- | --- | ---: |
+| HumanoidModel | getHead; private quadraticArmUpdate | 1/13 |
+| PlayerModel | getRandomBodyPart | 1/5 |
 
-Select individual classes with repeatable --class fully. Use --strict in CI or review builds to fail when a selected class has skipped methods or files.
+Across the two listed public API surfaces, 2/18 methods are translated (11.1%). The private quadraticArmUpdate helper is counted separately. This is selected-method coverage, not full-class translation.
 
-Generated package directories preserve Java package names. Imported project classes become Lua require() calls. mc_compat.lua contains a limited Mth compatibility implementation; engine-facing classes still need explicit adapters to SM64CoopDX APIs.
+HumanoidModel<T> extends EntityModel<T>, implements ArmedModel<T> and HeadedModel, and is bounded by HumanoidRenderState. Its constructor and model-part fields are inventoried. Its wider API depends on ModelPart, PoseStack, geometry builders, render types, equipment/arm enums, animation helpers and render-state classes.
 
-## Minecraft 26.3 target inventory
+PlayerModel extends HumanoidModel<AvatarRenderState>. Its methods cover geometry creation, armor mesh mapping, animation state, hand transforms and random body-part selection. Only getRandomBodyPart is currently translated. It calls Util.getRandom(List, RandomSource), handled by an explicit adapter that preserves zero-based RandomSource selection and maps it to Lua's one-based arrays (or a Java-list-shaped size/get adapter).
 
-tools/minecraft_26_3_targets.json records three real 26.3 targets and their dependency boundary:
+The CI source report records exact imports, class declarations, inheritance, implemented interfaces, fields, constructors, method names and identified engine API calls from the NeoForm archive.
 
-- net.minecraft.util.Mth: a partial, manually ported set of numeric helpers is available in mc_compat.lua. The complete overloaded Java class is not translated.
-- net.minecraft.client.model.HumanoidModel: inventoried, not yet transpiled. It depends on generic inheritance, constructors, model-part/geometry builder object graphs, pose stacks, collections, and renderer state.
-- net.minecraft.client.model.player.PlayerModel: inventoried, not yet transpiled. It extends HumanoidModel<AvatarRenderState> and contains the Steve overlay visibility and slim-arm behavior, but its methods depend on model geometry, collections, renderer types, and inherited behavior.
+## Converter rules and adapters
 
-The inventory references an unofficial decompiled source browser for class metadata. No Mojang source tree, JAR, texture, or generated Minecraft class file is included in this repository. The manifest test checks target identity, hierarchy, and the declared partial-port boundary; it does not claim that the full classes were transpiled.
+The converter fails closed on super calls, object construction, ternary expressions, lambdas/method references, primitive casts and identified engine APIs without an adapter. Unsupported methods are omitted and reported rather than approximated. It also normalizes Java floating-point suffixes and supports package-qualified class filters.
 
-## Current supported subset
+The explicit compatibility layer contains 20 named Mth helpers, including the 65,536-entry sine/cosine lookup table, float sqrt and rotLerpRad, plus the float/double Mth.clamp overload and Util.getRandom. Mth.clamp has distinct int/long and float/double overloads; overload resolution is not implemented, so int/long calls are not covered. fastFloor was removed because it is not in the 26.3 Mth API surface. Lua cannot preserve all Java long precision, overflow or every float rounding boundary.
 
-- Top-level Java classes and primitive/simple-reference method signatures.
-- Static final scalar constants and simple local declarations.
-- Arithmetic, comparisons, boolean expressions, Math calls, and listed Mth mappings.
-- if/else, while, simple constant-bound numeric for loops, return, and break.
-- Imports of other simple project classes and calls between generated modules.
-
-## Not supported / not yet equivalent
-
-Constructors and object lifecycle, inheritance and virtual dispatch, interfaces/generics, nested/anonymous classes, overload resolution, Java arrays and collections, lambdas/streams, switch, exceptions, reflection, synchronization, native methods, and engine rendering/entity/world systems are not translated. Unsupported methods are reported and omitted.
-
-Lua 5.4 has one general numeric type; this pipeline does not preserve Java long precision, integer overflow, exact narrowing-cast behavior, or all Java integer-division edge cases. The current Mth compatibility helpers therefore do not claim exact Java integer semantics for all overloads.
+There are no adapters yet for ModelPart, PoseStack, geometry builders, render types, entity state or the SteveCraft runtime.
 
 ## Validation boundary
 
-GitHub Actions validates the Java-subset fixtures, the Lua runtime assertions, and the 26.3 target inventory. Fixture success is not evidence that the full HumanoidModel or PlayerModel source has been transpiled or that generated modules work inside SM64CoopDX. Each translated subsystem must pass adapter-level tests before it is enabled in SteveCraft.
+CI runs Python tests, compiles a Java reference harness, compares numeric and method behavior, generates the real 26.3 client sources through NeoForm, extracts selected methods, transpiles those excerpts, validates Lua 5.4 syntax, and executes Lua assertions.
+
+Passing CI validates only this subset and its explicit adapters. It does not prove full HumanoidModel/PlayerModel translation, constructor/inheritance behavior, or compatibility inside SteveCraft/SM64CoopDX. PR #6 must remain Draft until runtime adapter validation is complete.

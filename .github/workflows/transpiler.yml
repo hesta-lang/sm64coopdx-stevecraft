@@ -1,14 +1,17 @@
 name: SteveCraft Java-to-Lua transpiler
-
 on:
   push:
-    branches:
-      - stevecraft-java-lua-transpiler-alpha
+    branches: [stevecraft-java-lua-transpiler-alpha]
     paths:
       - "tools/java_to_lua.py"
       - "tools/mc_sources_fixture/**"
+      - "tools/minecraft_26_3_fixtures/**"
       - "tools/mc_transpiler_test.py"
       - "tools/minecraft_26_3_target_test.py"
+      - "tools/minecraft_26_3_source_test.py"
+      - "tools/minecraft_26_3_equivalence_test.py"
+      - "tools/extract_minecraft_26_3.py"
+      - "tools/Minecraft263Reference.java"
       - "tools/minecraft_26_3_targets.json"
       - "tools/verify_transpiled.lua"
       - "mc_compat.lua"
@@ -18,64 +21,112 @@ on:
     paths:
       - "tools/java_to_lua.py"
       - "tools/mc_sources_fixture/**"
+      - "tools/minecraft_26_3_fixtures/**"
       - "tools/mc_transpiler_test.py"
       - "tools/minecraft_26_3_target_test.py"
+      - "tools/minecraft_26_3_source_test.py"
+      - "tools/minecraft_26_3_equivalence_test.py"
+      - "tools/extract_minecraft_26_3.py"
+      - "tools/Minecraft263Reference.java"
       - "tools/minecraft_26_3_targets.json"
       - "tools/verify_transpiled.lua"
       - "mc_compat.lua"
       - "TRANSPILER.md"
       - ".github/workflows/transpiler.yml"
   workflow_dispatch:
-
 permissions:
   contents: read
-
 jobs:
   transpiler:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install Lua 5.4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: Install Lua 5.4 and Maven
         run: |
           sudo apt-get update
-          sudo apt-get install -y lua5.4
+          sudo apt-get install -y lua5.4 maven
       - name: Check Python syntax
-        run: python -m py_compile tools/java_to_lua.py tools/mc_transpiler_test.py tools/minecraft_26_3_target_test.py
-      - name: Run transpiler integration tests
-        run: python -m unittest discover -s tools -p "mc_transpiler_test.py" -v
-      - name: Validate Minecraft 26.3 target inventory
-        run: python -m unittest discover -s tools -p "minecraft_26_3_target_test.py" -v
-      - name: Translate Java fixture source
         run: |
-          python tools/java_to_lua.py \
-            --input tools/mc_sources_fixture \
-            --output build/transpiled \
-            --version fixture-validation
+          python -m py_compile tools/java_to_lua.py tools/extract_minecraft_26_3.py \
+            tools/mc_transpiler_test.py tools/minecraft_26_3_target_test.py \
+            tools/minecraft_26_3_source_test.py tools/minecraft_26_3_equivalence_test.py
+      - name: Run Python, source extraction, and Java equivalence tests
+        run: python -m unittest discover -s tools -p "*_test.py" -v
+      - name: Translate existing Java subset fixtures
+        run: |
+          python tools/java_to_lua.py --input tools/mc_sources_fixture --output build/transpiled --version fixture-validation
           python - <<'PY'
           import json
-          report = json.load(open("build/transpiled/transpile-report.json", encoding="utf-8"))
-          assert report["translated_methods"] == 5, report
-          assert len(report["skipped_methods"]) == 1, report
-          assert report["strict_blockers"] == 1, report
-          assert not report["skipped_files"], report
-          print("Generated methods:", report["translated_methods"])
-          print("Expected unsupported methods:", len(report["skipped_methods"]))
+          r=json.load(open("build/transpiled/transpile-report.json",encoding="utf-8"))
+          assert r["translated_methods"]==5 and len(r["skipped_methods"])==1 and r["strict_blockers"]==1 and not r["skipped_files"],r
           PY
-      - name: Validate generated Lua syntax
+      - name: Resolve pinned NeoForm Runtime dependencies
+        run: |
+          mkdir -p build
+          cat > build/nfrt-pom.xml <<'POM'
+          <project xmlns="http://maven.apache.org/POM/4.0.0"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+            <modelVersion>4.0.0</modelVersion>
+            <groupId>local.stevecraft</groupId><artifactId>nfrt-runner</artifactId><version>1.0</version>
+            <repositories>
+              <repository><id>neoforged</id><url>https://maven.neoforged.net/releases/</url></repository>
+              <repository><id>fabric</id><url>https://maven.fabricmc.net/</url></repository>
+              <repository><id>forge</id><url>https://maven.minecraftforge.net/</url></repository>
+            </repositories>
+            <dependencies>
+              <dependency><groupId>net.neoforged</groupId><artifactId>neoform-runtime</artifactId><version>2.0.31</version></dependency>
+            </dependencies>
+          </project>
+          POM
+      - name: Generate Mojang-mapped Minecraft 26.3 client sources
+        run: |
+          mvn -B -f build/nfrt-pom.xml org.codehaus.mojo:exec-maven-plugin:3.5.0:java \
+            -Dexec.mainClass=net.neoforged.neoform.runtime.cli.Main \
+            -Dexec.args="run --neoform=net.neoforged:neoform:26.3-1@zip --dist=client --write-result=gameSources:build/minecraft-26.3-sources.jar --home-dir=build/nfrt-home --work-dir=build/nfrt-work --no-color --verbose"
+          test -s build/minecraft-26.3-sources.jar
+      - name: Analyze real classes and extract selected source methods
+        run: |
+          python tools/extract_minecraft_26_3.py --sources build/minecraft-26.3-sources.jar \
+            --output build/minecraft-26.3-extracted --report build/minecraft-26.3-source-report.json
+      - name: Transpile selected Minecraft 26.3 source methods
+        run: |
+          python tools/java_to_lua.py --input build/minecraft-26.3-extracted --output build/transpiled-real \
+            --version 26.3 --class net.minecraft.client.model.HumanoidModel \
+            --class net.minecraft.client.model.player.PlayerModel \
+            --report build/transpiled-real/transpile-report.json
+          python - <<'PY'
+          import json
+          r=json.load(open("build/transpiled-real/transpile-report.json",encoding="utf-8"))
+          assert r["translated_methods"]==3 and len(r["skipped_methods"])==7 and r["strict_blockers"]==7 and not r["skipped_files"],r
+          reasons=" | ".join(x["reason"] for x in r["skipped_methods"])
+          for x in ("super calls","ternary conditional operator","object construction","lambda/method reference","unadapted Minecraft engine type/API"): assert x in reasons,r
+          print("Translated real Minecraft methods:",r["translated_methods"],"Skipped conservatively:",len(r["skipped_methods"]))
+          PY
+      - name: Validate generated Lua 5.4 syntax
         run: |
           luac5.4 -p mc_compat.lua
-          find build/transpiled -name "*.lua" -print0 | xargs -0 -r luac5.4 -p
-      - name: Execute generated modules and Mth parity assertions
+          find build/transpiled build/transpiled-real -name "*.lua" -print0 | xargs -0 -r luac5.4 -p
+      - name: Execute Java-to-Lua and Mth/Util equivalence assertions
         run: lua5.4 tools/verify_transpiled.lua
-      - name: Upload translated Lua and reports
+      - name: Upload excerpts, generated Lua, and reports
         uses: actions/upload-artifact@v4
         with:
-          name: stevecraft-java-to-lua-fixture
+          name: stevecraft-minecraft-26-3-transpiler-alpha
+          if-no-files-found: error
           path: |
             build/transpiled/
+            build/transpiled-real/
+            build/minecraft-26.3-source-report.json
+            build/minecraft-26.3-extracted/
+            build/java-reference.txt
             mc_compat.lua
             tools/minecraft_26_3_targets.json

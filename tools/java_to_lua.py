@@ -8,16 +8,21 @@ from __future__ import annotations
 import argparse, json, re, sys
 from pathlib import Path
 
-TOKEN = re.compile(r'''//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[0-7_]+|(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?[fFdD]?|\d+[lL]?|[A-Za-z_$][\w$]*|>>>=|<<=|>>=|==|!=|<=|>=|&&|\|\||\+\+|--|\+=|-=|\*=|/=|%=|<<|>>>|>>|->|[{}()\[\];,.?:+\-*/%<>=!&|^~]''')
+TOKEN = re.compile(r'''//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[0-7_]+|(?:\d+\.\d*|\.\d+)(?:[eE][+-]?\d+)?[fFdD]?|\d+[lL]?|[A-Za-z_$][\w$]*|>>>=|<<=|>>=|==|!=|<=|>=|&&|\|\||\+\+|--|\+=|-=|\*=|/=|%=|<<|>>>|>>|::|->|[{}()\[\];,.?:+\-*/%<>=!&|^~]''')
 TYPE = r'(?:byte|short|int|long|float|double|boolean|char|String|[\w$.]+(?:\[\])?)'
+RETURN_TYPE = r'(?:' + TYPE + r'|[\w$.]+\s*<\s*[\w$.,?\s]+\s*>)'
+IMPORT_ADAPTERS = {"net.minecraft.util.Util": "MC.Util"}
+MTH_CONSTANTS = {"PI", "HALF_PI", "TWO_PI", "DEG_TO_RAD", "RAD_TO_DEG"}
+ENGINE_API_TYPES = {"ModelPart", "PoseStack", "HumanoidArm", "HumanoidModel", "AvatarRenderState", "HumanoidRenderState", "ArmedEntityRenderState", "MeshDefinition", "CubeDeformation", "CubeListBuilder", "PartDefinition", "PartPose", "ArmorModelSet", "RenderTypes", "RenderType", "EquipmentSlot", "ItemStack", "InteractionHand", "RandomSource", "SpearAnimations", "AnimationUtils", "Identifier", "Maps", "Map", "Set", "Function", "EntityModel", "ArmedModel", "HeadedModel", "Ease", "SwingDescription"}
+ENGINE_API_METHODS = {"translateAndRotate", "addOrReplaceChild", "retainPartsAndChildren", "retainExactParts", "getRoot", "getChild", "animateCrossbowCharge", "animateCrossbowHold", "thirdPersonHandUse", "thirdPersonAttackHand", "entityCutout", "entityTranslucent"}
 
 MATH = {"abs":"math.abs","sqrt":"math.sqrt","sin":"math.sin","cos":"math.cos",
         "tan":"math.tan","floor":"math.floor","ceil":"math.ceil",
         "min":"math.min","max":"math.max","pow":"math.pow"}
-MTH = {"abs":"math.abs","sqrt":"math.sqrt","sin":"math.sin","cos":"math.cos",
+MTH = {"abs":"math.abs","sqrt":"MC.Mth.sqrt","sin":"MC.Mth.sin","cos":"MC.Mth.cos",
        "floor":"math.floor","ceil":"math.ceil","clamp":"MC.Mth.clamp",
        "lerp":"MC.Mth.lerp","sign":"MC.Mth.sign","wrapDegrees":"MC.Mth.wrapDegrees",
-       "fastFloor":"MC.Mth.fastFloor","absMax":"MC.Mth.absMax"}
+       "absMax":"MC.Mth.absMax","rotLerpRad":"MC.Mth.rotLerpRad"}
 
 def tokens(source):
     out=[]
@@ -40,7 +45,10 @@ def expr(ts, report, where):
     s=" ".join(ts)
     s=re.sub(r'\b(?:true|false|null)\b',lambda m:{"true":"true","false":"false","null":"nil"}[m.group()],s)
     s=re.sub(r'\bthis\s*\.\s*','self.',s)
+    s=re.sub(r'\bMath\s*\.\s*PI\b', 'math.pi', s)
+    s=re.sub(r'\bMath\s*\.\s*E\b', 'math.exp(1)', s)
     s=re.sub(r'\bMath\s*\.\s*(\w+)',lambda m:MATH.get(m.group(1),"math."+m.group(1)),s)
+    s=re.sub(r'\bMth\s*\.\s*(PI|HALF_PI|TWO_PI|DEG_TO_RAD|RAD_TO_DEG)\b',lambda m:'MC.Mth.'+m.group(1),s)
     s=re.sub(r'\bMth\s*\.\s*(\w+)',lambda m:MTH.get(m.group(1),"MC.Mth."+m.group(1)),s)
     s=s.replace("&&"," and ").replace("||"," or ").replace("!=","~=")
     s=re.sub(r'(?<![=!<>])!(?!=)'," not ",s)
@@ -48,7 +56,7 @@ def expr(ts, report, where):
     s=re.sub(r'\b0[xX]([0-9a-fA-F_]+)\b',lambda m:str(int(m.group(1).replace("_",""),16)),s)
     s=re.sub(r'\b0[bB]([01_]+)\b',lambda m:str(int(m.group(1).replace("_",""),2)),s)
     s=re.sub(r'\b0([0-7_]+)\b',lambda m:str(int(m.group(1).replace("_",""),8)),s)
-    s=re.sub(r'\b(\d[\d_]*)[fFdD]\b',r'\1',s)
+    s=re.sub(r'(?<![\w.])((?:\d[\d_]*(?:\.\d[\d_]*)?|\.\d[\d_]+)(?:[eE][+-]?\d[\d_]*)?)[fFdD]\b',r'\1',s)
     s=re.sub(r'\s+', ' ', s).strip()
     if re.search(r'\b(?:byte|short|int|long|float|double)\s*\)'," ".join(ts)):
         report["warnings"].append(f"{where}: primitive cast erased; Java overflow/narrowing is not exact")
@@ -137,6 +145,37 @@ class Body:
             raw=f"{compound.group(1)} = {compound.group(1)} {op} {compound.group(3)}"
         return [pad+raw]
 
+def validate_method_tokens(bt, where):
+    joined = " ".join(bt)
+    if "super" in bt:
+        raise ValueError("super calls require Java inheritance and virtual dispatch")
+    if "new" in bt:
+        idx = bt.index("new")
+        target = bt[idx + 1] if idx + 1 < len(bt) else "object"
+        raise ValueError("object construction requires an explicit constructor adapter: " + target)
+    if "->" in bt or "::" in bt:
+        raise ValueError("lambda/method reference requires a functional-interface adapter")
+    if "?" in bt and ":" in bt:
+        raise ValueError("ternary conditional operator is unsupported")
+    if re.search(r'\(\s*(?:byte|short|int|long|float|double|char)\s*\)', joined):
+        raise ValueError("primitive casts require Java narrowing/overflow semantics")
+    for i, token in enumerate(bt):
+        if token == "Mth" and i + 2 < len(bt) and bt[i + 1] == ".":
+            method = bt[i + 2]
+            if method not in MTH and method not in MTH_CONSTANTS:
+                raise ValueError("unadapted Minecraft Mth API: " + method)
+        if token == "Math" and i + 2 < len(bt) and bt[i + 1] == ".":
+            method = bt[i + 2]
+            if method not in MATH and method not in {"PI", "E"}:
+                raise ValueError("unadapted Java Math API: " + method)
+        if token == "Util":
+            if i + 2 >= len(bt) or bt[i + 1] != "." or bt[i + 2] != "getRandom":
+                raise ValueError("unadapted Minecraft Util API")
+        if token in ENGINE_API_TYPES:
+            raise ValueError("unadapted Minecraft engine type/API: " + token)
+        if i > 0 and bt[i - 1] == "." and token in ENGINE_API_METHODS:
+            raise ValueError("unadapted Minecraft engine method: " + token)
+
 def split_args(source):
     if not source.strip(): return []
     out=[]; cur=[]; depth=0
@@ -163,9 +202,12 @@ def translate_file(path, root, outroot, report, strict):
     lines=[f"-- Generated from {package+'.' if package else ''}{name}; edit Java source, not this file.",
            "local MC = require('mc_compat')", f"local {name} = {{}}"]
     for imp in class_imports:
-        if imp.startswith("java.lang.") or imp == "net.minecraft.util.Mth": continue
+        if imp.startswith("java.") or imp == "net.minecraft.util.Mth": continue
         short=imp.rsplit(".",1)[-1]
-        if short!=name: lines.append(f"local {short} = require('{imp.replace('.','/')}')")
+        if imp in IMPORT_ADAPTERS:
+            lines.append(f"local {short} = {IMPORT_ADAPTERS[imp]}")
+        elif short!=name:
+            lines.append(f"local {short} = require('{imp.replace('.','/')}')")
     # top-level fields and methods are selected from the class body.
     brace=source.find("{",cls.end())
     if brace<0: return
@@ -190,7 +232,7 @@ def translate_file(path, root, outroot, report, strict):
         field_names.add(var)
         lines.append(f"{name}.{var} = {expr(tokens(val),report,name+'.'+var)}")
     # Methods. Non-static instance methods become colon methods and receive self.
-    meth_re=re.compile(rf'((?:(?:public|protected|private|static|final|synchronized|native|abstract)\s+)*)({TYPE}|void)\s+(\w+)\s*\(([^)]*)\)\s*(?:throws\s+[\w.,\s]+)?\{{')
+    meth_re=re.compile(rf'((?:(?:public|protected|private|static|final|synchronized|native|abstract)\s+)*)({RETURN_TYPE}|void)\s+(\w+)\s*\(([^)]*)\)\s*(?:throws\s+[\w.,\s]+)?\{{')
     cursor=0; methods=0
     for m in meth_re.finditer(class_body):
         flags,ret,mname,args=m.groups()
@@ -216,10 +258,12 @@ def translate_file(path, root, outroot, report, strict):
             report["skipped_methods"].append({"class":name,"method":mname,"reason":"unsupported parameter declaration"}); continue
         try:
             bt=tokens(body)
+            validate_method_tokens(bt, name+"."+mname)
+            if "switch" in bt:
+                raise ValueError("switch statement is unsupported")
             lua=Body(bt,report,name+"."+mname)
             translated=[]
             while lua.i<len(lua.t): translated+=lua.statement(1)
-            if any("switch" in x or "->" in x for x in bt): raise ValueError("switch/lambda syntax unsupported")
             for field_name in field_names:
                 translated=[re.sub(rf'\b{re.escape(field_name)}\b',f'{name}.{field_name}',line) for line in translated]
             if not any(x.strip() for x in translated): translated=["    -- empty"]
@@ -253,7 +297,8 @@ def main():
             "translated_methods":0,"skipped_methods":[],"skipped_files":[],"warnings":[]}
     paths=sorted(a.input.rglob("*.java"))
     if a.classes:
-        wanted=set(a.classes); paths=[f for f in paths if any((f.stem==x or str(f).replace("/",".").endswith(x.replace(".","/")+".java")) for x in wanted)]
+        wanted=set(a.classes)
+        paths=[f for f in paths if f.stem in wanted or f.relative_to(a.input).with_suffix("").as_posix().replace("/", ".") in wanted]
     for f in paths: translate_file(f,a.input,a.output,report,a.strict)
     report["strict_blockers"]=len(report["skipped_methods"])+len(report["skipped_files"])
     report["output_dir"]=str(a.output)
