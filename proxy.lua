@@ -298,7 +298,7 @@ local function ensure_visual(m, modelId, record)
 
     record.visual = visual
     record.modelId = modelId
-    set_visual_transform(m, visual)
+    -- proxy.update() applies the visual transform once after this returns.
     return visual
 end
 
