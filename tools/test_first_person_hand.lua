@@ -14,6 +14,7 @@ local events = {}
 local behavior = nil
 local firstPerson = true
 local nextId = 1
+local spawnedObject = nil
 
 function hook_event(name, callback) events[name] = callback end
 function hook_behavior(_, _, _, init, loop, name)
@@ -35,6 +36,7 @@ function spawn_non_sync_object(_, modelId, x, y, z, setup)
     nextId = nextId + 1
     behavior.init(object)
     if setup then setup(object) end
+    spawnedObject = object
     return object
 end
 function obj_mark_for_deletion(object) object.deleted = true end
@@ -77,13 +79,29 @@ local lookingUp = SteveCraft.firstPersonHand.compute_viewmodel_pose(
 assert(lookingUp.y ~= pose.y or lookingUp.roll ~= pose.roll,
     "viewmodel did not respond to camera pitch")
 
--- Exercise the runtime behavior and verify the hand is created in first person.
+-- Exercise the real spawn/loop callbacks and verify the detached right arm
+-- is positioned from the current camera, not from Mario's shoulder animation.
 events[HOOK_MARIO_UPDATE](gMarioStates[0])
-local hand = nil
+local hand = spawnedObject
 assert(behavior ~= nil, "first-person behavior was not registered")
--- The runtime spawner stores the object privately; the stub returns the most
--- recently spawned object by retaining the constructor result.
-assert(events[HOOK_MARIO_UPDATE] ~= nil)
--- Call the spawn callback and retrieve the object through the stub.
--- Re-run with a captured spawn object by wrapping the shared spawn helper.
+assert(hand ~= nil and hand.modelId == 123, "Steve hand was not spawned")
+gMarioStates[0].controller.buttonPressed = 0
+behavior.loop(hand)
+assert(hand.header.gfx.shadowInvisible == true, "viewmodel generated a native shadow")
+local firstRoll = hand.oFaceAngleRoll
+gMarioStates[0].controller.buttonPressed = B_BUTTON
+behavior.loop(hand)
+gMarioStates[0].controller.buttonPressed = 0
+behavior.loop(hand)
+assert(hand.oFaceAngleRoll ~= firstRoll, "attack did not swing the first-person arm")
+
+gFirstPersonCamera.yaw = 0x4000
+behavior.loop(hand)
+assert(hand.oFaceAngleYaw ~= pose.yaw or hand.oPosX ~= pose.x,
+    "runtime viewmodel did not follow camera rotation")
+
+firstPerson = false
+behavior.loop(hand)
+assert(hand.deleted == true, "viewmodel should be removed when leaving first person")
+
 print("SteveCraft first-person hand geometry tests passed")
