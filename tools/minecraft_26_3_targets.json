@@ -5,6 +5,8 @@
   "neoform_coordinate":"net.neoforged:neoform:26.3-1@zip","distribution":"joined","result":"gameSources",
   "launcher_manifest":"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
   "mapping_namespace":"Mojang official mappings","full_source_committed":false,
+  "artifact_manifest":"build/nfrt-artifact-manifest.properties",
+  "tool_artifact_override":{"coordinate":"net.neoforged.installertools:installertools:4.0.17:fatjar","method":"Build the exact 4.0.17 Maven module with its declared runtime dependencies into the fatjar classifier expected by NeoForm Runtime; no older tool version is substituted."},
   "note":"CI obtains Minecraft 26.3 joined-distribution sources through NeoForm from Mojang artifacts and mappings, extracts selected methods, and does not commit the full source archive."
  },
  "source_report":{
