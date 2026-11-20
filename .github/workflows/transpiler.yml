@@ -8,16 +8,22 @@ on:
       - "tools/java_to_lua.py"
       - "tools/mc_sources_fixture/**"
       - "tools/mc_transpiler_test.py"
+      - "tools/minecraft_26_3_target_test.py"
+      - "tools/minecraft_26_3_targets.json"
       - "tools/verify_transpiled.lua"
       - "mc_compat.lua"
+      - "TRANSPILER.md"
       - ".github/workflows/transpiler.yml"
   pull_request:
     paths:
       - "tools/java_to_lua.py"
       - "tools/mc_sources_fixture/**"
       - "tools/mc_transpiler_test.py"
+      - "tools/minecraft_26_3_target_test.py"
+      - "tools/minecraft_26_3_targets.json"
       - "tools/verify_transpiled.lua"
       - "mc_compat.lua"
+      - "TRANSPILER.md"
       - ".github/workflows/transpiler.yml"
   workflow_dispatch:
 
@@ -38,9 +44,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lua5.4
       - name: Check Python syntax
-        run: python -m py_compile tools/java_to_lua.py tools/mc_transpiler_test.py
+        run: python -m py_compile tools/java_to_lua.py tools/mc_transpiler_test.py tools/minecraft_26_3_target_test.py
       - name: Run transpiler integration tests
         run: python -m unittest discover -s tools -p "mc_transpiler_test.py" -v
+      - name: Validate Minecraft 26.3 target inventory
+        run: python -m unittest discover -s tools -p "minecraft_26_3_target_test.py" -v
       - name: Translate Java fixture source
         run: |
           python tools/java_to_lua.py \
@@ -61,12 +69,13 @@ jobs:
         run: |
           luac5.4 -p mc_compat.lua
           find build/transpiled -name "*.lua" -print0 | xargs -0 -r luac5.4 -p
-      - name: Execute generated modules
+      - name: Execute generated modules and Mth parity assertions
         run: lua5.4 tools/verify_transpiled.lua
-      - name: Upload translated Lua and report
+      - name: Upload translated Lua and reports
         uses: actions/upload-artifact@v4
         with:
           name: stevecraft-java-to-lua-fixture
           path: |
             build/transpiled/
             mc_compat.lua
+            tools/minecraft_26_3_targets.json
