@@ -152,7 +152,7 @@ jobs:
           from pathlib import Path
           jar = Path("build/installertools/target/installertools-4.0.17-fatjar.jar").resolve()
           assert jar.is_file() and jar.stat().st_size > 100_000, jar
-          key = r"net.neoforged.installertools\\:installertools\\:4.0.17\\:fatjar"
+          key = r"net.neoforged.installertools\:installertools\:4.0.17\:fatjar"
           Path("build/nfrt-artifact-manifest.properties").write_text(
               f"{key}={jar}\n", encoding="iso-8859-1"
           )
