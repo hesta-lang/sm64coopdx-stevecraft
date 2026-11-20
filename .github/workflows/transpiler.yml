@@ -89,11 +89,11 @@ jobs:
             </dependencies>
           </project>
           POM
-      - name: Generate Mojang-mapped Minecraft 26.3 client sources
+      - name: Generate Mojang-mapped Minecraft 26.3 sources
         run: |
           mvn -B -f build/nfrt-pom.xml org.codehaus.mojo:exec-maven-plugin:3.5.0:java \
             -Dexec.mainClass=net.neoforged.neoform.runtime.cli.Main \
-            -Dexec.args="run --neoform=net.neoforged:neoform:26.3-1@zip --dist=client --write-result=gameSources:build/minecraft-26.3-sources.jar --home-dir=build/nfrt-home --work-dir=build/nfrt-work --no-color --verbose"
+            -Dexec.args="run --neoform=net.neoforged:neoform:26.3-1@zip --dist=joined --write-result=gameSources:build/minecraft-26.3-sources.jar --home-dir=build/nfrt-home --work-dir=build/nfrt-work --no-color --verbose"
           test -s build/minecraft-26.3-sources.jar
       - name: Analyze real classes and extract selected source methods
         run: |
