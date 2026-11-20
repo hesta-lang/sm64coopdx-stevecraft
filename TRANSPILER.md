@@ -4,7 +4,7 @@ This pipeline belongs to the independent repository hesta-lang/sm64coopdx-stevec
 
 ## Source provenance
 
-CI resolves NeoForm Runtime 2.0.31 and runs net.neoforged:neoform:26.3-1@zip for the joined distribution, writing the gameSources result. NeoForm generates mapped source from Mojang's version artifacts and official mappings. The full source archive is temporary; only selected method excerpts and a structured analysis report are uploaded. No full Minecraft source tree, client JAR, textures, or APK changes are committed. The public MC 26.x source browser is a secondary cross-check, not the source input.
+CI resolves NeoForm Runtime 2.0.31 and runs net.neoforged:neoform:26.3-1@zip for the joined distribution, writing the gameSources result. NeoForm generates mapped source from Mojang's version artifacts and official mappings. CI builds the exact InstallerTools 4.0.17 Maven module with its declared runtime dependencies into the fatjar classifier required by the 26.3 NeoForm graph, then supplies that artifact through NFRT's artifact manifest; it does not substitute an older tool version. The full source archive is temporary; only selected method excerpts and a structured analysis report are uploaded. No full Minecraft source tree, client JAR, textures, or APK changes are committed. The public MC 26.x source browser is a secondary cross-check, not the source input.
 
 ## Selected classes and coverage
 
@@ -31,6 +31,6 @@ There are no adapters yet for ModelPart, PoseStack, geometry builders, render ty
 
 ## Validation boundary
 
-CI runs Python tests, compiles a Java reference harness, compares numeric and method behavior, generates the real 26.3 client sources through NeoForm, extracts selected methods, transpiles those excerpts, validates Lua 5.4 syntax, and executes Lua assertions.
+CI runs Python tests, compiles a Java reference harness, compares numeric and method behavior, generates the real 26.3 joined-distribution sources through NeoForm, extracts selected methods, transpiles those excerpts, validates Lua 5.4 syntax, and executes Lua assertions.
 
 Passing CI validates only this subset and its explicit adapters. It does not prove full HumanoidModel/PlayerModel translation, constructor/inheritance behavior, or compatibility inside SteveCraft/SM64CoopDX. PR #6 must remain Draft until runtime adapter validation is complete.
