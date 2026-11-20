@@ -19,14 +19,11 @@ physics.independentMode = physics.independentMode ~= false
 physics.nativeGeometryDisabled = physics.nativeGeometryDisabled ~= false
 physics.triangleCollisionEnabled = physics.triangleCollisionEnabled == true
 
--- Free cutscene-group action slot (0x13F) used only to dispatch SteveCraft's
--- custom Lua locomotion. It is not a Mario movement action.
-local ACT_STEVECRAFT_CONTROLLED = ACT_GROUP_CUTSCENE
-    | 0x3F
-    | ACT_FLAG_STATIONARY
-    | ACT_FLAG_CUSTOM_ACTION
-    | ACT_FLAG_ALLOW_FIRST_PERSON
-    | ACT_FLAG_PAUSE_EXIT
+-- Override ACT_WAITING_FOR_DIALOG with Steve's controller. This action is
+-- already in the cutscene group (so normal Mario action/cancel handlers are
+-- bypassed) and mario_ready_to_speak() explicitly allows NPC dialog starts
+-- while Mario is in this state.
+local ACT_STEVECRAFT_CONTROLLED = ACT_WAITING_FOR_DIALOG
 
 -- This unit conversion is provisional and must be calibrated in a live level.
 local WORLD_UNITS_PER_BLOCK = MinecraftPhysics.WORLD_UNITS_PER_BLOCK
@@ -333,8 +330,7 @@ local function is_preserved_native_action(action)
     if ACT_FLAG_WATER_OR_TEXT ~= nil and (action & ACT_FLAG_WATER_OR_TEXT) ~= 0 then
         return true
     end
-    return (ACT_READING_SIGN ~= nil and action == ACT_READING_SIGN)
-        or (ACT_WAITING_FOR_DIALOG ~= nil and action == ACT_WAITING_FOR_DIALOG)
+    return ACT_READING_SIGN ~= nil and action == ACT_READING_SIGN
 end
 
 local function before_set_mario_action(m, incoming_action, action_arg)
