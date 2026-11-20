@@ -95,6 +95,17 @@ local function make_mario(index, globalIndex)
     }
 end
 
+local animationUpdates = 0
+SteveCraft = {
+    animations = {
+        update_visual = function(m, visual)
+            animationUpdates = animationUpdates + 1
+            visual.header.gfx.animInfo.animID = 900
+            visual.header.gfx.animInfo.animFrame = animationUpdates
+            return true
+        end,
+    },
+}
 gMarioStates = {}
 gNetworkPlayers = {
     [0] = { globalIndex = 0 },
@@ -120,9 +131,13 @@ assert(visual.oIntangibleTimer == -1, "visual object is not intangible")
 assert(visual.oPosX == 10 and visual.oPosY == 20 and visual.oPosZ == 30, "initial transform mismatch")
 assert(localMario.marioObj.header.gfx.shadowInvisible == true, "native Mario shadow was not hidden")
 assert(visual.header.gfx.shadowInvisible == true, "detached Steve shadow was not hidden")
-assert(visual.header.gfx.animInfo.animID == 12, "animation ID was not copied")
-assert(visual.header.gfx.animInfo.animFrame == 8, "animation frame was not copied")
-assert(visual.oAnimations == localMario.marioObj.oAnimations, "animation table was not copied")
+assert(visual.header.gfx.animInfo.animID == 900, "independent Steve animation controller was not applied")
+assert(visual.header.gfx.animInfo.animFrame == 1, "independent Steve animation frame was not advanced")
+assert(animationUpdates == 1, "detached Steve animation controller did not run")
+assert(visual.oFaceAnglePitch == 0 and visual.oFaceAngleRoll == 0,
+    "Mario's pitch/roll leaked into Steve's upright body")
+assert(visual.oFaceAngleYaw == localMario.faceAngle.y,
+    "Steve's body yaw did not follow the player facing direction")
 
 local state = proxy.get_state(0)
 assert(state ~= nil and state.position.x == 10, "physics snapshot missing")
@@ -140,7 +155,8 @@ assert(proxy.get_visual_object(0) == visual, "proxy recreated the visual unneces
 assert(visual.oPosX == 88, "visual did not follow MarioState's independent position")
 assert(localMario.marioObj.header.gfx.shadowInvisible == true, "native Mario shadow reappeared")
 assert(visual.header.gfx.shadowInvisible == true, "detached Steve shadow reappeared")
-assert(visual.header.gfx.animInfo.animFrame == 9, "animation frame did not track Mario")
+assert(visual.header.gfx.animInfo.animFrame == 2, "custom Steve animation was overwritten by Mario's animation frame")
+assert(animationUpdates == 2, "detached Steve animation controller did not update again")
 assert(proxy.get_state(0).position.x == 88, "physics snapshot did not refresh")
 
 firstPerson = true
