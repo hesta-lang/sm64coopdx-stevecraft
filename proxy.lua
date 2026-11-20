@@ -17,6 +17,8 @@ local behaviorId = nil
 local warnedBehavior = false
 local warnedSpawn = false
 
+local NATIVE_BODY_HIDDEN_ALPHA = 0x100
+
 local ANIMATION_FIELDS = {
     "curAnim",
     "prevAnimPtr",
@@ -132,6 +134,34 @@ local function set_visual_transform(m, visualObject)
     end
 end
 
+local function hide_native_body(m, record)
+    if m == nil or m.marioBodyState == nil then return end
+
+    local current = m.marioBodyState.modelState or 0
+    if record.lastHiddenModelState == nil or current ~= record.lastHiddenModelState then
+        record.originalModelState = current
+    end
+
+    -- SM64CoopDX's first-person camera uses 0x100 with alpha byte 0.
+    -- Preserve other flags such as metal/vanish state while hiding the native body.
+    local hidden = (current & ~0x1FF) | NATIVE_BODY_HIDDEN_ALPHA
+    m.marioBodyState.modelState = hidden
+    record.lastHiddenModelState = hidden
+end
+
+local function restore_native_body(record)
+    if record == nil or record.marioState == nil
+        or record.marioState.marioBodyState == nil
+        or record.originalModelState == nil then
+        return
+    end
+
+    local bodyState = record.marioState.marioBodyState
+    if bodyState.modelState == record.lastHiddenModelState then
+        bodyState.modelState = record.originalModelState
+    end
+end
+
 local function visual_init(o)
     o.oFlags = (o.oFlags or 0) | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
     o.oInteractType = 0
@@ -173,9 +203,7 @@ local function visual_loop(o)
     end
 
     -- Only hide the native Mario body once its Steve visual exists.
-    if m.marioBodyState ~= nil then
-        m.marioBodyState.modelState = 0
-    end
+    hide_native_body(m, record)
 end
 
 if type(hook_behavior) == "function"
@@ -270,9 +298,7 @@ function proxy.update(m, modelId)
     if visual == nil then return false end
 
     set_visual_transform(m, visual)
-    if m.marioBodyState ~= nil then
-        m.marioBodyState.modelState = 0
-    end
+    hide_native_body(m, record)
 
     return true
 end
@@ -280,7 +306,7 @@ end
 function proxy.owns_mario_state(m)
     if m == nil or m.playerIndex == nil then return false end
     local record = records[m.playerIndex]
-    return record ~= nil and record.marioState == m
+    return record ~= nil and record.visual ~= nil and record.marioState == m
 end
 
 function proxy.is_attached(playerIndex)
@@ -332,6 +358,7 @@ function proxy.destroy(playerIndex)
     local record = records[playerIndex]
     if record == nil then return end
 
+    restore_native_body(record)
     if record.visual ~= nil and type(obj_mark_for_deletion) == "function" then
         obj_mark_for_deletion(record.visual)
     end
