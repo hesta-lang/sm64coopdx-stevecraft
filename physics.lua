@@ -43,7 +43,11 @@ local function is_local_steve(m)
 end
 
 local function is_ground_action(action)
-    return ACT_WALKING ~= nil and action == ACT_WALKING
+    return (ACT_IDLE ~= nil and action == ACT_IDLE)
+        or (ACT_WALKING ~= nil and action == ACT_WALKING)
+        or (ACT_START_CROUCHING ~= nil and action == ACT_START_CROUCHING)
+        or (ACT_CROUCHING ~= nil and action == ACT_CROUCHING)
+        or (ACT_STOP_CROUCHING ~= nil and action == ACT_STOP_CROUCHING)
 end
 
 local function is_air_action(action)
