@@ -1,10 +1,10 @@
 # SteveCraft 64
 
-Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como Steve de Minecraft Java 1.21.11. Usa un proxy físico basado en la entidad nativa del motor y un modelo Steve renderizado por separado.
+Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como Steve y mantiene el código de SteveCraft separado del motor. Usa un proxy físico basado en la entidad nativa del motor y un modelo Steve renderizado por separado.
 
 ## Versión
 
-**0.15.0-alpha** — añade el Proxy visual independiente y un pre-resolutor de colisiones triangulares adaptado de SkyCraft/MarioCraft.
+**0.16.0-alpha** — añade el port de comportamiento de movimiento y matemáticas de cámara de Minecraft Java 26.3, sobre el proxy independiente y el adaptador experimental de colisiones.
 
 ## Proxy físico/visual
 
@@ -33,25 +33,42 @@ La precolisión triangular puede desactivarse desde Lua con `SteveCraft.physics.
 
 Consulta [PROXY_ARCHITECTURE.md](PROXY_ARCHITECTURE.md) y [MARIOCRAFT_PORT.md](MARIOCRAFT_PORT.md) para los límites y el detalle de la adaptación.
 
-## Movimiento
+## Movimiento — Minecraft Java 26.3
 
-- **Correr:** doble toque hacia delante. Aplica el aumento de velocidad del 30% y activa la animación de correr.
-- **Saltar:** impulso y gravedad inspirados en Minecraft Java 1.21.11.
-- **Salto vertical:** al despegar se ponen a cero las velocidades horizontales X/Z, el avance y el deslizamiento. Durante toda la fase aérea no se aplica control horizontal.
-- **Doble/triple salto:** las transiciones nativas de Mario se convierten en salto normal.
+El movimiento se separó en minecraft_26_3_physics.lua, una traducción de comportamiento de las rutas relevantes de LocalPlayer, LivingEntity y Entity:
 
-El salto no reproduce el impulso horizontal de 0.2 bloques/tick de Minecraft al saltar corriendo; se omite porque el requisito actual es que Steve solo se desplace verticalmente al saltar.
+- Modificación de input: escala base 0.98, reducción al usar objetos, multiplicador de sigilo y corrección del movimiento diagonal al límite de un cuadrado unitario.
+- Movimiento en suelo: aceleración basada en getFrictionInfluencedSpeed; el valor de fricción por defecto es 0.6. Se puede proporcionar fricción conocida por superficie con SteveCraft.physics.set_block_friction_provider(fn).
+- Movimiento aéreo: aceleración normal de 0.02 y arrastre horizontal 0.91.
+- Gravedad y arrastre vertical: gravedad por defecto 0.08 y factor vertical 0.98, aplicados en el mismo orden que el paso de movimiento de Minecraft.
+- Salto: usa la fuerza de salto por defecto 0.42, conserva el momento horizontal y aplica el impulso de sprint de 0.2 bloques/tick.
+- Sprint: doble toque hacia delante con ventana equivalente a la configuración predeterminada documentada.
+
+Las recurrencias de 20 TPS se convierten matemáticamente a los 30 FPS del juego. La conversión de escala entre bloques y unidades SM64 sigue siendo provisional (160 unidades por 1.8 m). Los atributos, modificadores de objetos y estado de hambre que el motor Lua no expone requieren datos externos; SteveCraft.usingItem, SteveCraft.canSprint y el proveedor de fricción son entradas opcionales.
+
+**Límite esencial:** esto no sustituye el movimiento/colisión voxel-AABB de Minecraft. MarioState y el motor SM64 siguen resolviendo la colisión final. No están completas las físicas de agua/lava, escaleras, vuelo, monturas, efectos, ni el comportamiento de cada bloque.
 
 ## FOV
 
 - Primera persona: modificador de sprint 1.15× con interpolación.
-- Tercera persona: preset nativo de 60° durante sprint. Es una aproximación, no una reproducción exacta de 1.15×; la API Lua del fork no expone un FOV arbitrario editable para LakituState.
+- Tercera persona: preset nativo de 60° durante sprint. Es una aproximación; las bindings Lua no ofrecen un FOV arbitrario editable para LakituState.
 
-## Cámara
+## Cámara — Minecraft Java 26.3
 
-Pulsa **Y** para alternar entre primera y tercera persona. En tercera persona, arrastra en la zona táctil derecha para orbitar alrededor de Steve.
+Pulsa **Y** para alternar entre primera persona, tercera persona trasera y tercera persona frontal. En tercera persona, arrastra en la zona táctil derecha para orbitar.
 
-La cámara reutiliza NEWCAM para seguimiento, entrada táctil y prevención de clipping. El punto de seguimiento continúa siendo el jugador físico Mario que actúa como proxy.
+minecraft_26_3_camera.lua implementa como matemáticas independientes:
+- interpolación de posición y altura de ojos;
+- interpolación de yaw/pitch;
+- inversión de yaw y pitch en la perspectiva frontal;
+- distancia por defecto de 4 bloques con modificadores de escala/distancia;
+- algoritmo de recorte de cámara mediante ocho rayos desplazados 0.1 unidades y forma de colisión VISUAL sin fluidos.
+
+El raycaster del módulo es una interfaz; no se conecta directamente a los triángulos SM64 porque estos no equivalen a los bloques VISUAL del mundo Minecraft. En el juego real, NEWCAM sigue colocando la cámara y resolviendo paredes. La perspectiva frontal fija el yaw inicial mediante el campo de cámara que la API expone como editable.
+
+Por eso, esta versión porta las transformaciones y el algoritmo de cámara, pero **no puede afirmar paridad total de cámara** con Minecraft mientras no exista un raycaster de bloques y una API Lua que permita escribir la posición/foco de cámara.
+
+CAMERA_REFERENCE.md y tools/minecraft_26_3_physics_camera.json detallan los métodos, fuentes y límites.
 
 ## Modelo y skin
 
