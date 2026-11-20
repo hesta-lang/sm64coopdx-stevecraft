@@ -24,7 +24,7 @@ public final class Minecraft263Reference {
  public static double mthLengthSquared(final double x,final double y,final double z){return x*x+y*y+z*z;}
  public static double mthLength(final double x,final double y,final double z){return Math.sqrt(mthLengthSquared(x,y,z));}
  public static double mthFrac(final double number){return number-Math.floor(number);}
- public static double mthAtan2(final double y,final double x){double angle=Math.atan2(y,x);if(angle<0.0){angle+=Math.PI*2.0;}return angle;}
+
  interface RandomSource{int nextInt(int bound);}
  static final class FixedRandom implements RandomSource{private final int index;FixedRandom(final int index){this.index=index;}@Override public int nextInt(final int bound){if(bound<=0||index<0||index>=bound)throw new IllegalArgumentException("bound/index");return index;}}
  static final class Util{static <T>T getRandom(final List<T> list,final RandomSource random){return list.get(random.nextInt(list.size()));}}
@@ -42,7 +42,7 @@ public final class Minecraft263Reference {
   emitDouble("real.absMax",mthAbsMax(-7.0,3.0));emitDouble("real.square",mthSquare(-3.0));emitDouble("real.inverseLerp",mthInverseLerp(5.0,0.0,10.0));
   emitDouble("real.clampedMap",mthClampedMap(15.0,0.0,10.0,20.0,40.0));emitDouble("real.map",mthMap(15.0,0.0,10.0,20.0,40.0));emitDouble("real.lengthSquared3",mthLengthSquared(2.0,3.0,6.0));emitDouble("real.length3",mthLength(2.0,3.0,6.0));
   emitDouble("real.frac.negative",mthFrac(-1.25));emitDouble("real.frac.positive",mthFrac(2.25));
-  emitDouble("real.atan2.q1",mthAtan2(1.0,1.0));emitDouble("real.atan2.q2",mthAtan2(1.0,-1.0));emitDouble("real.atan2.q3",mthAtan2(-1.0,-1.0));emitDouble("real.atan2.q4",mthAtan2(-1.0,1.0));emitDouble("real.atan2.axis",mthAtan2(0.0,-1.0));
+
   System.out.println("real.sign.negative="+mthSign(-4.0));System.out.println("real.sign.zero="+mthSign(-0.0));System.out.println("real.sign.nan="+mthSign(Double.NaN));
   System.out.println("real.equal.near="+mthEqual(1.0,1.000001));System.out.println("real.equal.far="+mthEqual(1.0,1.00002));
   System.out.println("arm.0="+getArm(HumanoidArm.LEFT));System.out.println("arm.1="+getArm(HumanoidArm.RIGHT));

@@ -10,13 +10,13 @@ CI resolves NeoForm Runtime 2.0.31 and runs `net.neoforged:neoform:26.3-1@zip` f
 
 | Class | Source-transpiled methods | Public API coverage |
 | --- | --- | ---: |
-| `Mth` | 14 selected double-signature methods (listed below) | 14/114 (12.3%) |
+| `Mth` | 13 emitted double-signature methods (listed below) | 13/114 (11.4%) |
 | `HumanoidModel` | `getHead`; `getArm`; private `quadraticArmUpdate` | 2/13 |
 | `PlayerModel` | `getRandomBodyPart` | 1/5 |
 
-Across the three public API surfaces, 17/132 signatures are source-transpiled (12.9%). The private `quadraticArmUpdate` helper is one additional translated method. This is selected-signature coverage, not full-class translation. The 20 named functions in the manual `MC.Mth` compatibility layer are separate hand-written adapters and are not counted as source-transpiled methods.
+Across the three public API surfaces, 16/132 signatures are source-transpiled (12.1%). The private `quadraticArmUpdate` helper is one additional translated method. This is selected-signature coverage, not full-class translation. The 20 named functions in the manual `MC.Mth` compatibility layer are separate hand-written adapters and are not counted as source-transpiled methods.
 
-The 14 exact Minecraft 26.3 `Mth` signatures selected for extraction are:
+The 13 exact Minecraft 26.3 `Mth` signatures emitted from the exact Minecraft 26.3 source are:
 
 - `clamp(double,double,double)`
 - `clampedLerp(double,double,double)`
@@ -26,14 +26,13 @@ The 14 exact Minecraft 26.3 `Mth` signatures selected for extraction are:
 - `lerp(double,double,double)`
 - `square(double)`
 - `frac(double)`
-- `atan2(double,double)`
 - `inverseLerp(double,double,double)`
 - `clampedMap(double,double,double,double,double)`
 - `map(double,double,double,double,double)`
 - `lengthSquared(double,double,double)`
 - `length(double,double,double)`
 
-The extractor selects overloads by parameter types. It emits only one overload for each generated Lua function name; this does not implement general Java overload resolution. Minecraft 26.3 exposes `cube(float)` and `approach(float,float,float)`, not the corresponding double overloads, so those float methods remain outside this source-transpiled set until binary32 rounding is modeled at every arithmetic boundary. The selected double methods avoid pretending Lua numbers preserve Java 32-bit integer overflow or 64-bit long precision. Float-suffixed Java literals are lowered through `MC.java_float` to preserve their IEEE-754 binary32 value before promotion.
+The extractor selects overloads by parameter types. It emits only one overload for each generated Lua function name; this does not implement general Java overload resolution. Minecraft 26.3 exposes `cube(float)` and `approach(float,float,float)`, not the corresponding double overloads, so those float methods remain outside this source-transpiled set until binary32 rounding is modeled at every arithmetic boundary. The real `atan2(double,double)` method is extracted but not emitted: the current converter reports its primitive casts as a blocker rather than guessing their narrowing/overflow behavior. The selected double methods avoid pretending Lua numbers preserve Java 32-bit integer overflow or 64-bit long precision. Float-suffixed Java literals are lowered through `MC.java_float` to preserve their IEEE-754 binary32 value before promotion.
 
 `HumanoidModel<T>` extends `EntityModel<T>`, implements `ArmedModel<T>` and `HeadedModel`, and is bounded by `HumanoidRenderState`. Its constructor and model-part fields are inventoried. Its wider API depends on `ModelPart`, `PoseStack`, geometry builders, render types, equipment/arm enums, animation helpers and render-state classes.
 

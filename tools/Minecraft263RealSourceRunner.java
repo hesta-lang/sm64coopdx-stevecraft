@@ -18,11 +18,7 @@ public final class Minecraft263RealSourceRunner {
   number("length3",Mth.length(2.0,3.0,6.0));
   number("frac.negative",Mth.frac(-1.25));
   number("frac.positive",Mth.frac(2.25));
-  number("atan2.q1",Mth.atan2(1.0,1.0));
-  number("atan2.q2",Mth.atan2(1.0,-1.0));
-  number("atan2.q3",Mth.atan2(-1.0,-1.0));
-  number("atan2.q4",Mth.atan2(-1.0,1.0));
-  number("atan2.axis",Mth.atan2(0.0,-1.0));
+
   System.out.println("sign.negative="+Mth.sign(-4.0));
   System.out.println("sign.zero="+Mth.sign(-0.0));
   System.out.println("sign.nan="+Mth.sign(Double.NaN));

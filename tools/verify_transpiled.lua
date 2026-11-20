@@ -43,7 +43,7 @@ real_close("absMax",RealMth.absMax(-7.0,3.0));real_close("square",RealMth.square
 real_close("clampedMap",RealMth.clampedMap(15.0,0.0,10.0,20.0,40.0));real_close("map",RealMth.map(15.0,0.0,10.0,20.0,40.0))
 real_close("lengthSquared3",RealMth.lengthSquared(2.0,3.0,6.0));real_close("length3",RealMth.length(2.0,3.0,6.0))
 real_close("frac.negative",RealMth.frac(-1.25));real_close("frac.positive",RealMth.frac(2.25))
-real_close("atan2.q1",RealMth.atan2(1.0,1.0));real_close("atan2.q2",RealMth.atan2(1.0,-1.0));real_close("atan2.q3",RealMth.atan2(-1.0,-1.0));real_close("atan2.q4",RealMth.atan2(-1.0,1.0));real_close("atan2.axis",RealMth.atan2(0.0,-1.0))
+
 assert(RealMth.sign(-4.0)==tonumber(realExpected["sign.negative"]));assert(RealMth.sign(-0.0)==tonumber(realExpected["sign.zero"]));assert(RealMth.sign(0/0)==tonumber(realExpected["sign.nan"]))
 assert(RealMth.equal(1.0,1.000001)==(realExpected["equal.near"]=="true"));assert(RealMth.equal(1.0,1.00002)==(realExpected["equal.far"]=="true"))
 print("Minecraft 26.3 selected Java excerpts and Mth/Util equivalence checks passed")

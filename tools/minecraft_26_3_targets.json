@@ -39,9 +39,9 @@
     "note": "Secondary, unofficial cross-check only; CI source input is generated separately through NeoForm."
   },
   "coverage": {
-    "public_api_methods_translated": 17,
+    "public_api_methods_translated": 16,
     "public_api_methods_total": 132,
-    "public_api_coverage_percent": 12.9,
+    "public_api_coverage_percent": 12.1,
     "private_helpers_translated": 1,
     "translated_method_names": [
       "Mth.clamp(double)",
@@ -59,10 +59,9 @@
       "HumanoidModel.getHead",
       "HumanoidModel.getArm",
       "PlayerModel.getRandomBodyPart",
-      "Mth.frac(double)",
-      "Mth.atan2(double,double)"
+      "Mth.frac(double)"
     ],
-    "note": "17 public API signatures are source-transpiled (17/132). HumanoidModel.quadraticArmUpdate is one additional private helper. The 20 manual Mth compatibility functions are not counted as source-transpiled methods. Coverage is selected-signature coverage, not full-class translation."
+    "note": "16 public API signatures are source-transpiled (16/132). HumanoidModel.quadraticArmUpdate is one additional private helper. Mth.atan2(double,double) is extracted but blocked by primitive casts. The 20 manual Mth compatibility functions are not counted as source-transpiled methods. Coverage is selected-signature coverage, not full-class translation."
   },
   "runtime_validation": {
     "lua_5_4_validated": true,
@@ -116,7 +115,7 @@
         "Lua numbers do not preserve all Java int/long overflow, long precision, or every float rounding boundary.",
         "Mth.cube(float) and Mth.approach(float,float,float) are intentionally not source-transpiled until binary32 rounding is modeled at each arithmetic boundary."
       ],
-      "remaining": "14 selected double-signature methods are emitted from the exact 26.3 source; the other 100 API signatures are not transpiled. The 20 compatibility helpers listed under ported_methods remain separate hand-written Lua adapters.",
+      "remaining": "13 selected double-signature methods are emitted from the exact 26.3 source; the other 101 API signatures are not transpiled. The extracted atan2(double,double) candidate is blocked by primitive casts. The 20 compatibility helpers listed under ported_methods remain separate hand-written Lua adapters.",
       "source_inventory": {
         "source_entry": "net/minecraft/util/Mth.java",
         "api_surface_count": 114,
@@ -162,8 +161,7 @@
           "map(double,double,double,double,double)",
           "lengthSquared(double,double,double)",
           "length(double,double,double)",
-          "frac(double)",
-          "atan2(double,double)"
+          "frac(double)"
         ]
       },
       "transpiled_methods": [
@@ -179,14 +177,19 @@
         "map(double,double,double,double,double)",
         "lengthSquared(double,double,double)",
         "length(double,double,double)",
-        "frac(double)",
-        "atan2(double,double)"
+        "frac(double)"
       ],
       "coverage": {
-        "public_api_methods_translated": 14,
+        "public_api_methods_translated": 13,
         "public_api_methods_total": 114,
-        "public_api_coverage_percent": 12.3
-      }
+        "public_api_coverage_percent": 11.4
+      },
+      "unsupported_methods": [
+        {
+          "signature": "atan2(double,double)",
+          "reason": "primitive casts require Java narrowing/overflow semantics; the method is extracted but not emitted"
+        }
+      ]
     },
     {
       "class": "net.minecraft.client.model.HumanoidModel",
