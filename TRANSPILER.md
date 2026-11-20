@@ -41,7 +41,7 @@ The CI source report records exact imports, class declarations, inheritance, imp
 
 ## Converter rules and adapters
 
-The converter fails closed on super calls, object construction, ternary expressions outside a single return expression, lambdas/method references, primitive casts and identified engine APIs without an adapter. A top-level return ternary is lowered to lazy Lua `if/else` branches. Unqualified calls to methods declared in the same extracted class are qualified to that class, which preserves the selected `Mth` dependency chain. It normalizes Java numeric suffixes, preserves `F` literal rounding with `MC.java_float`, and supports package-qualified class filters.
+The converter fails closed on super calls, object construction, ternary expressions outside one top-level return expression per return statement, lambdas/method references, primitive casts and identified engine APIs without an adapter. A top-level return ternary is lowered to lazy Lua `if/else` branches. Unqualified calls to methods declared in the same extracted class are qualified to that class, which preserves the selected `Mth` dependency chain. It normalizes Java numeric suffixes, preserves `F` literal rounding with `MC.java_float`, and supports package-qualified class filters.
 
 The separate manual compatibility layer contains 20 named `MC.Mth` helpers, including the 65,536-entry sine/cosine lookup table, float sqrt and `rotLerpRad`, plus the float/double `Mth.clamp` helper and `Util.getRandom`. The integer/long overloads of `Mth.clamp` are not covered by that helper. Lua cannot preserve all Java long precision, overflow or every float operation boundary.
 

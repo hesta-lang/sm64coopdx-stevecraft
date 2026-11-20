@@ -181,6 +181,30 @@ def split_ternary(ts):
     return ts[:question], ts[question + 1:colon], ts[colon + 1:]
 
 
+def has_only_return_ternaries(body_tokens):
+    """Allow one top-level ternary in each return expression, including nested blocks."""
+    i=0
+    while i<len(body_tokens):
+        if body_tokens[i]=="?":
+            return False
+        if body_tokens[i]=="return":
+            end=i+1; depth=0
+            while end<len(body_tokens):
+                token=body_tokens[end]
+                if token in ("(","["): depth+=1
+                elif token in (")","]"): depth-=1
+                if token==";" and depth==0: break
+                if token in ("{","}") and depth==0: break
+                end+=1
+            expression=body_tokens[i+1:end]
+            if "?" in expression and not split_ternary(expression):
+                return False
+            i=end+1 if end<len(body_tokens) and body_tokens[end]==";" else end
+        else:
+            i+=1
+    return True
+
+
 def is_single_return_ternary(body_tokens):
     if not body_tokens or body_tokens[0] != "return":
         return False
@@ -200,8 +224,8 @@ def validate_method_tokens(bt, where):
         raise ValueError("object construction requires an explicit constructor adapter: " + target)
     if "->" in bt or "::" in bt:
         raise ValueError("lambda/method reference requires a functional-interface adapter")
-    if "?" in bt and not is_single_return_ternary(bt):
-        raise ValueError("ternary conditional operator is unsupported outside a single return expression")
+    if "?" in bt and not has_only_return_ternaries(bt):
+        raise ValueError("ternary conditional operator is supported only as one top-level return expression")
     if re.search(r'\(\s*(?:byte|short|int|long|float|double|char)\s*\)', joined):
         raise ValueError("primitive casts require Java narrowing/overflow semantics")
     for i, token in enumerate(bt):
