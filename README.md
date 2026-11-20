@@ -26,7 +26,7 @@ Este Proxy separa el cuerpo visual del puente de compatibilidad. **SteveCraft es
 - Se portó a Lua el algoritmo de `TriCollider` de SkyCraft: subpasos para evitar atravesar paredes, empuje lateral, muestreo de suelo bajo los pies, subida de escalones, seguimiento de pendientes y recorte contra techos.
 - `sm64_collision_adapter.lua` consulta las superficies reales de SM64CoopDX con `find_floor`, `find_ceil` y `find_wall_collisions`; no lee memoria ni modifica los pools de colisión del motor.
 - El adaptador consulta superficies reales de SM64CoopDX y el resolvedor triangular de SteveCraft calcula el desplazamiento aceptado. El cuerpo utiliza una huella radial y altura configurable, no una caja AABB voxel exacta.
-- `hook_mario_action()` registra `ACT_STEVECRAFT_CONTROLLED`, una acción Lua en el grupo de cutscene que sustituye las acciones nativas de caminar, correr, saltar, caer y nadar. El callback `gravity` bloquea la gravedad nativa de Mario.
+- `hook_mario_action()` registra `ACT_STEVECRAFT_CONTROLLED` sobre `ACT_WAITING_FOR_DIALOG`, una acción del grupo cutscene que también permite que el motor inicie conversaciones con NPCs. Su callback Lua sustituye las acciones nativas de caminar, correr, saltar, caer y nadar; el callback `gravity` bloquea la gravedad nativa de Mario.
 - `HOOK_BEFORE_PHYS_STEP` intercepta los pasos de suelo, aire y agua que la acción Steve solicita; devuelve resultados compatibles y cancela el resolvedor/gravedad integrados del motor.
 - `HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS` devuelve `false` para el jugador Steve. Con ello se omite `update_mario_geometry_inputs()`, incluidos `f32_find_wall_collision()` y las correcciones de posición nativas de Mario. `steve_geometry.lua` repone mediante consultas Lua los contactos básicos de suelo, techo, agua y gas sin mover al jugador.
 - La posición, velocidad, datos de contacto básicos y transformación gráfica se actualizan desde Lua. Si el resolvedor no puede resolver un paso, el modo de aislamiento devuelve un resultado neutral y detiene ese paso; **no vuelve al resolvedor nativo de Mario**.
@@ -87,7 +87,7 @@ El modelo se mantiene dentro de este repositorio independiente. No se modifica e
 ## Límites actuales
 
 - La equivalencia entre bloques Minecraft y unidades SM64 sigue siendo provisional.
-- La acción propia cubre la locomoción regular de Steve; los diálogos/signos se conservan. Las acciones de cutscene, superficies especiales, warp y muerte necesitan compatibilidad explícita si deben mantener su comportamiento de nivel.
+- La acción propia cubre la locomoción regular de Steve; los diálogos/signos se conservan. Las cutscenes con movimiento, superficies especiales, warp y muerte necesitan compatibilidad explícita si deben mantener su comportamiento de nivel.
 - El colisionador horizontal usa una aproximación radial de 0.3 bloques de radio, no un AABB rectangular exacto. Las superficies consultadas siguen siendo triángulos de SM64.
 - La ruta de agua aún no reproduce corrientes Minecraft persistentes, burbujas, fluidos personalizados ni todos los estados de nado. Lava y modificadores individuales de bloque siguen incompletos.
 - El Proxy aún depende de las animaciones del esqueleto SM64; no reemplaza los clips por los controladores Java de Minecraft.
