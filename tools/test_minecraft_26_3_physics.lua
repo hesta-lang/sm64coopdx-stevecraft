@@ -57,6 +57,24 @@ assert(sprint.sprinting)
 sprint = P.update_sprint(sprint, 0, true, 11)
 assert(not sprint.sprinting)
 
+-- Water path: low efficiency starts at vanilla base speed, efficiency
+-- approaches land speed, and the travel drag is applied after displacement.
+local water_req_x, water_req_z, water_next_x, water_next_z, water_speed, water_slowdown =
+    P.water_horizontal_step(0, 0, 0, 0.98, 0.1, 0, false, false)
+assert(math.abs(water_speed - 0.02) < 1e-9)
+assert(math.abs(water_slowdown - 0.8) < 1e-9)
+assert(water_req_z > 0 and water_next_z > 0 and water_next_z < water_req_z)
+local efficient_req_x, efficient_req_z, _, _, efficient_speed, efficient_slowdown =
+    P.water_horizontal_step(0, 0, 0, 0.98, 0.1, 1, true, false)
+assert(math.abs(efficient_speed - 0.1) < 1e-9)
+assert(math.abs(efficient_slowdown - 0.54600006) < 1e-8)
+assert(efficient_req_z > water_req_z)
+
+local requested_water_y, post_water_y = P.water_vertical_step(0, true, false, 0.08)
+assert(requested_water_y > 0 and post_water_y > 0)
+local requested_sink_y, post_sink_y = P.water_vertical_step(0, false, false, 0.08)
+assert(requested_sink_y == 0 and post_sink_y < 0)
+
 -- Collision reconciliation mirrors Minecraft Entity.move() feedback.
 local slide_x, slide_z = P.reconcile_horizontal_velocity(1.0, 0.4, true, 1.0, 0.0, false, false)
 assert(math.abs(slide_x) < 1e-9 and math.abs(slide_z - 0.4) < 1e-9)
