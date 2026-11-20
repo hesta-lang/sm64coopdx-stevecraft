@@ -11,6 +11,8 @@ on:
       - "tools/minecraft_26_3_target_test.py"
       - "tools/minecraft_26_3_source_test.py"
       - "tools/minecraft_26_3_equivalence_test.py"
+      - "tools/minecraft_26_3_model_reference.py"
+      - "tools/minecraft_26_3_model_reference_test.py"
       - "tools/extract_minecraft_26_3.py"
       - "tools/Minecraft263Reference.java"
       - "tools/Minecraft263RealSourceRunner.java"
@@ -29,6 +31,8 @@ on:
       - "tools/minecraft_26_3_target_test.py"
       - "tools/minecraft_26_3_source_test.py"
       - "tools/minecraft_26_3_equivalence_test.py"
+      - "tools/minecraft_26_3_model_reference.py"
+      - "tools/minecraft_26_3_model_reference_test.py"
       - "tools/extract_minecraft_26_3.py"
       - "tools/Minecraft263Reference.java"
       - "tools/minecraft_26_3_targets.json"
@@ -60,7 +64,8 @@ jobs:
         run: |
           python -m py_compile tools/java_to_lua.py tools/extract_minecraft_26_3.py \
             tools/mc_transpiler_test.py tools/minecraft_26_3_target_test.py \
-            tools/minecraft_26_3_source_test.py tools/minecraft_26_3_equivalence_test.py
+            tools/minecraft_26_3_source_test.py tools/minecraft_26_3_equivalence_test.py \
+            tools/minecraft_26_3_model_reference.py tools/minecraft_26_3_model_reference_test.py
       - name: Run Python, source extraction, and Java equivalence tests
         run: python -m unittest discover -s tools -p "*_test.py" -v
       - name: Translate existing Java subset fixtures
@@ -169,6 +174,8 @@ jobs:
         run: |
           python tools/extract_minecraft_26_3.py --sources build/minecraft-26.3-sources.jar \
             --output build/minecraft-26.3-extracted --report build/minecraft-26.3-source-report.json
+          python tools/minecraft_26_3_model_reference.py --input build/minecraft-26.3-extracted \
+            --output build/Minecraft263ModelReferenceRunner.java
       - name: Transpile selected Minecraft 26.3 source methods
         run: |
           python tools/java_to_lua.py --input build/minecraft-26.3-extracted --output build/transpiled-real \
@@ -179,13 +186,13 @@ jobs:
           python - <<'PY'
           import json
           r=json.load(open("build/transpiled-real/transpile-report.json",encoding="utf-8"))
-          assert r["translated_methods"]==16 and len(r["skipped_methods"])==6 and r["strict_blockers"]==6 and not r["skipped_files"] and set(r["generated_modules"])=={"net/minecraft/client/model/HumanoidModel.lua","net/minecraft/client/model/player/PlayerModel.lua","net/minecraft/util/Mth.lua"},r
-          expected_mth={"clamp","clampedLerp","absMax","equal","sign","lerp","square","inverseLerp","clampedMap","map","lengthSquared","length"}
+          assert r["translated_methods"]==19 and len(r["skipped_methods"])==6 and r["strict_blockers"]==6 and not r["skipped_files"] and set(r["generated_modules"])=={"net/minecraft/client/model/HumanoidModel.lua","net/minecraft/client/model/player/PlayerModel.lua","net/minecraft/util/Mth.lua"},r
+          expected_mth={"clamp","clampedLerp","absMax","equal","sign","lerp","square","cube","frac","approach","inverseLerp","clampedMap","map","lengthSquared","length"}
           actual_mth={x["method"] for x in r["translated_method_details"] if x["class"]=="net.minecraft.util.Mth"}
           assert actual_mth==expected_mth,(actual_mth,expected_mth,r)
           reasons=" | ".join(x["reason"] for x in r["skipped_methods"])
           for x in ("super calls","ternary conditional operator","object construction","lambda/method reference","unadapted Minecraft engine type/API"): assert x in reasons,r
-          print("Translated real Minecraft methods:",r["translated_methods"],"including 12 Mth double helpers; skipped conservatively:",len(r["skipped_methods"]))
+          print("Translated real Minecraft methods:",r["translated_methods"],"including 15 Mth double helpers; skipped conservatively:",len(r["skipped_methods"]))
           PY
       - name: Compile extracted Mth source as Java reference
         run: |
@@ -193,6 +200,12 @@ jobs:
           javac -d build/java-real-source build/minecraft-26.3-extracted/net/minecraft/util/Mth.java tools/Minecraft263RealSourceRunner.java
           java -cp build/java-real-source Minecraft263RealSourceRunner > build/java-real-source-reference.txt
           cat build/java-real-source-reference.txt
+      - name: Compile extracted HumanoidModel and PlayerModel methods as Java reference
+        run: |
+          mkdir -p build/java-model-reference
+          javac -d build/java-model-reference build/Minecraft263ModelReferenceRunner.java
+          java -cp build/java-model-reference Minecraft263ModelReferenceRunner > build/java-model-reference.txt
+          cat build/java-model-reference.txt
       - name: Validate generated Lua 5.4 syntax
         run: |
           luac5.4 -p mc_compat.lua
@@ -212,6 +225,8 @@ jobs:
             build/minecraft-26.3-extracted/
             build/java-reference.txt
             build/java-real-source-reference.txt
+            build/java-model-reference.txt
+            build/Minecraft263ModelReferenceRunner.java
             tools/Minecraft263RealSourceRunner.java
             mc_compat.lua
             tools/minecraft_26_3_targets.json

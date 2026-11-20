@@ -10,13 +10,13 @@ CI resolves NeoForm Runtime 2.0.31 and runs `net.neoforged:neoform:26.3-1@zip` f
 
 | Class | Source-transpiled methods | Public API coverage |
 | --- | --- | ---: |
-| `Mth` | 12 selected double-signature methods (listed below) | 12/114 (10.5%) |
+| `Mth` | 15 selected double-signature methods (listed below) | 15/114 (13.2%) |
 | `HumanoidModel` | `getHead`; `getArm`; private `quadraticArmUpdate` | 2/13 |
 | `PlayerModel` | `getRandomBodyPart` | 1/5 |
 
-Across the three public API surfaces, 15/132 signatures are source-transpiled (11.4%). The private `quadraticArmUpdate` helper is one additional translated method. This is selected-signature coverage, not full-class translation. The 20 named functions in the manual `MC.Mth` compatibility layer are separate hand-written adapters and are not counted as source-transpiled methods.
+Across the three public API surfaces, 18/132 signatures are source-transpiled (13.6%). The private `quadraticArmUpdate` helper is one additional translated method. This is selected-signature coverage, not full-class translation. The 20 named functions in the manual `MC.Mth` compatibility layer are separate hand-written adapters and are not counted as source-transpiled methods.
 
-The 12 exact Minecraft 26.3 `Mth` signatures selected for extraction are:
+The 15 exact Minecraft 26.3 `Mth` signatures selected for extraction are:
 
 - `clamp(double,double,double)`
 - `clampedLerp(double,double,double)`
@@ -25,6 +25,9 @@ The 12 exact Minecraft 26.3 `Mth` signatures selected for extraction are:
 - `sign(double)`
 - `lerp(double,double,double)`
 - `square(double)`
+- `cube(double)`
+- `frac(double)`
+- `approach(double,double,double)`
 - `inverseLerp(double,double,double)`
 - `clampedMap(double,double,double,double,double)`
 - `map(double,double,double,double,double)`
@@ -49,6 +52,6 @@ There are no adapters yet for `ModelPart`, `PoseStack`, geometry builders, rende
 
 ## Validation boundary
 
-CI runs Python tests, generates the real 26.3 joined-distribution sources through NeoForm, extracts selected methods, transpiles the excerpts, compiles the extracted Mth.java wrapper itself into a Java reference runner, validates Lua 5.4 syntax, and compares generated Lua results against that exact Java excerpt. A separate Java harness validates the existing manual Mth/Util adapters and model-method behavior.
+CI runs Python tests, generates the real 26.3 joined-distribution sources through NeoForm, extracts selected methods, transpiles the excerpts, and compiles the extracted Mth.java wrapper itself into a Java reference runner. It also compiles the exact extracted `HumanoidModel` and `PlayerModel` method bodies into a small Java harness with explicit test doubles for `ModelPart`, `HumanoidArm`, `RandomSource` and `Util.getRandom`. Lua 5.4 compares numeric helpers against the extracted Mth source and compares translated model accessors, the polynomial helper and random-part selection against those extracted Java method bodies. The harness does not claim to implement or validate the real Minecraft engine classes.
 
 Passing CI validates only this subset and its explicit adapters. It does not prove full `Mth`, `HumanoidModel` or `PlayerModel` translation, constructor/inheritance behavior, or compatibility inside SteveCraft/SM64CoopDX. PR #6 must remain Draft until runtime adapter validation is complete.
