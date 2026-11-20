@@ -11,9 +11,6 @@ ACT_FLAG_INVULNERABLE = 0x20000
 ACT_FLAG_ALLOW_FIRST_PERSON = 0x04000000
 ACT_FLAG_PAUSE_EXIT = 0x08000000
 ACT_FLAG_CUSTOM_ACTION = 0x40000000
-ACT_FLAG_CUSTOM_ACTION = 0x40000000
-ACT_FLAG_ALLOW_FIRST_PERSON = 0x04000000
-ACT_FLAG_PAUSE_EXIT = 0x08000000
 ACT_FLAG_WATER_OR_TEXT = 0x20000000
 ACT_FLAG_AIR = 0x800
 ACT_FLAG_SWIMMING = 0x2000
@@ -21,6 +18,7 @@ ACT_UNINITIALIZED = 0
 ACT_READING_SIGN = 0x1308
 ACT_WAITING_FOR_DIALOG = 0x130A
 ACT_UNKNOWN_0002020E = 0x0002020E
+ACT_STANDING_DEATH = 0x00021311
 ACT_IDLE = 0x0C400201
 ACT_WALKING = 0x04000440
 
@@ -61,6 +59,7 @@ HOOK_ON_SET_MARIO_ACTION = "on_set_action"
 HOOK_BEFORE_MARIO_UPDATE = "before_mario_update"
 HOOK_MARIO_OVERRIDE_GEOMETRY_INPUTS = "override_geometry"
 HOOK_ALLOW_FORCE_WATER_ACTION = "allow_force_water"
+HOOK_ALLOW_HAZARD_SURFACE = "allow_hazard_surface"
 HOOK_BEFORE_PHYS_STEP = "before_physics_step"
 HOOK_ON_LEVEL_INIT = "level_init"
 HOOK_ON_WARP = "warp"
@@ -167,6 +166,8 @@ local remapped = events[HOOK_BEFORE_SET_MARIO_ACTION](mario, ACT_WALKING, 0)
 assert(remapped == controlled, "native walking action was not redirected")
 assert(events[HOOK_BEFORE_SET_MARIO_ACTION](mario, ACT_READING_SIGN, 0) == nil,
     "reading-sign action should remain available")
+assert(events[HOOK_BEFORE_SET_MARIO_ACTION](mario, ACT_STANDING_DEATH, 0) == nil,
+    "native terminal death presentation should remain available")
 
 -- Before the normal update, force the player into the Steve-only action.
 events[HOOK_BEFORE_MARIO_UPDATE](mario)
