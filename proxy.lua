@@ -90,15 +90,7 @@ local function copy_animation_state(sourceObject, visualObject)
         visualObject.oAnimState = sourceObject.oAnimState
     end
 
-    -- Retain special scale effects applied by the engine to the physical
-    -- player object (for example, temporary size changes).
-    local sourceScale = sourceHeader.gfx.scale
-    local targetScale = targetHeader.gfx.scale
-    if sourceScale ~= nil and targetScale ~= nil then
-        if sourceScale.x ~= nil then targetScale.x = sourceScale.x end
-        if sourceScale.y ~= nil then targetScale.y = sourceScale.y end
-        if sourceScale.z ~= nil then targetScale.z = sourceScale.z end
-    end
+
 end
 
 local function set_visual_transform(m, visualObject)
