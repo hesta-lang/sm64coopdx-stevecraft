@@ -66,7 +66,7 @@ assert((m.input & INPUT_OFF_FLOOR) == 0, "grounded state must clear OFF_FLOOR")
 assert(m.pos.x == 10 and m.pos.y == 0 and m.pos.z == 20, "geometry refresh must never correct player position")
 
 m.pos.y = 12
-waterLevel = 20
+waterLevel = 30
 gasLevel = 150
 assert(Geometry.update(m, state, { height = 160, stepHeight = 50, groundTolerance = 6 }))
 assert(state.onGround == false and state.inWater == true)
