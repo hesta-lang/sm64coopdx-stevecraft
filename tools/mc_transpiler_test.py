@@ -88,7 +88,8 @@ class TranspilerIntegrationTests(unittest.TestCase):
             source.parent.mkdir(parents=True)
             source.write_text(
                 "package net.minecraft.demo; public class Ternary { "
-                "public int choose(boolean flag) { int value = flag ? 1 : 2; return value; } }",
+                "public int choose(boolean flag) { int value = flag ? 1 : 2; return value; } "
+                "public int nested(boolean flag) { return flag ? (flag ? 1 : 2) : 3; } }",
                 encoding="utf-8"
             )
             report = Path(tmp) / "report.json"
@@ -100,8 +101,9 @@ class TranspilerIntegrationTests(unittest.TestCase):
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             data = json.loads(report.read_text())
             self.assertEqual(data["translated_methods"], 0)
-            self.assertEqual(len(data["skipped_methods"]), 1)
-            self.assertIn("ternary conditional operator", data["skipped_methods"][0]["reason"])
+            self.assertEqual(len(data["skipped_methods"]), 2)
+            for item in data["skipped_methods"]:
+                self.assertIn("ternary conditional operator", item["reason"])
 
     def test_strict_mode_fails_when_a_method_is_skipped(self):
         with tempfile.TemporaryDirectory() as tmp:

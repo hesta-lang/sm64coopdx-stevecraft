@@ -170,7 +170,7 @@ def split_ternary(ts):
                 break
     if question <= 0 or colon <= question + 1 or colon >= len(ts) - 1:
         return None
-    if "?" in ts[colon + 1:]:
+    if "?" in ts[:question] or "?" in ts[question + 1:colon] or "?" in ts[colon + 1:]:
         return None
     return ts[:question], ts[question + 1:colon], ts[colon + 1:]
 
@@ -179,6 +179,8 @@ def is_single_return_ternary(body_tokens):
     if not body_tokens or body_tokens[0] != "return":
         return False
     expression = body_tokens[1:-1] if body_tokens[-1] == ";" else body_tokens[1:]
+    if not expression or any(token in (";", "{", "}") for token in expression):
+        return False
     return split_ternary(expression) is not None
 
 
@@ -192,7 +194,7 @@ def validate_method_tokens(bt, where):
         raise ValueError("object construction requires an explicit constructor adapter: " + target)
     if "->" in bt or "::" in bt:
         raise ValueError("lambda/method reference requires a functional-interface adapter")
-    if "?" in bt and ":" in bt and not is_single_return_ternary(bt):
+    if "?" in bt and not is_single_return_ternary(bt):
         raise ValueError("ternary conditional operator is unsupported outside a single return expression")
     if re.search(r'\(\s*(?:byte|short|int|long|float|double|char)\s*\)', joined):
         raise ValueError("primitive casts require Java narrowing/overflow semantics")
