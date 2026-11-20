@@ -484,7 +484,7 @@ local function before_physics_step(m, step_type, step_arg)
         return
     end
 
-    if not physics.enabled then
+    if not physics.enabled or not physics.independentMode then
         states[m.playerIndex or 0] = nil
         return
     end
@@ -502,8 +502,6 @@ local function before_physics_step(m, step_type, step_arg)
     local ground = step_type == STEP_TYPE_GROUND
     local air = step_type == STEP_TYPE_AIR
     local water = step_type == STEP_TYPE_WATER
-        and ACT_FLAG_SWIMMING ~= nil
-        and (m.action & ACT_FLAG_SWIMMING) ~= 0
     if not ground and not air and not water then
         states[m.playerIndex or 0] = nil
         return
@@ -534,28 +532,22 @@ local function before_physics_step(m, step_type, step_arg)
         m.vel.x, m.vel.y, m.vel.z = move_x, move_y, move_z
         state.vx, state.vy, state.vz = next_x, next_y, next_z
 
-        if physics.independentMode then
-            local result = IndependentPhysics.resolve(
-                m, step_type, state,
-                { x = move_x, y = move_y, z = move_z },
-                independent_collision_config(on_floor)
-            )
-            if type(result) == "number" then
-                state.pendingStep = nil
-                state.independentStep = true
-                return result
-            end
+        local result = IndependentPhysics.resolve(
+            m, step_type, state,
+            { x = move_x, y = move_y, z = move_z },
+            independent_collision_config(on_floor)
+        )
+        if type(result) == "number" then
+            state.pendingStep = nil
+            state.independentStep = true
+            return result
         end
 
-        state.pendingStep = {
-            medium = "water",
-            startX = m.pos.x or 0,
-            startY = m.pos.y or 0,
-            startZ = m.pos.z or 0,
-            requestedX = move_x, requestedY = move_y, requestedZ = move_z,
-            wasGround = on_floor, wasAir = false,
-        }
-        return
+        -- Never fall back to Mario's native water solver in isolation mode.
+        state.vx, state.vy, state.vz = 0.0, 0.0, 0.0
+        m.vel.x, m.vel.y, m.vel.z = 0.0, 0.0, 0.0
+        state.pendingStep = nil
+        return WATER_STEP_NONE
     end
 
     update_horizontal_velocity(m, step_type, state, sprint)
@@ -569,34 +561,27 @@ local function before_physics_step(m, step_type, step_arg)
         m.vel.y = 0.0
     end
 
-    if physics.independentMode then
-        local requested = {
-            x = (m.vel and m.vel.x) or 0.0,
-            y = (m.vel and m.vel.y) or 0.0,
-            z = (m.vel and m.vel.z) or 0.0,
-        }
-        local result = IndependentPhysics.resolve(
-            m, step_type, state, requested, independent_collision_config(ground)
-        )
-        if type(result) == "number" then
-            state.pendingStep = nil
-            state.independentStep = true
-            return result
-        end
+    local requested = {
+        x = (m.vel and m.vel.x) or 0.0,
+        y = (m.vel and m.vel.y) or 0.0,
+        z = (m.vel and m.vel.z) or 0.0,
+    }
+    local result = IndependentPhysics.resolve(
+        m, step_type, state, requested, independent_collision_config(ground)
+    )
+    if type(result) == "number" then
+        state.pendingStep = nil
+        state.independentStep = true
+        return result
     end
 
-    -- Safe fallback to the previous native-step integration if surface sampling fails.
-    apply_triangle_collision(m, step_type, state)
-    state.pendingStep = {
-        medium = "air_ground",
-        startX = m.pos.x or 0, startY = m.pos.y or 0, startZ = m.pos.z or 0,
-        requestedX = (m.vel and m.vel.x) or 0,
-        requestedY = (m.vel and m.vel.y) or 0,
-        requestedZ = (m.vel and m.vel.z) or 0,
-        verticalVelocity = state.vy or 0,
-        wasGround = ground,
-        wasAir = air and state.jumpActive == true,
-    }
+    -- Strict isolation: if Lua cannot resolve a step, stop that step in place.
+    -- Never allow Mario's native solver or gravity to take over.
+    state.vx, state.vy, state.vz = 0.0, 0.0, 0.0
+    m.vel.x, m.vel.y, m.vel.z = 0.0, 0.0, 0.0
+    state.pendingStep = nil
+    if ground then return GROUND_STEP_NONE end
+    return AIR_STEP_NONE
 end
 
 local function after_mario_update(m)
