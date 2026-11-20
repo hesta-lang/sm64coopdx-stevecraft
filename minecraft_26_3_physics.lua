@@ -218,6 +218,38 @@ local function fluid_fall_adjustment(velocity_y, gravity, was_falling, sprinting
     return velocity_y - gravity / 16
 end
 
+function P.water_horizontal_step(vx, vz, input_x, input_z, movement_speed, efficiency, on_ground, sprinting)
+    local speed = P.water_movement_speed(movement_speed, efficiency, on_ground)
+    local slowdown = sprinting and 0.9 or 0.8
+    local effective_efficiency = clamp(finite_or(efficiency, 0), 0, 1)
+    if not on_ground then effective_efficiency = effective_efficiency * 0.5 end
+    slowdown = slowdown + (0.54600006 - slowdown) * effective_efficiency
+
+    -- Water movement has no ground-friction multiplier. Input is applied
+    -- before travel slowdown, so use Minecraft's affine 20-TPS recurrence.
+    local acceleration, drag = P.tick_coefficients(speed, slowdown)
+    local requested_x = finite_or(vx, 0) + acceleration * finite_or(input_x, 0)
+    local requested_z = finite_or(vz, 0) + acceleration * finite_or(input_z, 0)
+    return requested_x, requested_z, requested_x * drag, requested_z * drag,
+        speed, slowdown
+end
+
+function P.water_vertical_step(velocity_y, jump_held, descend_held, gravity)
+    local vertical_acceleration = 0
+    if jump_held then vertical_acceleration = vertical_acceleration + 0.04 end
+    if descend_held then vertical_acceleration = vertical_acceleration - 0.04 end
+
+    local impulse_frame = 0
+    if vertical_acceleration ~= 0 then
+        impulse_frame = P.tick_coefficients(vertical_acceleration, 0.8)
+    end
+    local gravity_frame, drag_frame = P.tick_coefficients(
+        finite_or(gravity, P.DEFAULT_GRAVITY) / 16.0, 0.8
+    )
+    local next_y = (finite_or(velocity_y, 0) + impulse_frame - gravity_frame) * drag_frame
+    return next_y, impulse_frame, gravity_frame, drag_frame
+end
+
 function P.apply_water_drag(vx, vy, vz, options)
     options = options or {}
     local sprinting = options.sprinting == true
