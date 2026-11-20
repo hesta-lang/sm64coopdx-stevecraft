@@ -4,7 +4,7 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 
 ## Versión
 
-**0.14.0-alpha** — añade el primer puente Proxy físico/visual, conserva la animación del jugador y separa el modelo de Steve del objeto Mario.
+**0.15.0-alpha** — añade el Proxy visual independiente y un pre-resolutor de colisiones triangulares adaptado de SkyCraft/MarioCraft.
 
 ## Proxy físico/visual
 
@@ -17,9 +17,21 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 - En primera persona se oculta el cuerpo visual independiente y se conserva el brazo viewmodel de Steve.
 - La cámara nativa continúa siguiendo al proxy físico. La API Lua no expone un destino Lakitu editable para implementar una cámara Minecraft completamente independiente.
 
-Este primer Proxy separa la representación del cuerpo que colisiona, pero **no sustituye todavía las colisiones SM64 por colisiones voxel/AABB de Minecraft**. La física actual sigue escribiendo sobre el único MarioState y el motor resuelve sus contactos.
+Este Proxy separa la representación del cuerpo que colisiona. **MarioState sigue siendo la única autoridad física** y el motor resuelve los contactos finales.
 
-Consulta [PROXY_ARCHITECTURE.md](PROXY_ARCHITECTURE.md) para el diseño y la API Lua.
+## Colisiones triangulares de SkyCraft/MarioCraft
+
+- Se portó a Lua el algoritmo de `TriCollider` de SkyCraft: subpasos para evitar atravesar paredes, empuje lateral, muestreo de suelo bajo los pies, subida de escalones, seguimiento de pendientes y recorte contra techos.
+- `sm64_collision_adapter.lua` consulta las superficies reales de SM64CoopDX con `find_floor`, `find_ceil` y `find_wall_collisions`; no lee memoria ni modifica los pools de colisión del motor.
+- El desplazamiento propuesto se limita antes del paso físico normal. Después, SM64CoopDX sigue ejecutando su resolvedor original, sus acciones, las interacciones y sus colisiones dinámicas.
+- La adaptación usa la escala de SteveCraft actual, todavía provisional. No copia la conversión Windows de MarioCraft (100 unidades SM64 por bloque).
+- No se importó el puente de memoria compartida de Windows ni el cliente Fabric/Minecraft que MarioCraft arranca en segundo plano.
+
+La precolisión triangular puede desactivarse desde Lua con `SteveCraft.physics.set_triangle_collision_enabled(false)`. Para volver a activarla, usa `SteveCraft.physics.set_triangle_collision_enabled(true)`. Si aparecen vibraciones, saltos de altura o bloqueos en pendientes, desactívala: el motor SM64 sigue siendo el resolvedor final.
+
+**Esto no convierte las físicas de SM64 en las físicas completas de Minecraft.** MarioCraft obtiene velocidad, gravedad, fricción, saltos y demás del propio Minecraft Java que ejecuta por separado; el algoritmo reutilizado aquí solo resuelve geometría triangular.
+
+Consulta [PROXY_ARCHITECTURE.md](PROXY_ARCHITECTURE.md) y [MARIOCRAFT_PORT.md](MARIOCRAFT_PORT.md) para los límites y el detalle de la adaptación.
 
 ## Movimiento
 
@@ -50,7 +62,7 @@ El modelo se mantiene dentro de este repositorio independiente. No se modifica e
 ## Límites actuales
 
 - La equivalencia entre bloques Minecraft y unidades SM64 sigue siendo provisional.
-- Las colisiones siguen siendo las de superficies SM64, no AABB/voxels de Minecraft.
+- El pre-resolutor triangular usa consultas de superficies del motor; no crea colisiones AABB/voxel de Minecraft y todavía requiere validación en Android.
 - La física de agua/lava, modificadores individuales de bloques y paridad física multijugador no están implementadas.
 - El Proxy aún depende de las animaciones del esqueleto SM64; no reemplaza los clips por los controladores Java de Minecraft.
 - La API Lua no permite escribir directamente la posición/foco de Lakitu para una cámara Minecraft totalmente separada.
@@ -77,4 +89,4 @@ La adaptación utiliza como referencia una decompilación comunitaria de Minecra
 
 ## Validación
 
-GitHub Actions comprueba la sintaxis Lua y las pruebas aisladas del Proxy. Después hace falta probar en SM64CoopDX Android: modelo separado, animación al caminar/saltar, visibilidad en primera/tercera persona, orientación, sincronización de jugadores remotos, colisiones, aterrizaje y cámara táctil.
+GitHub Actions comprueba la sintaxis Lua, el Proxy, el solucionador triangular y el adaptador de superficies simulado. Después hace falta probar en SM64CoopDX Android: caminar por pendientes, subir escalones, atravesar paredes, techos bajos, aterrizar, saltos y cámara táctil.
