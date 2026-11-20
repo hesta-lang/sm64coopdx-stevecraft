@@ -11,6 +11,13 @@ local function clamp(x, lo, hi)
     return math.max(lo, math.min(hi, x))
 end
 
+local function finite(x, fallback)
+    if type(x) ~= "number" or x ~= x or x == math.huge or x == -math.huge then
+        return fallback
+    end
+    return x
+end
+
 -- Convert Minecraft's standing/crouching eye height into this mod's current
 -- SM64 world scale. The host FirstPersonCamera has a fixed 120-unit head
 -- baseline; only its writable offset.y is adjusted by camera.lua.
@@ -19,13 +26,6 @@ function C.player_eye_offset(crouching, units_per_block, sm64_head_baseline)
     local baseline = finite(sm64_head_baseline, 120.0)
     local eye_blocks = crouching and 1.27 or 1.62
     return eye_blocks * units - baseline
-end
-
-local function finite(x, fallback)
-    if type(x) ~= "number" or x ~= x or x == math.huge or x == -math.huge then
-        return fallback
-    end
-    return x
 end
 
 local function vec(x, y, z)
