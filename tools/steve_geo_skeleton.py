@@ -19,36 +19,36 @@ FULL_BODY_LAYOUTS = (
 EXPECTED_ANIMATED_NODES = 20
 
 _LAYOUT_START = re.compile(
-    r"(?m)^const\\s+GeoLayout\\s+(?P<name>[A-Za-z0-9_]+)\\[\\]\\s*=\\s*\\{"
+    r"(?m)^const\s+GeoLayout\s+(?P<name>[A-Za-z0-9_]+)\[\]\s*=\s*\{"
 )
 _ARM_LINE = {
     "left": re.compile(
-        r"(?m)^(?P<indent>[ \\t]*)GEO_ANIMATED_PART\\(\\s*"
-        r"(?P<layer>LAYER_OPAQUE|LAYER_TRANSPARENT),\\s*0,\\s*0,\\s*0,\\s*"
-        r"steve_[A-Za-z0-9_]*Left_Arm_Color_mesh_layer_1\\s*\\),[ \\t]*$"
+        r"(?m)^(?P<indent>[ \t]*)GEO_ANIMATED_PART\(\s*"
+        r"(?P<layer>LAYER_OPAQUE|LAYER_TRANSPARENT),\s*0,\s*0,\s*0,\s*"
+        r"steve_[A-Za-z0-9_]*Left_Arm_Color_mesh_layer_1\s*\),[ \t]*$"
     ),
     "right": re.compile(
-        r"(?m)^(?P<indent>[ \\t]*)GEO_ANIMATED_PART\\(\\s*"
-        r"(?P<layer>LAYER_OPAQUE|LAYER_TRANSPARENT),\\s*0,\\s*0,\\s*0,\\s*"
-        r"steve_[A-Za-z0-9_]*Right_Arm_Color_mesh_layer_1\\s*\\),[ \\t]*$"
+        r"(?m)^(?P<indent>[ \t]*)GEO_ANIMATED_PART\(\s*"
+        r"(?P<layer>LAYER_OPAQUE|LAYER_TRANSPARENT),\s*0,\s*0,\s*0,\s*"
+        r"steve_[A-Za-z0-9_]*Right_Arm_Color_mesh_layer_1\s*\),[ \t]*$"
     ),
 }
 _FOREARM_LINE = re.compile(
-    r"(?m)^(?P<indent>[ \\t]*)GEO_ANIMATED_PART\\(\\s*"
-    r"(?P<layer>LAYER_OPAQUE|LAYER_TRANSPARENT),\\s*31,\\s*0,\\s*0,\\s*NULL\\s*\\),[ \\t]*$"
+    r"(?m)^(?P<indent>[ \t]*)GEO_ANIMATED_PART\(\s*"
+    r"(?P<layer>LAYER_OPAQUE|LAYER_TRANSPARENT),\s*31,\s*0,\s*0,\s*NULL\s*\),[ \t]*$"
 )
 _ZERO_HAND_NODE = re.compile(
-    r"(?m)^[ \\t]*GEO_OPEN_NODE\\(\\),[ \\t]*\\r?\\n"
-    r"[ \\t]*GEO_ANIMATED_PART\\(\\s*LAYER_(?:OPAQUE|TRANSPARENT),\\s*"
-    r"0,\\s*0,\\s*0,\\s*NULL\\s*\\),[ \\t]*\\r?\\n"
-    r"[ \\t]*GEO_CLOSE_NODE\\(\\),[ \\t]*$"
+    r"^[ \t]*GEO_OPEN_NODE\(\),[ \t]*\r?\n"
+    r"[ \t]*GEO_ANIMATED_PART\(\s*LAYER_(?:OPAQUE|TRANSPARENT),\s*"
+    r"0,\s*0,\s*0,\s*NULL\s*\),[ \t]*\r?\n"
+    r"[ \t]*GEO_CLOSE_NODE\(\),[ \t]*$"
 )
 
 
 def _extract_layouts(source: str) -> dict[str, tuple[int, int]]:
     layouts: dict[str, tuple[int, int]] = {}
     for match in _LAYOUT_START.finditer(source):
-        end = source.find("\\n};", match.end())
+        end = source.find("\n};", match.end())
         if end < 0:
             raise ValueError(f"Unterminated GeoLayout: {match.group('name')}")
         layouts[match.group("name")] = (match.start(), end + 3)
@@ -56,7 +56,7 @@ def _extract_layouts(source: str) -> dict[str, tuple[int, int]]:
 
 
 def _line_ending(source: str) -> str:
-    return "\\r\\n" if "\\r\\n" in source else "\\n"
+    return "\r\n" if "\r\n" in source else "\n"
 
 
 def _patch_layout(layout: str, layout_name: str, newline: str) -> tuple[str, dict[str, int]]:
@@ -70,25 +70,27 @@ def _patch_layout(layout: str, layout_name: str, newline: str) -> tuple[str, dic
 
         arm = arm_matches[0]
         after_arm = layout[arm.end():]
-        open_match = re.match(r"(?P<indent>[ \\t]*)GEO_OPEN_NODE\\(\\),[ \\t]*\\r?\\n", after_arm)
+        open_match = re.match(r"(?P<indent>[ \t]*)GEO_OPEN_NODE\(\),[ \t]*\r?\n", after_arm)
         if open_match is None:
             raise ValueError(f"{layout_name}: {side} arm has no child GeoLayout node")
 
-        after_open = after_arm[open_match.end():]
-        forearm = _FOREARM_LINE.match(after_open)
+        forearm = _FOREARM_LINE.match(after_arm[open_match.end():])
         if forearm is None:
             raise ValueError(f"{layout_name}: {side} arm is not followed by the expected forearm node")
 
         forearm_end = open_match.end() + forearm.end()
-        after_forearm = layout[arm.end() + forearm_end:]
-        next_line = re.match(r"[ \\t]*\\r?\\n(?P<indent>[ \\t]*)GEO_", after_forearm)
-        if next_line is None:
-            raise ValueError(f"{layout_name}: cannot inspect {side} wrist node boundary")
-
-        # A prior export may already contain the inserted zero-offset wrist node.
-        existing = _ZERO_HAND_NODE.match(after_forearm[next_line.start(1):])
+        after_forearm = after_arm[forearm_end:]
+        existing = re.match(r"[ \t]*\r?\n(?P<indent>[ \t]*)GEO_OPEN_NODE\(\),", after_forearm)
         if existing is not None:
+            if _ZERO_HAND_NODE.match(after_forearm[existing.start(1):]) is None:
+                raise ValueError(f"{layout_name}: unexpected child under {side} forearm")
             continue
+
+        # The following close must close the arm's existing child list. The
+        # inserted open/close pair creates the missing zero-offset wrist node.
+        following_close = re.match(r"[ \t]*\r?\n(?P<close_indent>[ \t]*)GEO_CLOSE_NODE\(\),", after_forearm)
+        if following_close is None:
+            raise ValueError(f"{layout_name}: missing close after {side} forearm")
 
         fore_indent = forearm.group("indent")
         parent_indent = open_match.group("indent")
@@ -106,7 +108,7 @@ def _patch_layout(layout: str, layout_name: str, newline: str) -> tuple[str, dic
         layout = layout[:absolute_insert] + insert + layout[absolute_insert:]
         counts[side] = 1
 
-    animated_nodes = len(re.findall(r"\\bGEO_ANIMATED_PART\\s*\\(", layout))
+    animated_nodes = len(re.findall(r"\bGEO_ANIMATED_PART\s*\(", layout))
     if animated_nodes != EXPECTED_ANIMATED_NODES:
         raise ValueError(
             f"{layout_name}: expected {EXPECTED_ANIMATED_NODES} animated nodes after "
@@ -135,7 +137,6 @@ def patch_steve_dynos_skeleton_source(source: str) -> tuple[str, dict]:
         patched, counts = _patch_layout(original, name, newline)
         source = source[:start] + patched + source[end:]
         delta = len(patched) - len(original)
-        # Later layout offsets move when an earlier layout is expanded.
         layouts = {
             key: (a, b + delta if a > start else b)
             for key, (a, b) in layouts.items()
