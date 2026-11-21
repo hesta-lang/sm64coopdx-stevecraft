@@ -1,32 +1,33 @@
-# Cámara de SteveCraft — referencia Minecraft Java 26.3
+# Cámara de SteveCraft — integración Lua
 
-## Referencia de comportamiento
+## Lo que está conectado en el juego
 
-Se usa una referencia comunitaria de código decompilado 26.x; no es una publicación oficial del código fuente de Mojang:
+camera.lua registra un controlador de perspectiva y lo aplica cuando el modelo Steve está asignado al jugador local:
 
-- net.minecraft.client.Camera: https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/camera/
-- net.minecraft.client.Minecraft: https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/minecraft/
-- net.minecraft.world.entity.Entity: https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/world/entity/entity/
+1. **Primera persona:** activa set_first_person_enabled(true), deja que gFirstPersonCamera reciba el input táctil del motor y muestra el antebrazo steve_hand_geo como viewmodel.
+2. **Tercera persona trasera:** desactiva primera persona, activa NEWCAM, habilita el orbitado táctil y la colisión de cámara; el yaw inicial sitúa la cámara detrás de Steve.
+3. **Tercera persona frontal:** usa el mismo NEWCAM, con yaw inicial para colocar la cámara delante de Steve.
+4. Pulsa **Y** para cambiar de modo. Otros scripts pueden llamar SteveCraft.set_perspective(0|1|2) o SteveCraft.cycle_perspective().
 
-El port independiente de minecraft_26_3_camera.lua reproduce las operaciones matemáticas relevantes: posición interpolada del jugador más altura de ojos interpolada, interpolación angular, cambio de yaw/pitch para tercera persona frontal, distancia trasera predeterminada de cuatro bloques y recorte de distancia con ocho rayos alrededor del origen de la cámara.
+La primera persona usa el sistema de cámara que ya incorpora SM64CoopDX, no una cámara de Mario antigua superpuesta. La cámara conserva el control táctil nativo. NEWCAM sigue siendo responsable de las posiciones de cámara en tercera persona y de evitar atravesar la geometría del nivel.
 
-El algoritmo de los rayos espera un callback que represente el raycast del mundo Minecraft con forma VISUAL y sin fluidos. No se debe pasar el adaptador de triángulos SM64 como si fuera equivalente a ese raycast.
+## Matemáticas Minecraft
 
-## Integración con SM64CoopDX
+minecraft_26_3_camera.lua reproduce como funciones independientes:
+- interpolación de posición y altura de ojos;
+- interpolación de yaw/pitch;
+- inversión de yaw/pitch de la vista frontal;
+- distancia objetivo de tercera persona y modificadores;
+- recorte de distancia mediante ocho rayos desplazados.
 
-camera.lua conecta el port de ángulos con las tres perspectivas del mod:
+## Límite real de la API Lua
 
-1. Primera persona: cámara de brazo/viewmodel de Steve.
-2. Tercera persona trasera: NEWCAM, rotación táctil y colisión nativa.
-3. Tercera persona frontal: misma cámara nativa con el yaw de órbita igual al yaw de avance de Steve (el campo de SM64 describe foco→cámara, no la dirección óptica).
+Los bindings permiten activar la cámara en primera persona y escribir algunos ángulos, pero no exponen la posición/foco de Lakitu como campos escribibles. Tampoco hay un raycaster voxel de Minecraft en un mod Lua de SM64CoopDX. Por ello, una cámara Minecraft completamente independiente, con eye-position y colisión VISUAL idénticas, **no puede conseguirse solo con el mod Lua actual**. Requeriría una API adicional o cambios del motor, lo que violaría el requisito de mantener SteveCraft independiente del APK.
 
-La API Lua documentada deja Camera.yaw como campo editable, pero Camera.pos, Camera.focus y las posiciones de LakituState son de solo lectura. Por tanto, el mod no puede trasladar el resultado XYZ de Camera.getMaxZoom directamente a la cámara nativa. NEWCAM sigue calculando el posicionamiento final y su prevención de clipping.
+Esta integración sí sustituye el modo de perspectiva y añade un brazo propio, pero no debe anunciarse como paridad total de cámara Minecraft.
 
-## Qué está portado y qué no
+## Referencias
 
-- Portado y probado como matemáticas independientes: interpolación, perspectiva frontal/trasera, distancia objetivo y recorte de ocho rayos.
-- Conectado al juego: modos 1P/3P y yaw inicial de la perspectiva frontal.
-- Aún no integrado: raycast de bloques VISUAL, cálculo directo de la posición/foco de la cámara y paridad completa del movimiento táctil de Minecraft.
-- No verificado: comportamiento real en SM64CoopDX Android; requiere prueba en el dispositivo.
-
-El límite no es una falta de ecuaciones Java. La API Lua actual no permite escribir la posición/foco de Lakitu ni reproduce el raycaster de bloques. Cambiar esas dos limitaciones requeriría modificar el motor, lo que está fuera del diseño independiente de SteveCraft.
+- Lua FirstPersonCamera/LakituState: documentación de structs de SM64CoopDX.
+- Funciones set_first_person_enabled, obj_set_model_extended y cámara NEWCAM: documentación Lua de SM64CoopDX.
+- minecraft_26_3_camera.lua: implementación matemática independiente.
