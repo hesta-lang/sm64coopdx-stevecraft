@@ -1,43 +1,90 @@
-# Cámara de SteveCraft — referencia Minecraft Java 26.3
+# Cámara independiente de SteveCraft — Minecraft Java 26.3
 
-## Referencia de comportamiento
+## Arquitectura conectada al juego
 
-Se usa una referencia comunitaria de código decompilado 26.x; no es una publicación oficial del código fuente de Mojang:
+La rama `0.22.0-alpha` sustituye el cálculo de posición/foco de la cámara normal por un controlador Lua. No cambia el APK ni añade código C/C++ al fork.
 
-- net.minecraft.client.Camera: https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/camera/
-- net.minecraft.client.Minecraft: https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/client/minecraft/
-- net.minecraft.world.entity.Entity: https://mc-packet-reference.netlify.app/26.x/source/net/minecraft/world/entity/entity/
+Orden verificado en SM64CoopDX Android:
+1. El motor actualiza el objeto jugador y ejecuta `first_person_update()`.
+2. Actualiza `OBJ_LIST_UNIMPORTANT`, donde está el objeto de cámara Lua.
+3. Llama a `update_camera()`.
 
-El port independiente de `minecraft_26_3_camera.lua` implementa:
-- interpolación de posición y altura de ojos;
-- interpolación angular de yaw/pitch;
-- inversión de yaw/pitch para tercera persona frontal;
-- distancia objetivo trasera de 4 bloques;
-- recorte de distancia con ocho rayos desplazados y forma de colisión VISUAL sin fluidos.
+El controlador aprovecha ese orden:
+- Mantiene habilitado `gFirstPersonCamera` para conservar el estado de orientación/mouse-look que el motor pueda proporcionar.
+- `camera_freeze()` hace que `update_camera()` salga antes de aplicar la posición/foco nativos.
+- El objeto Lua escribe los componentes XYZ de `MarioState`-eye anchor, `Camera.pos/focus` y `LakituState.pos/curPos/goalPos/focus/curFocus/goalFocus`.
+- La cámara no depende de `NEWCAM` para el posicionamiento final. Steve sigue usando `MarioState` como puente de jugador/colisión, no como controlador de cámara.
 
-El algoritmo de los rayos espera un callback de raycast del mundo Minecraft. No se conecta al adaptador triangular SM64, porque los triángulos del nivel no equivalen a los bloques VISUAL de Minecraft.
+## Perspectivas y alturas
 
-## Ajustes conectados al juego
+Pulsa Y para alternar:
+- Primera persona.
+- Tercera persona trasera.
+- Tercera persona frontal.
 
-### Primera persona
+Altura del origen de cámara:
+- De pie: 1.62 bloques sobre los pies.
+- Agachado: 1.27 bloques sobre los pies.
 
-- SM64CoopDX ya usa un FOV de primera persona de 70° como valor predeterminado. SteveCraft conserva el FOV configurado por el usuario; no lo fuerza a 70° si se ha cambiado.
-- El punto de ojos nativo del fork está en 120 unidades SM64. Con la conversión actual de 160 unidades por 1.8 bloques, Minecraft requiere 1.62 bloques (144 unidades) de pie y 1.27 bloques al agacharse. SteveCraft escribe la diferencia en el componente editable `gFirstPersonCamera.offset.y`, restaurando el valor original al cambiar a tercera persona/salir.
-- El brazo derecho independiente es un cuboide 4×12×4 orientado desde la cámara. Recibe bob de movimiento y swing de ataque con B. No incluye todavía el renderizado de herramienta/objeto en mano ni todas las poses de uso de objeto.
+La conversión actual usa 160 unidades SM64 por 1.8 bloques. Es la escala activa de SteveCraft y sigue siendo provisional.
 
-### Tercera persona
+Tercera persona:
+- Distancia inicial configurable de 4 bloques.
+- Vista frontal invierte el yaw y el pitch de la perspectiva.
+- La orientación usa yaw/pitch de `gFirstPersonCamera` más el control digital del jugador.
+- La cámara conserva el FOV/proyección configurados por el motor. El fork usa 70° por defecto en primera persona; SteveCraft no impone un FOV distinto.
 
-- Trasera y frontal usan NEWCAM para conservar el giro táctil y la colisión del fork Android.
-- La tercera persona frontal corrige el yaw inicial con el yaw de avance del jugador.
-- NEWCAM sigue calculando la posición XYZ y el foco definitivos. Los bindings Lua permiten escribir `Camera.yaw`, pero no `Camera.pos`, `Camera.focus` ni las posiciones `LakituState`. Por eso no es posible imponer desde Lua la distancia exacta de cuatro bloques ni aplicar el resultado del raycast Minecraft a la cámara nativa.
+## Controles de mirada
 
-## Qué está portado y qué no
+### Android táctil
 
-- Portado y probado como matemáticas independientes: interpolación, perspectiva frontal/trasera, distancia objetivo, recorte de ocho rayos y conversión de altura de ojos.
-- Conectado al juego: alternancia 1P/3P, yaw inicial frontal, altura de ojos de primera persona y brazo viewmodel orientado a la cámara.
-- Aún no integrado: raycast de bloques VISUAL, escritura de la posición/foco final de Lakitu, zoom trasero exacto de cuatro bloques, todos los gestos y curvas de aceleración de cámara de Minecraft, objetos/herramientas en la mano.
-- No verificado en Android real: posición final del brazo, altura de ojos, clipping en paredes y seguimiento NEWCAM.
+El controlador Lua lee los campos de botones de `MarioState.controller`:
+- D-pad izquierda/derecha: gira yaw.
+- D-pad arriba/abajo: gira pitch.
+- C-buttons: alternativa si el usuario los activa en el editor de controles táctiles.
 
-## Límite técnico
+Velocidad por defecto: 2 grados por frame. Se puede cambiar:
 
-La falta de paridad exacta en tercera persona no se resuelve añadiendo más ecuaciones Lua: el motor sigue siendo propietario de la posición/foco final y del raycast de colisión usado por la cámara. Cambiarlo requeriría un hook o binding C/C++ nuevo en SM64CoopDX, lo que modificaría el motor y queda fuera del diseño independiente actual de SteveCraft.
+```lua
+SteveCraft.cameraController.set_digital_look_speed(2.0)
+```
+
+El backend `controller_touchscreen.c` del fork calcula `touch_x/touch_y` para su control de tipo Mouse, pero no los copia a `MarioState.controller`, no los expone como globals Lua y no dispone de hooks Lua de touch/mouse-move. Por tanto, un mod Lua independiente **no puede leer el arrastre del dedo directamente** en esta versión del fork. Para obtener swipe de estilo Minecraft hace falta un pequeño binding/hook nativo que publique esos deltas a Lua; esta rama no modifica el APK ni el motor.
+
+### Mouse y mandos
+
+Cuando el fork sí actualiza `gFirstPersonCamera.yaw/pitch` mediante el mouse relativo o las entradas analógicas soportadas por el sistema, la cámara Lua reutiliza esos ángulos y controla solamente la transformación final.
+
+## Zoom y colisión
+
+`SteveCraft.cameraController` ofrece:
+- `set_distance_blocks(distance)`: configura la distancia objetivo, limitada entre 1 y 8 bloques.
+- `get_distance_blocks()`: devuelve la distancia actual.
+- `set_digital_look_speed(degreesPerFrame)`: limita y configura el giro digital.
+- `get_last_pose()`: devuelve la última pose calculada.
+- `get_view_origin(marioState)`: devuelve el ancla de ojos para el viewmodel.
+
+La distancia trasera/frontal empieza en 4 bloques. El recorte conectado hace un barrido de 16 pasos hacia la posición objetivo y consulta paredes, suelo y techo usando las consultas de superficies del nivel SM64; usa radio de cámara aproximado de 0.1 bloques y tres alturas.
+
+**No es un raycast de bloques Minecraft.** La geometría sigue siendo la malla triangular de SM64CoopDX. El módulo independiente `minecraft_26_3_camera.lua` contiene también la matemática de ocho rayos desplazados 0.1 unidades con forma VISUAL sin fluidos, pero esa interfaz espera un raycaster de mundo Minecraft y no se conecta al nivel SM64.
+
+## Validación automatizada
+
+El workflow prueba:
+- Primera persona en el ancla de ojos.
+- Cambio de altura al agacharse.
+- Tercera persona trasera y frontal.
+- Distancia de cuatro bloques.
+- Recorte contra una pared simulada y restauración del modo de consulta.
+- Giro de yaw/pitch con el D-pad táctil.
+- Restauración de freeze y del estado original de la cámara al salir.
+
+Los tests usan superficies y objetos simulados. No prueban el orden real de renderizado Android ni sustituyen una prueba dentro de SM64CoopDX en el dispositivo.
+
+## Límites pendientes
+
+- No existe aún un puente Lua para los deltas de swipe táctil; se requiere binding nativo.
+- El clipping usa triángulos SM64, no bloques VISUAL Minecraft.
+- No están portadas todas las curvas de easing, aceleración/desaceleración ni el cambio dinámico de FOV por sprint de Minecraft.
+- La escala y la conversión de unidades siguen siendo provisionales.
+- Es necesaria una verificación Android real de primera persona, tercera persona frontal/trasera, giros D-pad, clipping en paredes y la posición del brazo 1P.
