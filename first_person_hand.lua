@@ -17,6 +17,17 @@ local ANGLE_TO_RAD = TAU / 65536.0
 local RAD_TO_ANGLE = 65536.0 / TAU
 local HAND_SWING_FRAMES = 10
 
+local function is_stevecraft_first_person()
+    local camera = SteveCraft.cameraController
+    if camera ~= nil and type(camera.is_first_person) == "function" then
+        return camera.is_first_person()
+    end
+    if SteveCraft.PERSPECTIVE_FIRST_PERSON ~= nil then
+        return SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON
+    end
+    return type(get_first_person_enabled) == "function" and get_first_person_enabled()
+end
+
 local function clamp(value, low, high)
     return math.max(low, math.min(high, value))
 end
@@ -91,7 +102,7 @@ local function hand_viewmodel_init(o)
 end
 
 local function hand_viewmodel_loop(o)
-    if not get_first_person_enabled() then
+    if not is_stevecraft_first_person() then
         obj_mark_for_deletion(o)
         if handObject == o then handObject = nil end
         return
@@ -99,10 +110,22 @@ local function hand_viewmodel_loop(o)
 
     local camera = gLakituState
     local fp = gFirstPersonCamera
-    if camera == nil or camera.curPos == nil or fp == nil then return end
+    if fp == nil then return end
 
     local mario = gMarioStates ~= nil and gMarioStates[0] or nil
     if mario == nil then return end
+
+    -- The hand runs in OBJ_LIST_GENACTOR, before the independent camera object
+    -- in OBJ_LIST_UNIMPORTANT. Use the same Minecraft eye origin that the
+    -- camera controller will write later this frame, not first_person_update's
+    -- temporary 120-unit Mario head position.
+    local cameraPosition = camera ~= nil and camera.curPos or nil
+    local cameraController = SteveCraft.cameraController
+    if cameraController ~= nil and type(cameraController.get_view_origin) == "function" then
+        local ok, origin = pcall(cameraController.get_view_origin, mario)
+        if ok and origin ~= nil then cameraPosition = origin end
+    end
+    if cameraPosition == nil then return end
 
     local motion = nil
     local physics = SteveCraft.physics
@@ -124,7 +147,7 @@ local function hand_viewmodel_loop(o)
     end
 
     local pose = compute_viewmodel_pose(
-        camera.curPos, fp.yaw, fp.pitch, o.oTimer or 0, motion, swing
+        cameraPosition, fp.yaw, fp.pitch, o.oTimer or 0, motion, swing
     )
     o.oPosX, o.oPosY, o.oPosZ = pose.x, pose.y, pose.z
     o.oFaceAnglePitch = pose.pitch
@@ -146,7 +169,7 @@ handBehavior = hook_behavior(
 )
 
 local function spawn_steve_hand(m)
-    if m.playerIndex ~= 0 or not get_first_person_enabled() or handObject ~= nil then return end
+    if m.playerIndex ~= 0 or not is_stevecraft_first_person() or handObject ~= nil then return end
 
     if handModelId == nil then
         handModelId = smlua_model_util_get_id(HAND_GEO_NAME)

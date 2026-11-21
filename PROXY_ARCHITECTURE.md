@@ -6,7 +6,7 @@ Keep Steve's visual model independent from SM64CoopDX's Mario mesh and normal lo
 
 ## Current implementation
 
-- **Engine bridge:** MarioState and marioObj remain registered with SM64CoopDX so the level can process interactions, damage, network state and the host camera. SteveCraft redirects the local player's ordinary locomotion into its own Lua action and resolves the intercepted movement steps itself.
+- **Engine bridge:** MarioState and marioObj remain registered with SM64CoopDX so the level can process interactions, damage and network state. The independent camera object owns the final Camera/Lakitu transforms. SteveCraft redirects the local player's ordinary locomotion into its own Lua action and resolves the intercepted movement steps itself.
 - **Visual representation:** a separate, local-only Steve DynOS object is created for each player on each client. It has no interaction type, hitbox, gravity or physics body.
 - **Body visibility:** the native Mario body is hidden with zero alpha while the proxy is attached. The native Mario shadow and detached Steve actor shadow are also hidden. Original Mario body/shadow visibility is restored when the proxy is destroyed.
 - **Transform:** Steve follows `MarioState.pos` directly. It follows yaw only; pitch and roll are forced to zero so acrobatic Mario orientation cannot tip the Minecraft body sideways. The potentially delayed native marioObj graphical transform is not used as positional authority.
@@ -38,11 +38,15 @@ This is not Minecraft voxel/AABB collision. The current footprint is radial, hei
 
 `SteveCraft.physics.get_animation_state(marioState)` exposes the current Minecraft movement values used by the detached animation controller: horizontal/vertical speed, grounded/water/air state, crouching and sprinting.
 
-## Camera limits
+## Independent camera
 
-First-person eye height is adjusted to Minecraft's standing 1.62-block and crouching 1.27-block values using the writable `gFirstPersonCamera.offset.y` component. The native default first-person FOV is 70°; SteveCraft keeps the user's configured FOV rather than forcing it.
+The local camera is no longer positioned by Mario/NEWCAM. A renderless Lua behavior runs in `OBJ_LIST_UNIMPORTANT`, after the player object and `first_person_update()` but before `update_camera()`. It calls `camera_freeze()` to stop the native camera update and writes the final position/focus to the writable XYZ components of `Camera` and `LakituState`.
 
-Third-person uses NEWCAM so Android touch orbit and native surface collision keep working. The Lua API exposes camera yaw, but not a writable final Camera/Lakitu position or focus, nor a Minecraft block VISUAL raycaster. Exact four-block third-person distance and Minecraft's eight-ray clipping therefore cannot yet be applied to the live camera without adding a C/C++ engine hook.
+First-person eye height is 1.62 Minecraft blocks when standing and 1.27 when crouching. Third-person back/front target four blocks and clip against SM64 level triangles using wall/floor/ceiling queries. This is a triangle-based approximation, not a Minecraft voxel VISUAL raycast. The independent eight-ray VISUAL math in `minecraft_26_3_camera.lua` is not connected to the game level.
+
+Android look input uses D-pad left/right for yaw and up/down for pitch; C-buttons are an alternative if enabled in the touchscreen layout. Default speed is 2 degrees per frame. The fork's touchscreen Mouse handler calculates `touch_x/touch_y` but does not expose them to the Lua layer or copy them into the player controller, so a direct finger-drag gesture is not available to this standalone mod. A native binding would be required for real swipe-look. Mouse and analog input are reused when the fork updates `gFirstPersonCamera.yaw/pitch`.
+
+The custom camera preserves the host's configured projection/FOV; it does not yet port Minecraft's sprint FOV changes or all camera easing curves.
 
 ## Validation and remaining work
 
@@ -54,7 +58,8 @@ Still requires in-game Android verification:
 - idle, walk, run, crouch, swim and airborne movement animation;
 - first-person arm position, scale and swing;
 - standing/crouching eye height;
-- third-person touch orbit and clipping on walls;
+- third-person D-pad/C-button look and clipping on walls;
+- mouse/analog input on the Android build if those inputs are enabled;
 - local/remote player appearance and level interactions.
 
 The render-only Steve object must never gain a second gravity, movement or collision controller. All physical movement continues through the single MarioState bridge to avoid double movement and camera/position divergence.

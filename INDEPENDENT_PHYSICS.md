@@ -2,7 +2,7 @@
 
 ## Scope
 
-Version 0.21.0-alpha moves the local Steve player into a dedicated Lua locomotion action. MarioState and marioObj remain the engine-facing player state and interaction proxy, but they no longer choose or integrate Steve's normal walk/run/jump/fall/swim movement while isolation is active.
+Version 0.22.0-alpha moves the local Steve player into a dedicated Lua locomotion action. MarioState and marioObj remain the engine-facing player state and interaction proxy, but they no longer choose or integrate Steve's normal walk/run/jump/fall/swim movement while isolation is active.
 
 The mod does not modify SM64CoopDX C/C++ source or the APK.
 
@@ -44,7 +44,7 @@ The separate first-person right arm is a 4×12×4 DynOS cuboid. Its shoulder pos
 
 ## Known side effects and unfinished work
 
-Because the controller action is stationary rather than cutscene-group, `mario_handle_special_floors()` still runs. The hazard hook blocks quicksand, lava and wind movement effects, but warp/death-plane and PSS timer triggers remain native level mechanics. Terminal death actions are also preserved. Door/object interactions and NPC dialogue continue to use the host engine and can request transitions back into the Steve controller action. Sign-reading actions remain native. Health, damage, networking and the camera remain engine-owned.
+Because the controller action is stationary rather than cutscene-group, `mario_handle_special_floors()` still runs. The hazard hook blocks quicksand, lava and wind movement effects, but warp/death-plane and PSS timer triggers remain native level mechanics. Terminal death actions are also preserved. Door/object interactions and NPC dialogue continue to use the host engine and can request transitions back into the Steve controller action. Sign-reading actions remain native. Health, damage and networking remain engine-owned. The camera position/focus are controlled by `camera.lua`; the host still supplies controller button state, optional mouse/analog yaw/pitch and the level's triangle surface queries.
 
 Special cutscenes that require actual Mario movement are not fully reproduced. Remote players are not moved by this local isolation path.
 
@@ -71,6 +71,14 @@ SteveCraft.physics.set_native_geometry_disabled(false)
 SteveCraft.physics.set_native_geometry_disabled(true)
 ```
 
+## Independent camera
+
+The custom camera controller runs after the Mario/player object and before the engine's normal `update_camera()`. It enables the existing first-person orientation source, freezes the native camera update with `camera_freeze()`, and writes the final `Camera` and `LakituState` vector components directly from Lua.
+
+First-person eye height is 1.62 blocks standing and 1.27 blocks crouching. Third-person back/front target four blocks with a 16-step collision sweep using SM64 wall/floor/ceiling triangle queries. This collision is an approximation; it is not Minecraft voxel/AABB or VISUAL block raycasting.
+
+On Android, D-pad buttons control yaw and pitch; optional C-buttons also work when shown in the touchscreen layout. Direct touch-drag is not available to this mod because the fork's touchscreen `touch_x/touch_y` deltas are not exposed through Lua or MarioState. Mouse/analog angles are reused where the host provides them. See `CAMERA_REFERENCE.md` for the input limitation and runtime details.
+
 ## Validation
 
-Automated tests cover the Lua geometry adapter, independent movement resolver, detached animation clip selection, proxy transform ownership, first-person arm pose/swing and camera eye-height conversion. These tests do not prove that the Android DynOS runtime will behave correctly. A real SM64CoopDX Android test is required for standing height, ground contact, jumping, falls, walls, ceilings, water, dialog transitions, door/warp behavior and level bounds.
+Automated tests cover the Lua geometry adapter, independent movement resolver, detached animation clip selection, proxy transform ownership, first-person arm pose/swing, camera pose/eye-height conversion, D-pad look input, four-block orbit and triangle wall clipping. These tests do not prove that the Android DynOS runtime will behave correctly. A real SM64CoopDX Android test is required for standing height, ground contact, jumping, falls, walls, ceilings, water, dialog transitions, door/warp behavior and level bounds.

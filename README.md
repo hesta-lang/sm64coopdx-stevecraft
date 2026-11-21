@@ -4,7 +4,7 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 
 ## Versión
 
-**0.21.0-alpha** — añade animaciones Minecraft independientes para el Steve separado, elimina callbacks de pose de Mario del GeoLayout, recalibra el brazo de primera persona y ajusta la altura de ojos Minecraft.
+**0.22.0-alpha** — sustituye la posición/foco de la cámara nativa por un controlador Lua independiente, con 4 bloques de distancia en tercera persona, recorte contra superficies del nivel y control D-pad para Android.
 
 ## Proxy físico/visual
 
@@ -18,7 +18,10 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 - Se asigna `globalPlayerIndex` al objeto visual para las ramas restantes de estado de jugador, como la selección de cabeza/cap; el cuerpo ya no depende de los callbacks de rotación de cabeza/torso de Mario.
 - En primera persona se oculta el cuerpo visual independiente y se usa un brazo derecho 4×12×4 separado, posicionado con los vectores de yaw/pitch de la cámara, balanceo por movimiento y swing de ataque con B.
 - La altura de ojos de primera persona se ajusta a 1.62 bloques de pie y 1.27 agachado usando el componente `gFirstPersonCamera.offset.y`. Se conserva el FOV del usuario; el valor predeterminado del motor es 70°.
-- En tercera persona sigue usándose NEWCAM para mantener el giro táctil Android. No se puede forzar desde Lua la posición/foco final de Lakitu ni un seguimiento exacto a cuatro bloques.
+- La cámara ya no usa NEWCAM ni la posición/foco calculados por la cámara de Mario. Un objeto Lua en `OBJ_LIST_UNIMPORTANT` se ejecuta después de Mario/`first_person_update()` y antes de `update_camera()`; congela el actualizador nativo con `camera_freeze()` y escribe `Camera.pos/focus` y los vectores de `LakituState` mediante sus componentes editables.
+- Primera persona usa el origen de ojos de Minecraft (1.62 bloques de pie, 1.27 agachado). Tercera persona trasera/frontal usa una distancia inicial de 4 bloques y colisión aproximada contra paredes, suelo y techo de la geometría triangular de SM64.
+- En Android, los botones D-pad giran la cámara; los C-buttons sirven como alternativa. Ratón/analógico continúan funcionando cuando el fork actualiza `gFirstPersonCamera.yaw/pitch` mediante esas entradas.
+- El backend táctil de este fork no expone `touch_x/touch_y` a Lua: el gesto de arrastrar el dedo no puede conectarse directamente desde un mod Lua independiente. Para añadir swipe real se necesita un binding nativo del motor, que esta rama no modifica.
 
 Este Proxy separa el cuerpo visual del puente de compatibilidad. **SteveCraft es el propietario de la locomoción y de la integración física** mientras el modo independiente está activo; MarioState sigue transportando posición, contactos, datos de jugador e interacciones requeridos por el motor.
 
@@ -56,29 +59,34 @@ El movimiento se separó en minecraft_26_3_physics.lua, una traducción de compo
 
 Las recurrencias de 20 TPS se convierten matemáticamente a los 30 FPS del juego. En modo independiente el hook cancela el paso físico nativo de suelo/aire/agua y actualiza `MarioState.pos` directamente. La conversión de escala entre bloques y unidades SM64 sigue siendo provisional (160 unidades por 1.8 m). Los atributos, modificadores de objetos y estado de hambre que el motor Lua no expone requieren datos externos; SteveCraft.usingItem, SteveCraft.canSprint y el proveedor de fricción son entradas opcionales.
 
-**Límites de la versión:** se reemplazan las acciones nativas de locomoción y se desactiva la corrección geométrica nativa para Steve. También se bloquean las reacciones físicas nativas de quicksand, lava, viento y plunge de agua. El motor sigue proporcionando triángulos y consultas de superficies, no bloques Minecraft. El colisionador horizontal usa una huella radial de 0.3 bloques y una altura de 1.8 bloques, no una caja AABB rectangular. Los suelos de warp/death-plane, temporizadores PSS y transiciones de muerte siguen siendo funciones de nivel/estado del motor; requieren revisión separada si también se quieren sustituir. Interacciones, daño, salud, networking y cámara siguen usando el motor como puente. La conversión de escala continúa siendo provisional. Si el resolvedor Lua falla, Steve no usa el movimiento nativo: ese paso se detiene para evitar mezclar dos sistemas físicos.
+**Límites de la versión:** se reemplazan las acciones nativas de locomoción y se desactiva la corrección geométrica nativa para Steve. También se bloquean las reacciones físicas nativas de quicksand, lava, viento y plunge de agua. El motor sigue proporcionando triángulos y consultas de superficies, no bloques Minecraft. El colisionador horizontal usa una huella radial de 0.3 bloques y una altura de 1.8 bloques, no una caja AABB rectangular. Los suelos de warp/death-plane, temporizadores PSS y transiciones de muerte siguen siendo funciones de nivel/estado del motor; requieren revisión separada si también se quieren sustituir. Interacciones, daño, salud y networking siguen usando el motor como puente; `camera.lua` controla la posición y el foco de la cámara local. La conversión de escala continúa siendo provisional. Si el resolvedor Lua falla, Steve no usa el movimiento nativo: ese paso se detiene para evitar mezclar dos sistemas físicos.
 
 ## FOV
 
-- Primera persona: modificador de sprint 1.15× con interpolación.
-- Tercera persona: preset nativo de 60° durante sprint. Es una aproximación; las bindings Lua no ofrecen un FOV arbitrario editable para LakituState.
+- Se conserva la proyección/FOV del motor y los ajustes del usuario; SteveCraft no fuerza un FOV diferente al cambiar de perspectiva. El primer plano predeterminado del fork es 70°.
+- No se añade todavía el cambio dinámico de FOV por sprint de Minecraft.
 
 ## Cámara — Minecraft Java 26.3
 
-Pulsa **Y** para alternar entre primera persona, tercera persona trasera y tercera persona frontal. En tercera persona, arrastra en la zona táctil derecha para orbitar.
+Pulsa **Y** para alternar entre primera persona, tercera persona trasera y tercera persona frontal. En tercera persona, la distancia inicial es de 4 bloques. Los botones D-pad giran yaw y pitch; el look speed y la distancia pueden ajustarse desde Lua:
 
-minecraft_26_3_camera.lua implementa como matemáticas independientes:
-- interpolación de posición y altura de ojos;
-- interpolación de yaw/pitch;
-- inversión de yaw y pitch en la perspectiva frontal;
-- distancia por defecto de 4 bloques con modificadores de escala/distancia;
-- algoritmo de recorte de cámara mediante ocho rayos desplazados 0.1 unidades y forma de colisión VISUAL sin fluidos.
+```lua
+SteveCraft.cameraController.set_digital_look_speed(2.0) -- grados por frame
+SteveCraft.cameraController.set_distance_blocks(4.0)  -- bloques
+```
 
-El raycaster del módulo es una interfaz; no se conecta directamente a los triángulos SM64 porque estos no equivalen a los bloques VISUAL del mundo Minecraft. En el juego real, NEWCAM sigue colocando la cámara y resolviendo paredes. La perspectiva frontal fija el yaw inicial mediante el campo de cámara que la API expone como editable.
+La cámara Lua funciona así:
+- Un objeto controlador en `OBJ_LIST_UNIMPORTANT` se ejecuta después del jugador y antes de la rutina normal de cámara.
+- `camera_freeze()` detiene `update_camera()`. SteveCraft escribe la posición y el foco finales en `Camera` y `LakituState` desde Lua.
+- Primera persona usa altura de ojos Minecraft: 1.62 bloques de pie y 1.27 agachado.
+- Tercera persona trasera/frontal usa 4 bloques objetivo y acorta la distancia cuando las consultas de paredes, suelo o techo de SM64 detectan un obstáculo.
+- D-pad digital funciona con la pantalla táctil; C-buttons también se aceptan. Ratón y stick analógico pueden aportar yaw/pitch cuando el fork los actualiza en `gFirstPersonCamera`.
 
-Por eso, esta versión porta las transformaciones y el algoritmo de cámara, pero **no puede afirmar paridad total de cámara** con Minecraft mientras no exista un raycaster de bloques y una API Lua que permita escribir la posición/foco de cámara.
+**Límite de entrada táctil:** el backend `controller_touchscreen.c` del fork calcula `touch_x/touch_y`, pero no los copia al estado del jugador ni los expone como hook/binding Lua. Por eso el gesto de arrastre no está disponible para un mod Lua independiente; el D-pad táctil sirve como control de mirada. Para swipe real sería necesario añadir un binding nativo al motor.
 
-CAMERA_REFERENCE.md y tools/minecraft_26_3_physics_camera.json detallan los métodos, fuentes y límites.
+**Límite de colisión de cámara:** el recorte conectado usa consultas de superficies triangulares de SM64, no un raycast de bloques Minecraft con forma VISUAL. El módulo `minecraft_26_3_camera.lua` conserva la matemática independiente de ocho rayos, pero ese raycaster no está conectado al juego.
+
+CAMERA_REFERENCE.md y tools/minecraft_26_3_physics_camera.json detallan las fuentes y los límites.
 
 ## Modelo y skin
 
@@ -93,9 +101,9 @@ El modelo se mantiene dentro de este repositorio independiente. No se modifica e
 - El colisionador horizontal usa una aproximación radial de 0.3 bloques de radio, no un AABB rectangular exacto. Las superficies consultadas siguen siendo triángulos de SM64.
 - La ruta de agua aún no reproduce corrientes Minecraft persistentes, burbujas, fluidos personalizados ni todos los estados de nado. Lava y modificadores individuales de bloque siguen incompletos.
 - El controlador separado registra y aplica clips de Steve para idle, caminar, correr, agacharse, caminar agachado y nadar. El ciclo de piernas sigue dependiendo de la velocidad horizontal durante los saltos; faltan poses de objetos, herramientas y efectos de estado.
-- La API Lua no permite escribir directamente la posición/foco de Lakitu ni conectar el raycast de ocho rayos a bloques VISUAL. La cámara de tercera persona aún no tiene paridad exacta con el zoom/collision clipping de Minecraft.
+- La posición/foco de cámara ya se escriben desde Lua y el actualizador normal queda congelado. La cámara mantiene distancia objetivo de 4 bloques, pero el recorte activo consulta triángulos SM64 y no bloques VISUAL de Minecraft. El gesto de arrastre táctil tampoco llega a Lua en este fork; el D-pad táctil sirve como control de mirada.
 - La eliminación de `geo_mirror_mario_set_alpha` evita compartir la alfa de Mario; también se oculta la sombra del proxy y la transformación Steve viene directamente de MarioState. El aspecto final todavía requiere prueba real en Android.
-- El actor regenerado y las pruebas simuladas no demuestran que DynOS reproduzca el rig/animaciones correctamente en Android. Es imprescindible verificar en dispositivo el cuerpo, la mano 1P, animaciones al caminar/saltar/nadar, zoom táctil y colisiones.
+- El actor regenerado y las pruebas simuladas no demuestran que DynOS reproduzca el rig/animaciones correctamente en Android. Es imprescindible verificar en dispositivo el cuerpo, la mano 1P, animaciones al caminar/saltar/nadar, distancia de cámara, D-pad y colisiones.
 
 ## Referencias de ingeniería inversa
 
@@ -118,4 +126,4 @@ El código Java decompilado no se copia a este repositorio. Los módulos son una
 
 ## Validación
 
-GitHub Actions comprueba la sintaxis Lua, el Proxy, el solucionador triangular y el adaptador de superficies simulado. Después hace falta probar en SM64CoopDX Android: caminar por pendientes, subir escalones, atravesar paredes, techos bajos, aterrizar, saltos y cámara táctil.
+GitHub Actions comprueba sintaxis Lua, proxy, colisiones, geometría, aislamiento físico, animaciones, mano, altura de ojos y el controlador de cámara (primera/tercera persona, vista frontal/trasera, clipping, distancia de 4 bloques y D-pad). Después hace falta probar en SM64CoopDX Android: movimiento, paredes, techos, controles de cámara, FOV y transiciones de nivel.
