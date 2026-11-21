@@ -173,7 +173,10 @@ cameraBehavior.loop(cameraObject)
 pose = SteveCraft.cameraController.get_last_pose()
 assert(wallQueries > beforeQueries, "third-person camera did not query level walls")
 assert(pose.distance < wanted and pose.distance >= 0,
-    "third-person camera failed to shorten its distance at a wall")
+    "third-person camera failed to shorten its distance at a wall: got "
+        .. tostring(pose.distance) .. ", wanted " .. tostring(wanted)
+        .. ", wall queries " .. tostring(wallQueries - beforeQueries)
+        .. ", camera Z " .. tostring(pose.position.z) .. ", focus Z " .. tostring(pose.focus.z))
 assert(checkingSurfaces == false, "camera collision mode was not restored")
 
 -- The native touch sampler's yaw/pitch feeds the independent front view too.
