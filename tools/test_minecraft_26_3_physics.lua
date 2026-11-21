@@ -38,6 +38,23 @@ assert(math.abs(air_raw - 0.02) < 1e-9)
 assert(math.abs(air_d - (0.91 ^ (2 / 3))) < 1e-9)
 assert(air_a > 0)
 
+-- Regression test for the runtime nil movement_speed error in horizontal_step.
+-- Ground movement uses the friction-influenced speed returned by horizontal_parameters.
+local ground_move_x, ground_move_z, ground_next_x, ground_next_z =
+    P.horizontal_step(0, 0, 0, 0.98, true, 0.6, false)
+local ground_expected_speed = P.horizontal_parameters(true, 0.6, P.DEFAULT_MOVEMENT_SPEED, false)
+local ground_expected_move = ground_expected_speed * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME * 0.98
+assert(math.abs(ground_move_x) < 1e-9)
+assert(math.abs(ground_move_z - ground_expected_move) < 1e-8)
+assert(ground_next_z > 0 and ground_next_z < ground_move_z)
+
+local air_move_x, air_move_z, air_next_x, air_next_z =
+    P.horizontal_step(0, 0, 0, 0.98, false, 0.6, false)
+local air_expected_speed = 0.02
+local air_expected_move = air_expected_speed * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME * 0.98
+assert(math.abs(air_move_z - air_expected_move) < 1e-8)
+assert(air_next_z > 0 and air_next_z < air_move_z)
+
 local post = P.apply_vertical_friction(10, 0.08, 0.98)
 local gravity_frame, vertical_drag = P.tick_coefficients(0.08, 0.98)
 assert(math.abs(post - ((10 - gravity_frame) * vertical_drag)) < 1e-9)
