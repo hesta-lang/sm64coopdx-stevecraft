@@ -60,6 +60,9 @@ jobs:
       - name: Run Steve first-person camera bridge tests
         run: lua5.4 tools/test_camera_bridge.lua
 
+      - name: Run independent Minecraft camera controller tests
+        run: lua5.4 tools/test_minecraft_camera_controller.lua
+
       - name: Run Minecraft 26.3 camera parity tests
         run: lua5.4 tools/test_minecraft_26_3_camera.lua
 
