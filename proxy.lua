@@ -1,40 +1,25 @@
--- SteveCraft 64 - independent Steve render / Mario physical proxy.
+-- SteveCraft 64 - native MarioState / Steve model adapter.
 --
--- MarioState and its marioObj remain the ONLY physics and collision authority.
--- Each client creates one local, non-colliding Steve render object per player.
--- That object follows the matching MarioState and mirrors Mario's animation
--- descriptor. No second controller, gravity solver, or collision body is made.
+-- Keep exactly one player object. MarioState and marioObj remain the engine's
+-- only movement, collision, interaction and camera authority; this module
+-- changes the model on that same object instead of spawning a second Steve.
 
 SteveCraft = SteveCraft or {}
 SteveCraft.proxy = SteveCraft.proxy or {}
 local proxy = SteveCraft.proxy
 
-proxy.version = "1.0.0-alpha"
-proxy.reference = "SM64CoopDX MarioState + detached Steve render object"
+proxy.version = "2.0.0-alpha"
+proxy.reference = "SM64CoopDX MarioState + obj_set_model_extended"
 
 local records = {}
-local behaviorId = nil
-local warnedBehavior = false
-local warnedSpawn = false
-
-local NATIVE_BODY_HIDDEN_ALPHA = 0x100
-
-local ANIMATION_FIELDS = {
-    "curAnim",
-    "prevAnimPtr",
-    "animID",
-    "prevAnimID",
-    "animFrame",
-    "prevAnimFrame",
-    "animFrameAccelAssist",
-    "animAccel",
-    "animTimer",
-    "animYTrans",
-}
+local warnedModelApi = false
+local warnedModelSet = false
 
 local function copy_vec3(value)
-    if value == nil then return nil end
-    if value.x == nil or value.y == nil or value.z == nil then return nil end
+    if value == nil or type(value.x) ~= "number"
+        or type(value.y) ~= "number" or type(value.z) ~= "number" then
+        return nil
+    end
     return { x = value.x, y = value.y, z = value.z }
 end
 
@@ -58,228 +43,66 @@ local function capture_state(m)
     if m.marioBodyState ~= nil then
         state.headPosition = copy_vec3(m.marioBodyState.headPos)
     end
-
     return state
 end
 
-local function copy_animation_state(sourceObject, visualObject)
-    if sourceObject == nil or visualObject == nil then return end
-
-    -- Steve's generated GeoLayout deliberately uses the same 21-part
-    -- animated hierarchy as the SM64CoopDX player model.
-    local sourceHeader = sourceObject.header
-    local targetHeader = visualObject.header
-    if sourceHeader == nil or targetHeader == nil
-        or sourceHeader.gfx == nil or targetHeader.gfx == nil then
-        return
-    end
-
-    local sourceInfo = sourceHeader.gfx.animInfo
-    local targetInfo = targetHeader.gfx.animInfo
-    if sourceInfo == nil or targetInfo == nil then return end
-
-    for _, field in ipairs(ANIMATION_FIELDS) do
-        local value = sourceInfo[field]
-        if value ~= nil then
-            targetInfo[field] = value
-        end
-    end
-
-    if sourceObject.oAnimations ~= nil then
-        visualObject.oAnimations = sourceObject.oAnimations
-    end
-    if sourceObject.oAnimState ~= nil then
-        visualObject.oAnimState = sourceObject.oAnimState
-    end
-
-
+local function read_model_id(object)
+    if type(obj_get_model_id_extended) ~= "function" then return nil end
+    local ok, model_id = pcall(obj_get_model_id_extended, object)
+    if ok and type(model_id) == "number" then return model_id end
+    return nil
 end
 
-local function set_visual_transform(m, visualObject)
-    local sourceObject = m.marioObj
-    if sourceObject ~= nil then
-        visualObject.oPosX = sourceObject.oPosX
-        visualObject.oPosY = sourceObject.oPosY
-        visualObject.oPosZ = sourceObject.oPosZ
-        visualObject.oFaceAnglePitch = sourceObject.oFaceAnglePitch
-        visualObject.oFaceAngleYaw = sourceObject.oFaceAngleYaw
-        visualObject.oFaceAngleRoll = sourceObject.oFaceAngleRoll
-        visualObject.oMoveAnglePitch = sourceObject.oMoveAnglePitch
-        visualObject.oMoveAngleYaw = sourceObject.oMoveAngleYaw
-        visualObject.oMoveAngleRoll = sourceObject.oMoveAngleRoll
-        copy_animation_state(sourceObject, visualObject)
+local function set_native_steve_model(m, model_id, record)
+    local object = m ~= nil and m.marioObj or nil
+    if object == nil then return false end
+
+    if type(obj_set_model_extended) ~= "function" then
+        if not warnedModelApi then
+            print("[SteveCraft] ERROR: obj_set_model_extended is unavailable; cannot replace the native player model.")
+            warnedModelApi = true
+        end
+        return false
+    end
+
+    local current_model = read_model_id(object)
+    local object_changed = record.modelObject ~= object
+
+    if object_changed then
+        record.originalModelId = current_model
+        record.modelObject = object
+        record.modelId = nil
+    end
+
+    -- Prefer the engine's actual model ID to detect changes by other mods.
+    -- If the getter is unavailable, only write on object/model transitions.
+    local needs_update
+    if current_model ~= nil then
+        needs_update = current_model ~= model_id
     else
-        local position = m.pos
-        local rotation = m.faceAngle
-        if position ~= nil then
-            visualObject.oPosX = position.x
-            visualObject.oPosY = position.y
-            visualObject.oPosZ = position.z
-        end
-        if rotation ~= nil then
-            visualObject.oFaceAnglePitch = rotation.x
-            visualObject.oFaceAngleYaw = rotation.y
-            visualObject.oFaceAngleRoll = rotation.z
-            visualObject.oMoveAngleYaw = rotation.y
-        end
+        needs_update = record.modelId ~= model_id or object_changed
     end
 
-    local networkPlayer = gNetworkPlayers ~= nil
-        and gNetworkPlayers[m.playerIndex] or nil
-    if networkPlayer ~= nil and networkPlayer.globalIndex ~= nil then
-        -- Steve's GeoLayout calls geo_mario_head_rotation and
-        -- geo_mario_tilt_torso. These resolve the correct body-state slot
-        -- through the object's globalPlayerIndex.
-        visualObject.globalPlayerIndex = networkPlayer.globalIndex
-    end
-end
-
-local function hide_native_body(m, record)
-    if m == nil or m.marioBodyState == nil then return end
-
-    local current = m.marioBodyState.modelState or 0
-    if record.lastHiddenModelState == nil or current ~= record.lastHiddenModelState then
-        record.originalModelState = current
-    end
-
-    -- SM64CoopDX's first-person camera uses 0x100 with alpha byte 0.
-    -- Preserve other flags such as metal/vanish state while hiding the native body.
-    local hidden = (current & ~0x1FF) | NATIVE_BODY_HIDDEN_ALPHA
-    m.marioBodyState.modelState = hidden
-    record.lastHiddenModelState = hidden
-end
-
-local function restore_native_body(record)
-    if record == nil or record.marioState == nil
-        or record.marioState.marioBodyState == nil
-        or record.originalModelState == nil then
-        return
-    end
-
-    local bodyState = record.marioState.marioBodyState
-    if bodyState.modelState == record.lastHiddenModelState then
-        bodyState.modelState = record.originalModelState
-    end
-end
-
-local function visual_init(o)
-    o.oFlags = (o.oFlags or 0) | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE
-    o.oInteractType = 0
-    o.oIntangibleTimer = -1
-    o.oWallHitboxRadius = 0
-    o.oGravity = 0
-    o.oOpacity = 255
-    o.oGraphYOffset = 0
-end
-
-local function visual_loop(o)
-    local playerIndex = (o.oBehParams or 0) & 0xFF
-    local record = records[playerIndex]
-    if record == nil or record.visual ~= o then
-        obj_mark_for_deletion(o)
-        return
-    end
-
-    local m = gMarioStates ~= nil and gMarioStates[playerIndex] or nil
-    if m == nil or m.marioObj == nil then
-        obj_mark_for_deletion(o)
-        record.visual = nil
-        return
-    end
-
-    record.marioState = m
-    record.marioObject = m.marioObj
-    record.state = capture_state(m)
-    set_visual_transform(m, o)
-
-    -- First person uses Steve's separate hand viewmodel. The full body stays
-    -- available in third person and for remote players.
-    if playerIndex == 0
-        and type(get_first_person_enabled) == "function"
-        and get_first_person_enabled() then
-        cur_obj_hide()
-    else
-        cur_obj_unhide()
-    end
-
-    -- Only hide the native Mario body once its Steve visual exists.
-    hide_native_body(m, record)
-end
-
-if type(hook_behavior) == "function"
-    and OBJ_LIST_GENACTOR ~= nil
-    and OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE ~= nil then
-    behaviorId = hook_behavior(
-        nil,
-        OBJ_LIST_GENACTOR,
-        true,
-        visual_init,
-        visual_loop,
-        "bhvSteveCraftProxyVisual"
-    )
-end
-
-local function ensure_visual(m, modelId, record)
-    local index = m.playerIndex
-    local current = record.visual
-
-    if current ~= nil and record.modelId ~= modelId then
-        if type(obj_mark_for_deletion) == "function" then
-            obj_mark_for_deletion(current)
-        end
-        record.visual = nil
-        current = nil
-    end
-
-    if current ~= nil then return current end
-
-    if behaviorId == nil or type(spawn_non_sync_object) ~= "function" then
-        if not warnedBehavior then
-            print("[SteveCraft] Proxy visual unavailable: behavior/object API missing.")
-            warnedBehavior = true
-        end
-        return nil
-    end
-
-    local position = m.marioObj ~= nil and m.marioObj or m
-    local x = position.oPosX or (position.pos and position.pos.x) or 0
-    local y = position.oPosY or (position.pos and position.pos.y) or 0
-    local z = position.oPosZ or (position.pos and position.pos.z) or 0
-
-    local networkPlayer = gNetworkPlayers ~= nil and gNetworkPlayers[index] or nil
-    local globalIndex = networkPlayer ~= nil and networkPlayer.globalIndex or nil
-
-    local visual = spawn_non_sync_object(
-        behaviorId,
-        modelId,
-        x,
-        y,
-        z,
-        function(o)
-            o.oBehParams = index
-            if globalIndex ~= nil then
-                o.globalPlayerIndex = globalIndex
+    if needs_update then
+        local ok, err = pcall(obj_set_model_extended, object, model_id)
+        if not ok then
+            if not warnedModelSet then
+                print("[SteveCraft] ERROR: could not set Steve on the native player object: " .. tostring(err))
+                warnedModelSet = true
             end
+            return false
         end
-    )
-
-    if visual == nil then
-        if not warnedSpawn then
-            print("[SteveCraft] Proxy visual spawn failed; native player model was left enabled.")
-            warnedSpawn = true
-        end
-        return nil
     end
 
-    record.visual = visual
-    record.modelId = modelId
-    set_visual_transform(m, visual)
-    return visual
+    record.modelObject = object
+    record.modelId = model_id
+    return true
 end
 
-function proxy.update(m, modelId)
-    if m == nil or m.playerIndex == nil or modelId == nil
-        or modelId == E_MODEL_NONE or modelId == E_MODEL_ERROR_MODEL then
+function proxy.update(m, model_id)
+    if m == nil or m.playerIndex == nil or m.marioObj == nil
+        or type(model_id) ~= "number"
+        or model_id == E_MODEL_NONE or model_id == E_MODEL_ERROR_MODEL then
         return false
     end
 
@@ -290,34 +113,33 @@ function proxy.update(m, modelId)
         records[index] = record
     end
 
+    if not set_native_steve_model(m, model_id, record) then
+        return false
+    end
+
     record.marioState = m
     record.marioObject = m.marioObj
     record.state = capture_state(m)
-
-    local visual = ensure_visual(m, modelId, record)
-    if visual == nil then return false end
-
-    set_visual_transform(m, visual)
-    hide_native_body(m, record)
-
     return true
 end
 
 function proxy.owns_mario_state(m)
     if m == nil or m.playerIndex == nil then return false end
     local record = records[m.playerIndex]
-    return record ~= nil and record.visual ~= nil and record.marioState == m
+    return record ~= nil and record.marioState == m
+        and record.marioObject ~= nil and record.marioObject == m.marioObj
 end
 
-function proxy.is_attached(playerIndex)
-    local record = records[playerIndex or 0]
-    return record ~= nil and record.visual ~= nil
+function proxy.is_attached(player_index)
+    local record = records[player_index or 0]
+    return record ~= nil and record.marioState ~= nil
+        and record.marioObject ~= nil
+        and record.marioState.marioObj == record.marioObject
 end
 
-function proxy.get_state(playerIndex)
-    local record = records[playerIndex or 0]
+function proxy.get_state(player_index)
+    local record = records[player_index or 0]
     if record == nil or record.state == nil then return nil end
-
     local source = record.state
     return {
         playerIndex = source.playerIndex,
@@ -334,8 +156,8 @@ function proxy.get_state(playerIndex)
     }
 end
 
-function proxy.get_camera_anchor(playerIndex)
-    local state = proxy.get_state(playerIndex or 0)
+function proxy.get_camera_anchor(player_index)
+    local state = proxy.get_state(player_index or 0)
     if state == nil then return nil end
     return {
         position = state.position,
@@ -344,48 +166,42 @@ function proxy.get_camera_anchor(playerIndex)
     }
 end
 
-function proxy.get_physical_object(playerIndex)
-    local record = records[playerIndex or 0]
+-- The visual and physical objects are now deliberately the same marioObj.
+function proxy.get_physical_object(player_index)
+    local record = records[player_index or 0]
     return record ~= nil and record.marioObject or nil
 end
 
-function proxy.get_visual_object(playerIndex)
-    local record = records[playerIndex or 0]
-    return record ~= nil and record.visual or nil
+function proxy.get_visual_object(player_index)
+    local record = records[player_index or 0]
+    return record ~= nil and record.marioObject or nil
 end
 
-function proxy.destroy(playerIndex)
-    local record = records[playerIndex]
+function proxy.destroy(player_index)
+    local record = records[player_index]
     if record == nil then return end
 
-    restore_native_body(record)
-    if record.visual ~= nil and type(obj_mark_for_deletion) == "function" then
-        obj_mark_for_deletion(record.visual)
+    local object = record.marioObject
+    local original_model = record.originalModelId
+    if object ~= nil and original_model ~= nil
+        and type(obj_set_model_extended) == "function" then
+        local current_model = read_model_id(object)
+        if current_model == nil or current_model == record.modelId then
+            pcall(obj_set_model_extended, object, original_model)
+        end
     end
-    records[playerIndex] = nil
+    records[player_index] = nil
 end
 
 function proxy.reset()
-    for index in pairs(records) do
+    local indices = {}
+    for index in pairs(records) do indices[#indices + 1] = index end
+    for _, index in ipairs(indices) do
         proxy.destroy(index)
-    end
-    records = {}
-end
-
-local function on_object_unload(o)
-    for index, record in pairs(records) do
-        if record.visual == o then
-            record.visual = nil
-            record.modelId = nil
-            break
-        end
     end
 end
 
 if type(hook_event) == "function" then
-    if HOOK_ON_OBJECT_UNLOAD ~= nil then
-        hook_event(HOOK_ON_OBJECT_UNLOAD, on_object_unload)
-    end
     if HOOK_ON_LEVEL_INIT ~= nil then
         hook_event(HOOK_ON_LEVEL_INIT, proxy.reset)
     end
@@ -397,4 +213,4 @@ if type(hook_event) == "function" then
     end
 end
 
-print("[SteveCraft] Independent Steve visual proxy initialized; Mario remains the physics authority.")
+print("[SteveCraft] Single-object player model adapter initialized; no detached body is spawned.")
