@@ -4,7 +4,7 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 
 ## Versión
 
-**0.18.0-alpha** — añade 19 clips muestreados de Minecraft Bedrock v1.26.60.5 al proxy visual independiente y los asocia a 27 estados de animación SM64. — corrige la visibilidad del actor DynOS independiente y reconcilia las velocidades de Steve con el desplazamiento real aceptado por el motor; añade movimiento sumergido experimental.
+**0.19.0-alpha** — corrige una referencia global nula en el desplazamiento horizontal de la física y añade pruebas de regresión de suelo, aire y sprint. — añade 19 clips muestreados de Minecraft Bedrock v1.26.60.5 al proxy visual independiente y los asocia a 27 estados de animación SM64. — corrige la visibilidad del actor DynOS independiente y reconcilia las velocidades de Steve con el desplazamiento real aceptado por el motor; añade movimiento sumergido experimental.
 
 ## Proxy físico/visual
 

@@ -40,3 +40,10 @@ La geometría actual del repositorio sigue siendo el actor independiente \`actor
 ## Pruebas
 
 \`lua5.4 tools/test_bedrock_animations.lua\` carga \`animations.lua\` con stubs de la API SM64CoopDX. Comprueba el registro de 19 clips, las 27 asignaciones, dimensiones de índices, límites de muestras y las transiciones no cíclicas. Valida el registro/mapeo, no la orientación visual ni el resultado dentro de Android.
+
+
+## Corrección 0.19.0-alpha
+
+Se corrigió `horizontal_step()`: ahora recibe el `movement_speed` efectivo como tercer valor devuelto por `horizontal_parameters()`. Antes se leía una variable global inexistente, generando `attempt to perform arithmetic on a nil value (global 'movement_speed')` y deteniendo `HOOK_BEFORE_PHYS_STEP`.
+
+La prueba de física ahora ejercita `horizontal_step()` en suelo, aire y sprint. Las pruebas automáticas no determinan por sí solas por qué una captura de pantalla presenta a Steve tumbado; para eso debe observarse el ID de animación seleccionado y verificarse la orientación dentro del juego. No se debe confundir el error de física con la orientación del esqueleto.

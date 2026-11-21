@@ -129,7 +129,10 @@ end
 -- Applies the Minecraft movement acceleration before move(), returning the
 -- displacement velocity in SM64 units/frame and the cached post-friction speed.
 function P.horizontal_step(vx, vz, input_x, input_z, on_ground, block_friction, sprinting)
-    local acceleration, drag = P.horizontal_parameters(
+    -- Keep the effective movement speed returned by the same parameter
+    -- calculation. It is the displacement acceleration before drag; the
+    -- frame-adjusted acceleration above is only for next-frame momentum.
+    local acceleration, drag, movement_speed = P.horizontal_parameters(
         on_ground, block_friction, P.DEFAULT_MOVEMENT_SPEED, sprinting
     )
     -- Minecraft moves with the pre-drag velocity. The fractional-tick

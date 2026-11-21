@@ -38,6 +38,29 @@ assert(math.abs(air_raw - 0.02) < 1e-9)
 assert(math.abs(air_d - (0.91 ^ (2 / 3))) < 1e-9)
 assert(air_a > 0)
 
+-- Regression: horizontal_step must use the effective speed returned by
+-- horizontal_parameters, not an undefined global movement_speed.
+local ground_move_x, ground_move_z, ground_next_x, ground_next_z,
+    ground_accel, ground_drag =
+    P.horizontal_step(0, 0, 1, 0.5, true, 0.6, false)
+local ground_speed = 0.1 * 0.21600002 / (0.6 ^ 3)
+local expected_ground_displacement = ground_speed * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME
+assert(math.abs(ground_move_x - expected_ground_displacement) < 1e-8)
+assert(math.abs(ground_move_z - expected_ground_displacement * 0.5) < 1e-8)
+assert(ground_next_x > 0 and ground_next_z > 0)
+assert(ground_next_x < ground_move_x and ground_next_z < ground_move_z)
+assert(ground_accel > 0 and ground_drag > 0 and ground_drag < 1)
+
+local air_move_x, air_move_z, air_next_x, air_next_z, air_step_accel, air_step_drag =
+    P.horizontal_step(0, 0, 1, 0, false, 0.6, false)
+local expected_air_displacement = 0.02 * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME
+assert(math.abs(air_move_x - expected_air_displacement) < 1e-8)
+assert(air_move_z == 0 and air_next_x > 0 and air_next_z == 0)
+assert(air_step_accel > 0 and air_step_drag > 0 and air_step_drag < 1)
+
+local sprint_move_x = P.horizontal_step(0, 0, 1, 0, true, 0.6, true)
+assert(sprint_move_x > ground_move_x)
+
 local post = P.apply_vertical_friction(10, 0.08, 0.98)
 local gravity_frame, vertical_drag = P.tick_coefficients(0.08, 0.98)
 assert(math.abs(post - ((10 - gravity_frame) * vertical_drag)) < 1e-9)
@@ -97,4 +120,5 @@ local lava_x, lava_y, lava_z = P.apply_lava_drag(1, 1, 1, { deep = true, gravity
 assert(math.abs(lava_x - 0.5) < 1e-9 and math.abs(lava_z - 0.5) < 1e-9)
 assert(math.abs(lava_y - 0.48) < 1e-9)
 
+print("PASS: horizontal_step ground/air/sprint displacement regression")
 print("Minecraft 26.3 physics port tests passed")
