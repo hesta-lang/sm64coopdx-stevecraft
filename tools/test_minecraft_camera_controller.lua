@@ -55,7 +55,11 @@ function collision_get_temp_wall_collision_data()
 end
 function find_wall_collisions(wcd)
     wallQueries = wallQueries + 1
-    if wallThreshold ~= nil and wcd.z > wallThreshold then
+    local dx = wcd.x - 10
+    local dy = wcd.y - (20 + 1.62 * (160 / 1.8))
+    local dz = wcd.z - 30
+    local distanceFromEye = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if wallThreshold ~= nil and distanceFromEye > wallThreshold then
         wcd.numWalls = 1
         return 1
     end
@@ -167,7 +171,7 @@ assert(math.abs(nativeCamera.pos.x - gLakituState.pos.x) < 1e-5
 
 -- A host wall hit clips the camera before it enters the wall. The collision
 -- query is performed as a camera query and its previous mode is restored.
-wallThreshold = 150
+wallThreshold = 150 -- collision plane 150 SM64 units away from the eye, independent of yaw
 local beforeQueries = wallQueries
 cameraBehavior.loop(cameraObject)
 pose = SteveCraft.cameraController.get_last_pose()
