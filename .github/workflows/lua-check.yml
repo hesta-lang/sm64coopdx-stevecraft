@@ -27,6 +27,9 @@ jobs:
             luac5.4 -p "$file"
           done < <(find . -type f -name '*.lua' -print0)
 
+      - name: Test detached Steve GeoLayout alpha sanitization
+        run: python3 tools/test_steve_geo_sanitizer.py
+
       - name: Run proxy behavior tests
         run: lua5.4 tools/test_proxy.lua
 

@@ -10,7 +10,9 @@ local MinecraftPhysics = require("minecraft_26_3_physics")
 
 physics.enabled = physics.enabled ~= false
 physics.reference = "Minecraft Java Edition 26.3 LocalPlayer / LivingEntity / Entity / Camera"
-physics.triangleCollisionEnabled = physics.triangleCollisionEnabled ~= false
+-- Native SM64 already performs authoritative surface collision. Keep the
+-- additional SkyCraft pre-clip opt-in to avoid solving the same wall twice.
+physics.triangleCollisionEnabled = physics.triangleCollisionEnabled == true
 
 -- This unit conversion is provisional and must be calibrated in a live level.
 local WORLD_UNITS_PER_BLOCK = MinecraftPhysics.WORLD_UNITS_PER_BLOCK
@@ -57,6 +59,11 @@ local function is_air_action(action)
         or (ACT_FREEFALL ~= nil and action == ACT_FREEFALL)
 end
 
+local function is_water_action(action)
+    return ACT_FLAG_SWIMMING ~= nil and action ~= nil
+        and (action & ACT_FLAG_SWIMMING) ~= 0
+end
+
 local function get_motion_state(m)
     local index = m.playerIndex or 0
     local state = states[index]
@@ -66,6 +73,7 @@ local function get_motion_state(m)
             vz = (m.vel and m.vel.z) or 0.0,
             vy = (m.vel and m.vel.y) or 0.0,
             jumpActive = false,
+            pendingStep = nil,
         }
         states[index] = state
     end
@@ -317,10 +325,17 @@ local function on_set_mario_action(m)
             state.vy = (m.vel and m.vel.y) or 0.0
         end
         state.jumpActive = true
-    elseif not is_air_action(m.action) then
+    elseif not is_air_action(m.action) and not is_water_action(m.action) then
         state.jumpActive = false
         state.vy = 0.0
     end
+end
+
+local function vector_component(vector, key, fallback_index)
+    if vector == nil then return 0 end
+    local value = vector[key]
+    if value == nil and fallback_index ~= nil then value = vector[fallback_index] end
+    return type(value) == "number" and value or 0
 end
 
 local function before_physics_step(m, step_type, step_arg)
@@ -337,7 +352,7 @@ local function before_physics_step(m, step_type, step_arg)
         return
     end
 
-    if m.vel == nil or m.intendedMag == nil or m.intendedYaw == nil
+    if m.vel == nil or m.pos == nil or m.intendedMag == nil or m.intendedYaw == nil
         or STEP_TYPE_GROUND == nil or STEP_TYPE_AIR == nil then
         if not warned then
             print("[SteveCraft 64] Physics API fields unavailable; keeping SM64 movement.")
@@ -348,32 +363,80 @@ local function before_physics_step(m, step_type, step_arg)
 
     local ground = step_type == STEP_TYPE_GROUND and is_ground_action(m.action)
     local air = step_type == STEP_TYPE_AIR and is_air_action(m.action)
-    if not ground and not air then
+    local water = step_type == STEP_TYPE_WATER
+        and ACT_FLAG_SWIMMING ~= nil
+        and (m.action & ACT_FLAG_SWIMMING) ~= 0
+    if not ground and not air and not water then
         states[m.playerIndex or 0] = nil
         return
     end
 
     local index = m.playerIndex or 0
     local state = get_motion_state(m)
-
-    -- Reseed horizontal momentum after a wall collision. Vertical movement
-    -- still uses the original SM64 surface solver.
-    if m.wall ~= nil then
-        state.vx = m.vel.x or 0.0
-        state.vz = m.vel.z or 0.0
-    end
-
     local sprint = sprint_states[index] ~= nil
         and sprint_states[index].sprinting == true
-    update_horizontal_velocity(m, step_type, state, sprint)
 
+    if water then
+        -- perform_water_step() has its own floor/ceiling/wall solver and calls
+        -- the same hook with STEP_TYPE_WATER. Do not send this move through the
+        -- triangular ground/air pre-clip a second time.
+        local wish_x, wish_z = input_direction(m)
+        local on_floor = m.floorHeight ~= nil
+            and math.abs((m.pos.y or 0) - m.floorHeight) <= 1.0
+        local move_x, move_z, next_x, next_z =
+            MinecraftPhysics.water_horizontal_step(
+                state.vx, state.vz, wish_x, wish_z,
+                MinecraftPhysics.DEFAULT_MOVEMENT_SPEED,
+                SteveCraft.waterMovementEfficiency or 0,
+                on_floor, sprint
+            )
+
+        local input = m.input or 0
+        local jump_held = INPUT_A_DOWN ~= nil and (input & INPUT_A_DOWN) ~= 0
+        local descend_held = INPUT_Z_DOWN ~= nil and (input & INPUT_Z_DOWN) ~= 0
+        local move_y, next_y = MinecraftPhysics.water_vertical_step(
+            state.vy, jump_held, descend_held,
+            MinecraftPhysics.DEFAULT_GRAVITY
+        )
+
+        m.vel.x, m.vel.y, m.vel.z = move_x, move_y, move_z
+        state.vx, state.vy, state.vz = next_x, next_y, next_z
+        state.pendingStep = {
+            medium = "water",
+            startX = m.pos.x or 0,
+            startY = m.pos.y or 0,
+            startZ = m.pos.z or 0,
+            requestedX = move_x,
+            requestedY = move_y,
+            requestedZ = move_z,
+            wasGround = on_floor,
+            wasAir = false,
+        }
+        return
+    end
+
+    -- Build the requested Minecraft displacement first. SM64's native
+    -- perform_ground_step/perform_air_step clips against its level surfaces.
+    -- The actual delta is reconciled after Mario's complete physics update.
+    update_horizontal_velocity(m, step_type, state, sprint)
     if air and state.jumpActive then
-        -- Use Minecraft jump/fall velocity, but leave landing and wall contacts
-        -- to SM64's native resolver through the proxy.
         m.vel.y = state.vy or 0.0
     end
 
     apply_triangle_collision(m, step_type, state)
+
+    state.pendingStep = {
+        medium = "air_ground",
+        startX = m.pos.x or 0,
+        startY = m.pos.y or 0,
+        startZ = m.pos.z or 0,
+        requestedX = (m.vel and m.vel.x) or 0,
+        requestedY = (m.vel and m.vel.y) or 0,
+        requestedZ = (m.vel and m.vel.z) or 0,
+        verticalVelocity = state.vy or 0,
+        wasGround = ground,
+        wasAir = air and state.jumpActive == true,
+    }
 end
 
 local function after_mario_update(m)
@@ -385,25 +448,86 @@ local function after_mario_update(m)
         return
     end
 
-    -- HOOK_MARIO_UPDATE runs after controller intent has been calculated.
+    -- HOOK_MARIO_UPDATE is after Mario's action/physics step. This is the
+    -- collision feedback phase corresponding to Entity.move() in Minecraft.
+    local state = states[0]
+    if state ~= nil and state.pendingStep ~= nil then
+        local pending = state.pendingStep
+        local actualX = (m.pos and m.pos.x or pending.startX) - pending.startX
+        local actualY = (m.pos and m.pos.y or pending.startY) - pending.startY
+        local actualZ = (m.pos and m.pos.z or pending.startZ) - pending.startZ
+
+        local expectedX, expectedZ = pending.requestedX, pending.requestedZ
+        if pending.wasGround and m.floor ~= nil and m.floor.normal ~= nil then
+            local normalY = vector_component(m.floor.normal, "y", 2)
+            expectedX = expectedX * normalY
+            expectedZ = expectedZ * normalY
+        end
+
+        local hasWall = m.wall ~= nil
+        local normalX = vector_component(m.wallNormal, "x", 1)
+        local normalZ = vector_component(m.wallNormal, "z", 3)
+        if normalX == 0 and normalZ == 0 and hasWall and m.wall.normal ~= nil then
+            normalX = vector_component(m.wall.normal, "x", 1)
+            normalZ = vector_component(m.wall.normal, "z", 3)
+        end
+
+        if pending.medium == "water" then
+            -- Water currents are added by SM64 after this hook, and its water
+            -- solver keeps wall results local. Do not mistake current drift for
+            -- player velocity or axis clipping. The water surface/floor clamp
+            -- is observable in the actual vertical displacement.
+            local verticalBlockedUp = pending.requestedY > 0
+                and actualY < pending.requestedY - math.max(1.0, math.abs(pending.requestedY) * 0.08)
+            local verticalBlockedDown = pending.requestedY < 0
+                and actualY > pending.requestedY + math.max(1.0, math.abs(pending.requestedY) * 0.08)
+            if verticalBlockedUp or verticalBlockedDown then
+                state.vy = 0
+            end
+        else
+            local toleranceX = math.max(1.0, math.abs(expectedX) * 0.25)
+            local toleranceZ = math.max(1.0, math.abs(expectedZ) * 0.25)
+            local blockedX = math.abs(actualX - expectedX) > toleranceX
+            local blockedZ = math.abs(actualZ - expectedZ) > toleranceZ
+
+            state.vx, state.vz = MinecraftPhysics.reconcile_horizontal_velocity(
+                state.vx, state.vz, hasWall, normalX, normalZ, blockedX, blockedZ
+            )
+        end
+
+        if pending.wasAir and state.jumpActive and is_air_action(m.action) then
+            local vertical, hitCeiling = MinecraftPhysics.reconcile_vertical_velocity(
+                pending.verticalVelocity,
+                pending.requestedY,
+                actualY,
+                math.max(1.0, math.abs(pending.requestedY) * 0.08)
+            )
+            if hitCeiling then
+                state.vy = 0
+            else
+                -- Do not read m.vel.y here: perform_air_step() has already
+                -- applied SM64's own gravity before this hook is called.
+                state.vy = MinecraftPhysics.apply_vertical_friction(vertical)
+            end
+        end
+
+        if m.forwardVel ~= nil and (hasWall or blockedX or blockedZ) then
+            m.forwardVel = math.sqrt(state.vx * state.vx + state.vz * state.vz)
+        end
+        state.pendingStep = nil
+    end
+
     -- The resulting sprint state is consumed by the next physics step.
     update_sprint_input(m)
 
-    local state = states[0]
     if state ~= nil then
-        if state.jumpActive and is_air_action(m.action) then
-            -- Minecraft applies vertical drag and gravity after movement.
-            -- Reading m.vel.y here also respects the solver's ceiling response.
-            local actual_vertical = (m.vel and m.vel.y) or state.vy or 0.0
-            state.vy = MinecraftPhysics.apply_vertical_friction(actual_vertical)
-        elseif not is_air_action(m.action) then
+        local swimming = is_water_action(m.action)
+        if not is_air_action(m.action) and not swimming then
             state.jumpActive = false
             state.vy = 0.0
         end
 
-        -- Idle, crouch, cutscenes, water and other unsupported actions must not
-        -- inherit the cached Minecraft ground/air momentum.
-        if not is_ground_action(m.action) and not is_air_action(m.action) then
+        if not is_ground_action(m.action) and not is_air_action(m.action) and not swimming then
             states[0] = nil
         end
     end

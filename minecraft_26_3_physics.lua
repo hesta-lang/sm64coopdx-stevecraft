@@ -132,9 +132,19 @@ function P.horizontal_step(vx, vz, input_x, input_z, on_ground, block_friction, 
     local acceleration, drag = P.horizontal_parameters(
         on_ground, block_friction, P.DEFAULT_MOVEMENT_SPEED, sprinting
     )
-    local next_x = finite_or(vx, 0) + acceleration * finite_or(input_x, 0)
-    local next_z = finite_or(vz, 0) + acceleration * finite_or(input_z, 0)
-    return next_x, next_z, next_x * drag, next_z * drag, acceleration, drag
+    -- Minecraft moves with the pre-drag velocity. The fractional-tick
+    -- coefficient returned by tick_coefficients is for the cached velocity
+    -- recurrence; it is NOT the displacement acceleration. Reusing it here
+    -- underestimates movement because it already compensates for post-move drag.
+    local movement_acceleration = movement_speed
+        * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME
+    local move_x = finite_or(vx, 0) + movement_acceleration * finite_or(input_x, 0)
+    local move_z = finite_or(vz, 0) + movement_acceleration * finite_or(input_z, 0)
+
+    -- Keep a separate fractional-tick recurrence for next frame's velocity.
+    local next_x = (finite_or(vx, 0) + acceleration * finite_or(input_x, 0)) * drag
+    local next_z = (finite_or(vz, 0) + acceleration * finite_or(input_z, 0)) * drag
+    return move_x, move_z, next_x, next_z, acceleration, drag
 end
 
 -- LivingEntity travel: gravity is applied before vertical friction.
@@ -162,6 +172,134 @@ function P.sprint_jump_impulse(vx, vz, body_yaw, sprinting, units_per_block)
         * finite_or(units_per_block, P.WORLD_UNITS_PER_BLOCK) * P.TICK_TO_FRAME
     return finite_or(vx, 0) + math.sin(yaw) * impulse,
         finite_or(vz, 0) + math.cos(yaw) * impulse
+end
+
+-- Reconcile Minecraft momentum with the displacement actually accepted by
+-- the host collision solver. A wall normal is projected out to preserve sliding;
+-- when no usable normal is available, only the clipped axes are cleared.
+function P.reconcile_horizontal_velocity(vx, vz, has_wall, normal_x, normal_z, blocked_x, blocked_z)
+    vx, vz = finite_or(vx, 0), finite_or(vz, 0)
+    normal_x, normal_z = finite_or(normal_x, 0), finite_or(normal_z, 0)
+    local normal_length_squared = normal_x * normal_x + normal_z * normal_z
+
+    if has_wall and normal_length_squared > 1.0e-8 then
+        local into_wall = vx * normal_x + vz * normal_z
+        vx = vx - normal_x * (into_wall / normal_length_squared)
+        vz = vz - normal_z * (into_wall / normal_length_squared)
+    else
+        if blocked_x then vx = 0 end
+        if blocked_z then vz = 0 end
+    end
+    return vx, vz
+end
+
+-- Minecraft's vertical delta is already moved before gravity/drag is applied.
+-- A ceiling contact clips an upward move and must stop cached upward momentum.
+function P.reconcile_vertical_velocity(velocity_y, requested_delta_y, actual_delta_y, epsilon)
+    velocity_y = finite_or(velocity_y, 0)
+    requested_delta_y = finite_or(requested_delta_y, 0)
+    actual_delta_y = finite_or(actual_delta_y, 0)
+    epsilon = math.max(0, finite_or(epsilon, 0.5))
+    if requested_delta_y > 0 and actual_delta_y < requested_delta_y - epsilon then
+        return 0, true
+    end
+    return velocity_y, false
+end
+
+-- Fluid travel helpers ported from the inspected LivingEntity travel path.
+-- They are available to the adapter, but are not enabled by the current Mario
+-- submerged actions until a reliable Lua medium/surface mapping is supplied.
+function P.water_movement_speed(movement_speed, efficiency, on_ground)
+    movement_speed = math.max(0, finite_or(movement_speed, P.DEFAULT_MOVEMENT_SPEED))
+    efficiency = clamp(finite_or(efficiency, 0), 0, 1)
+    if not on_ground then efficiency = efficiency * 0.5 end
+    return 0.02 + (movement_speed - 0.02) * efficiency
+end
+
+local function fluid_fall_adjustment(velocity_y, gravity, was_falling, sprinting)
+    gravity = finite_or(gravity, P.DEFAULT_GRAVITY)
+    velocity_y = finite_or(velocity_y, 0)
+    if gravity == 0 or sprinting then return velocity_y end
+    if was_falling
+        and math.abs(velocity_y - 0.005) >= 0.003
+        and math.abs(velocity_y - gravity / 16) < 0.003 then
+        return -0.003
+    end
+    return velocity_y - gravity / 16
+end
+
+function P.water_horizontal_step(vx, vz, input_x, input_z, movement_speed, efficiency, on_ground, sprinting)
+    local speed = P.water_movement_speed(movement_speed, efficiency, on_ground)
+    local slowdown = sprinting and 0.9 or 0.8
+    local effective_efficiency = clamp(finite_or(efficiency, 0), 0, 1)
+    if not on_ground then effective_efficiency = effective_efficiency * 0.5 end
+    slowdown = slowdown + (0.54600006 - slowdown) * effective_efficiency
+
+    -- Water movement has no ground-friction multiplier. Input is applied
+    -- before travel slowdown, so use Minecraft's affine 20-TPS recurrence.
+    local acceleration, drag = P.tick_coefficients(speed, slowdown)
+
+    -- As on land and in air, movement uses the velocity before drag. Calculate
+    -- displacement acceleration directly; use the fractional recurrence only
+    -- for the momentum stored for the next frame.
+    local movement_acceleration = speed
+        * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME
+    local requested_x = finite_or(vx, 0) + movement_acceleration * finite_or(input_x, 0)
+    local requested_z = finite_or(vz, 0) + movement_acceleration * finite_or(input_z, 0)
+    local next_x = (finite_or(vx, 0) + acceleration * finite_or(input_x, 0)) * drag
+    local next_z = (finite_or(vz, 0) + acceleration * finite_or(input_z, 0)) * drag
+    return requested_x, requested_z, next_x, next_z, speed, slowdown
+end
+
+function P.water_vertical_step(velocity_y, jump_held, descend_held, gravity)
+    local vertical_acceleration = 0
+    if jump_held then vertical_acceleration = vertical_acceleration + 0.04 end
+    if descend_held then vertical_acceleration = vertical_acceleration - 0.04 end
+
+    local impulse_frame = 0
+    if vertical_acceleration ~= 0 then
+        impulse_frame = P.tick_coefficients(vertical_acceleration, 0.8)
+    end
+    local gravity_frame, drag_frame = P.tick_coefficients(
+        finite_or(gravity, P.DEFAULT_GRAVITY) / 16.0, 0.8
+    )
+    local requested_y = finite_or(velocity_y, 0) + impulse_frame
+    local next_y = (requested_y - gravity_frame) * drag_frame
+    return requested_y, next_y, impulse_frame, gravity_frame, drag_frame
+end
+
+function P.apply_water_drag(vx, vy, vz, options)
+    options = options or {}
+    local sprinting = options.sprinting == true
+    local slowdown = finite_or(options.slowdownOverride, 0)
+    if slowdown <= 0 then slowdown = sprinting and 0.9 or 0.8 end
+    local efficiency = clamp(finite_or(options.efficiency, 0), 0, 1)
+    if not options.onGround then efficiency = efficiency * 0.5 end
+    slowdown = slowdown + (0.54600006 - slowdown) * efficiency
+
+    vx = finite_or(vx, 0) * slowdown
+    vz = finite_or(vz, 0) * slowdown
+    vy = finite_or(vy, 0) * 0.8
+    vy = fluid_fall_adjustment(
+        vy, options.gravity, options.wasFalling == true, sprinting
+    )
+    return vx, vy, vz, slowdown
+end
+
+function P.apply_lava_drag(vx, vy, vz, options)
+    options = options or {}
+    local gravity = finite_or(options.gravity, P.DEFAULT_GRAVITY)
+    vx, vy, vz = finite_or(vx, 0), finite_or(vy, 0), finite_or(vz, 0)
+    if options.deep == true then
+        return vx * 0.5, vy * 0.5 - gravity / 4, vz * 0.5
+    end
+    vx = vx * 0.5
+    vz = vz * 0.5
+    vy = vy * 0.8
+    vy = fluid_fall_adjustment(
+        vy, gravity, options.wasFalling == true, options.sprinting == true
+    )
+    return vx, vy - gravity / 4, vz
 end
 
 -- Source-side sprint trigger: forward impulse rising edge, configurable
