@@ -15,6 +15,7 @@ HOOK_ON_OBJECT_UNLOAD = "object_unload"
 
 local events = {}
 local cameraBehavior = nil
+local cameraBehaviorId = 1000
 local cameraObject = nil
 local frozen = false
 local checkingSurfaces = false
@@ -27,13 +28,14 @@ function hook_event(name, callback) events[name] = callback end
 function hook_behavior(_, list, _, init, loop, name)
     assert(list == OBJ_LIST_UNIMPORTANT, "camera controller must update after the player list")
     cameraBehavior = { init = init, loop = loop, name = name }
-    return 1000
+    return cameraBehaviorId
 end
-function spawn_non_sync_object(behavior, model, x, y, z)
+function spawn_non_sync_object(behaviorId, model, x, y, z)
     assert(model == E_MODEL_NONE, "camera controller must be renderless")
+    assert(behaviorId == cameraBehaviorId, "wrong camera behavior ID")
     local object = { oTimer = 0, id = nextObjectId, x = x, y = y, z = z }
     nextObjectId = nextObjectId + 1
-    behavior.init(object)
+    cameraBehavior.init(object)
     cameraObject = object
     return object
 end
