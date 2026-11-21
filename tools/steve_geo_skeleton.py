@@ -70,7 +70,7 @@ def _patch_layout(layout: str, layout_name: str, newline: str) -> tuple[str, dic
 
         arm = arm_matches[0]
         after_arm = layout[arm.end():]
-        open_match = re.match(r"(?P<indent>[ \t]*)GEO_OPEN_NODE\(\),[ \t]*\r?\n", after_arm)
+        open_match = re.match(r"[ \t]*\r?\n(?P<indent>[ \t]*)GEO_OPEN_NODE\(\),[ \t]*\r?\n", after_arm)
         if open_match is None:
             raise ValueError(f"{layout_name}: {side} arm has no child GeoLayout node")
 
