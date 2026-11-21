@@ -132,9 +132,19 @@ function P.horizontal_step(vx, vz, input_x, input_z, on_ground, block_friction, 
     local acceleration, drag = P.horizontal_parameters(
         on_ground, block_friction, P.DEFAULT_MOVEMENT_SPEED, sprinting
     )
-    local next_x = finite_or(vx, 0) + acceleration * finite_or(input_x, 0)
-    local next_z = finite_or(vz, 0) + acceleration * finite_or(input_z, 0)
-    return next_x, next_z, next_x * drag, next_z * drag, acceleration, drag
+    -- Minecraft moves with the pre-drag velocity. The fractional-tick
+    -- coefficient returned by tick_coefficients is for the cached velocity
+    -- recurrence; it is NOT the displacement acceleration. Reusing it here
+    -- underestimates movement because it already compensates for post-move drag.
+    local movement_acceleration = movement_speed
+        * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME
+    local move_x = finite_or(vx, 0) + movement_acceleration * finite_or(input_x, 0)
+    local move_z = finite_or(vz, 0) + movement_acceleration * finite_or(input_z, 0)
+
+    -- Keep a separate fractional-tick recurrence for next frame's velocity.
+    local next_x = (finite_or(vx, 0) + acceleration * finite_or(input_x, 0)) * drag
+    local next_z = (finite_or(vz, 0) + acceleration * finite_or(input_z, 0)) * drag
+    return move_x, move_z, next_x, next_z, acceleration, drag
 end
 
 -- LivingEntity travel: gravity is applied before vertical friction.
@@ -228,10 +238,17 @@ function P.water_horizontal_step(vx, vz, input_x, input_z, movement_speed, effic
     -- Water movement has no ground-friction multiplier. Input is applied
     -- before travel slowdown, so use Minecraft's affine 20-TPS recurrence.
     local acceleration, drag = P.tick_coefficients(speed, slowdown)
-    local requested_x = finite_or(vx, 0) + acceleration * finite_or(input_x, 0)
-    local requested_z = finite_or(vz, 0) + acceleration * finite_or(input_z, 0)
-    return requested_x, requested_z, requested_x * drag, requested_z * drag,
-        speed, slowdown
+
+    -- As on land and in air, movement uses the velocity before drag. Calculate
+    -- displacement acceleration directly; use the fractional recurrence only
+    -- for the momentum stored for the next frame.
+    local movement_acceleration = speed
+        * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME
+    local requested_x = finite_or(vx, 0) + movement_acceleration * finite_or(input_x, 0)
+    local requested_z = finite_or(vz, 0) + movement_acceleration * finite_or(input_z, 0)
+    local next_x = (finite_or(vx, 0) + acceleration * finite_or(input_x, 0)) * drag
+    local next_z = (finite_or(vz, 0) + acceleration * finite_or(input_z, 0)) * drag
+    return requested_x, requested_z, next_x, next_z, speed, slowdown
 end
 
 function P.water_vertical_step(velocity_y, jump_held, descend_held, gravity)
