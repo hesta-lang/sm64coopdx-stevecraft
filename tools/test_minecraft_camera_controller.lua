@@ -7,6 +7,14 @@ E_MODEL_NONE = -1
 Y_BUTTON = 0x1
 INPUT_Z_DOWN = 0x2
 ACT_CROUCHING = 0x3
+L_JPAD = 0x200
+R_JPAD = 0x100
+U_JPAD = 0x800
+D_JPAD = 0x400
+L_CBUTTONS = 0x2
+R_CBUTTONS = 0x1
+U_CBUTTONS = 0x8
+D_CBUTTONS = 0x4
 HOOK_MARIO_UPDATE = "mario_update"
 HOOK_ON_LEVEL_INIT = "level_init"
 HOOK_ON_WARP = "warp"
@@ -97,7 +105,7 @@ local mario = {
     pos = { x = 10, y = 20, z = 30 },
     vel = { x = 0, y = 0, z = 0 },
     faceAngle = { x = 0, y = 0, z = 0x8000 },
-    controller = { buttonPressed = 0 },
+    controller = { buttonPressed = 0, buttonDown = 0 },
     input = 0,
     action = 0,
     area = { camera = nativeCamera },
@@ -141,6 +149,26 @@ assert(math.abs(nativeCamera.focus.x - pose.focus.x) < 1e-5
     and math.abs(nativeCamera.focus.y - pose.focus.y) < 1e-5
     and math.abs(nativeCamera.focus.z - pose.focus.z) < 1e-5,
     "Camera focus diverged from Steve's computed camera direction")
+
+-- Android touch-screen D-pad is available to Lua through buttonDown. Right
+-- rotates yaw; up rotates pitch. Reset after testing so later geometry checks
+-- use a predictable forward direction.
+local initialYaw = gFirstPersonCamera.yaw
+mario.controller.buttonDown = R_JPAD
+cameraBehavior.loop(cameraObject)
+local yawStep = math.floor(2.0 * 65536 / 360 + 0.5)
+assert(gFirstPersonCamera.yaw == (initialYaw + yawStep) % 65536,
+    "right D-pad did not rotate the independent camera")
+mario.controller.buttonDown = U_JPAD
+cameraBehavior.loop(cameraObject)
+assert(gFirstPersonCamera.pitch < 0, "up D-pad did not look upward")
+mario.controller.buttonDown = 0
+gFirstPersonCamera.yaw = 0
+gFirstPersonCamera.pitch = 0
+assert(SteveCraft.cameraController.set_digital_look_speed(3.0))
+assert(SteveCraft.cameraController.get_digital_look_speed() == 3.0)
+assert(not SteveCraft.cameraController.set_digital_look_speed("fast"))
+assert(SteveCraft.cameraController.set_digital_look_speed(2.0))
 
 -- Crouching changes the camera to Minecraft's 1.27-block eye height.
 mario.motion = { crouching = true }
