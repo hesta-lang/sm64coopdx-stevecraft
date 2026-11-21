@@ -2,7 +2,15 @@ Lights1 steve_Minecraft_Torso_Base_lights = gdSPDefLights1(
 	0x7F, 0x7F, 0x7F,
 	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
 
+Lights1 steve_Minecraft_Torso_Jacket_lights = gdSPDefLights1(
+	0x7F, 0x7F, 0x7F,
+	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
+
 Lights1 steve_Minecraft_Head_Base_lights = gdSPDefLights1(
+	0x7F, 0x7F, 0x7F,
+	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
+
+Lights1 steve_Minecraft_Head_Hat_lights = gdSPDefLights1(
 	0x7F, 0x7F, 0x7F,
 	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
 
@@ -10,7 +18,15 @@ Lights1 steve_Minecraft_Left_Arm_Base_lights = gdSPDefLights1(
 	0x7F, 0x7F, 0x7F,
 	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
 
+Lights1 steve_Minecraft_Left_Arm_Sleeve_lights = gdSPDefLights1(
+	0x7F, 0x7F, 0x7F,
+	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
+
 Lights1 steve_Minecraft_Right_Arm_Base_lights = gdSPDefLights1(
+	0x7F, 0x7F, 0x7F,
+	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
+
+Lights1 steve_Minecraft_Right_Arm_Sleeve_lights = gdSPDefLights1(
 	0x7F, 0x7F, 0x7F,
 	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
 
@@ -18,7 +34,15 @@ Lights1 steve_Minecraft_Left_Leg_Base_lights = gdSPDefLights1(
 	0x7F, 0x7F, 0x7F,
 	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
 
+Lights1 steve_Minecraft_Left_Leg_Pants_lights = gdSPDefLights1(
+	0x7F, 0x7F, 0x7F,
+	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
+
 Lights1 steve_Minecraft_Right_Leg_Base_lights = gdSPDefLights1(
+	0x7F, 0x7F, 0x7F,
+	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
+
+Lights1 steve_Minecraft_Right_Leg_Pants_lights = gdSPDefLights1(
 	0x7F, 0x7F, 0x7F,
 	0xFF, 0xFF, 0xFF, 0x28, 0x28, 0x28);
 
@@ -2150,6 +2174,7 @@ Gfx mat_revert_steve_Minecraft_Torso_Base[] = {
 
 Gfx mat_steve_Minecraft_Torso_Jacket[] = {
 	gsSPClearGeometryMode(G_CULL_BACK),
+	gsSPSetLights1(steve_Minecraft_Torso_Jacket_lights),
 	gsDPPipeSync(),
 	gsDPSetCombineLERP(TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0, TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0),
 	gsDPSetAlphaDither(G_AD_NOISE),
@@ -2195,6 +2220,7 @@ Gfx mat_revert_steve_Minecraft_Head_Base[] = {
 
 Gfx mat_steve_Minecraft_Head_Hat[] = {
 	gsSPClearGeometryMode(G_CULL_BACK),
+	gsSPSetLights1(steve_Minecraft_Head_Hat_lights),
 	gsDPPipeSync(),
 	gsDPSetCombineLERP(TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0, TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0),
 	gsDPSetAlphaDither(G_AD_NOISE),
@@ -2240,6 +2266,7 @@ Gfx mat_revert_steve_Minecraft_Left_Arm_Base[] = {
 
 Gfx mat_steve_Minecraft_Left_Arm_Sleeve[] = {
 	gsSPClearGeometryMode(G_CULL_BACK),
+	gsSPSetLights1(steve_Minecraft_Left_Arm_Sleeve_lights),
 	gsDPPipeSync(),
 	gsDPSetCombineLERP(TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0, TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0),
 	gsDPSetAlphaDither(G_AD_NOISE),
@@ -2285,6 +2312,7 @@ Gfx mat_revert_steve_Minecraft_Right_Arm_Base[] = {
 
 Gfx mat_steve_Minecraft_Right_Arm_Sleeve[] = {
 	gsSPClearGeometryMode(G_CULL_BACK),
+	gsSPSetLights1(steve_Minecraft_Right_Arm_Sleeve_lights),
 	gsDPPipeSync(),
 	gsDPSetCombineLERP(TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0, TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0),
 	gsDPSetAlphaDither(G_AD_NOISE),
@@ -2330,6 +2358,7 @@ Gfx mat_revert_steve_Minecraft_Left_Leg_Base[] = {
 
 Gfx mat_steve_Minecraft_Left_Leg_Pants[] = {
 	gsSPClearGeometryMode(G_CULL_BACK),
+	gsSPSetLights1(steve_Minecraft_Left_Leg_Pants_lights),
 	gsDPPipeSync(),
 	gsDPSetCombineLERP(TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0, TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0),
 	gsDPSetAlphaDither(G_AD_NOISE),
@@ -2375,6 +2404,7 @@ Gfx mat_revert_steve_Minecraft_Right_Leg_Base[] = {
 
 Gfx mat_steve_Minecraft_Right_Leg_Pants[] = {
 	gsSPClearGeometryMode(G_CULL_BACK),
+	gsSPSetLights1(steve_Minecraft_Right_Leg_Pants_lights),
 	gsDPPipeSync(),
 	gsDPSetCombineLERP(TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0, TEXEL0, 0, SHADE, 0, TEXEL0, 0, ENVIRONMENT, 0),
 	gsDPSetAlphaDither(G_AD_NOISE),
@@ -2399,10 +2429,10 @@ Gfx mat_revert_steve_Minecraft_Right_Leg_Pants[] = {
 Gfx mat_steve_Steve_Metal[] = {
 	gsSPClearGeometryMode(G_LIGHTING),
 	gsDPPipeSync(),
+	gsDPSetPrimColor(0, 0, 158, 173, 186, 255),
 	gsDPSetCombineLERP(0, 0, 0, PRIMITIVE, 0, 0, 0, 1, 0, 0, 0, PRIMITIVE, 0, 0, 0, 1),
 	gsDPSetAlphaDither(G_AD_NOISE),
 	gsSPTexture(65535, 65535, 0, 0, 1),
-	gsDPSetPrimColor(0, 0, 206, 215, 222, 255),
 	gsSPEndDisplayList(),
 };
 

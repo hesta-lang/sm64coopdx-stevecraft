@@ -7,11 +7,17 @@ extern const GeoLayout steve_Metal_Mario_Switch_Option_Metal_Capless_Head_opt_1[
 extern const GeoLayout steve_geo_opt_1_1[];
 extern const GeoLayout steve_geo[];
 extern Lights1 steve_Minecraft_Torso_Base_lights;
+extern Lights1 steve_Minecraft_Torso_Jacket_lights;
 extern Lights1 steve_Minecraft_Head_Base_lights;
+extern Lights1 steve_Minecraft_Head_Hat_lights;
 extern Lights1 steve_Minecraft_Left_Arm_Base_lights;
+extern Lights1 steve_Minecraft_Left_Arm_Sleeve_lights;
 extern Lights1 steve_Minecraft_Right_Arm_Base_lights;
+extern Lights1 steve_Minecraft_Right_Arm_Sleeve_lights;
 extern Lights1 steve_Minecraft_Left_Leg_Base_lights;
+extern Lights1 steve_Minecraft_Left_Leg_Pants_lights;
 extern Lights1 steve_Minecraft_Right_Leg_Base_lights;
+extern Lights1 steve_Minecraft_Right_Leg_Pants_lights;
 extern u8 steve_torso_base_rgba16[];
 extern u8 steve_torso_jacket_rgba16[];
 extern u8 steve_head_base_rgba16[];
