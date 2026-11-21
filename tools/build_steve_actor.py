@@ -657,6 +657,8 @@ def main():
         "The export retains the PlayerModel base cubes and all four outer-layer groups: "
         "hat, jacket, sleeves and pants. The original skin UVs are split into small "
         "per-cuboid textures to fit the N64 texture memory limits.\\n\\n"
+        "The generated GeoLayout is aligned to the 20-node Minecraft animation rig, "
+        "including the zero-offset left and right wrist joints.\\n\\n"
         "The independent first-person viewmodel is generated under actors/steve_hand/.\\n"
         "SM64CoopDX generates runtime DynOS resources when the mod pack loads.\\n",
         encoding="utf-8",
