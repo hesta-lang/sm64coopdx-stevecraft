@@ -101,11 +101,14 @@ jobs:
         run: |
           cat > build/dynos_stub.h <<'EOF'
           typedef const char *Texture;
-          typedef struct {
-              struct { short x, y, z; } ob;
-              short flag;
-              struct { short s, t; } tc;
-              struct { unsigned char r, g, b, a; } cn;
+          typedef union {
+              struct {
+                  struct { short x, y, z; } ob;
+                  short flag;
+                  struct { short s, t; } tc;
+                  struct { unsigned char r, g, b, a; } cn;
+              } v;
+              unsigned long force_structure_alignment;
           } Vtx;
           typedef unsigned long Gfx;
           #define G_LIGHTING 1
