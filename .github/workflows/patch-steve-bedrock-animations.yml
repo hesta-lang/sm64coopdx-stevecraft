@@ -1,0 +1,66 @@
+name: Patch Steve DynOSBIN with Bedrock-style animations
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_path:
+        description: "Repository path to the compatible mario_geo DynOSBIN actor"
+        required: true
+        default: "assets/steve/minecraft_steve_geo.bin"
+
+permissions:
+  contents: read
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout SteveCraft
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile patcher and tests
+        run: |
+          python -m py_compile tools/patch_steve_dynos_animations.py tools/test_patch_steve_dynos_animations.py
+
+      - name: Run DynOS binary-format tests
+        run: |
+          python -m unittest tools/test_patch_steve_dynos_animations.py -v
+
+      - name: Check for supplied source model
+        env:
+          SOURCE_PATH: ${{ inputs.source_path }}
+        run: |
+          test -s "$SOURCE_PATH" || {
+            echo "::error::Source binary not found: $SOURCE_PATH"
+            echo "Upload the compatible .bin into this branch, then rerun the workflow."
+            exit 1
+          }
+
+      - name: Append Bedrock animation records
+        env:
+          SOURCE_PATH: ${{ inputs.source_path }}
+        run: |
+          python tools/patch_steve_dynos_animations.py \
+            --input "$SOURCE_PATH" \
+            --output build/minecraft_steve_bedrock_animated.bin \
+            --manifest build/minecraft_steve_bedrock_animated.json
+          test -s build/minecraft_steve_bedrock_animated.bin
+          test -s build/minecraft_steve_bedrock_animated.json
+
+      - name: Upload animated DynOSBIN
+        uses: actions/upload-artifact@v4
+        with:
+          name: steve-bedrock-dynos-animated
+          path: |
+            build/minecraft_steve_bedrock_animated.bin
+            build/minecraft_steve_bedrock_animated.json
+          if-no-files-found: error
+          retention-days: 14
