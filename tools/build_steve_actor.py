@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from steve_geo_sanitizer import sanitize_steve_geo_source
+from steve_geo_skeleton import patch_steve_dynos_skeleton
 
 ADDON_PARENT = Path(os.environ["FAST64_ADDON"]).resolve()
 ADDON_ROOT = ADDON_PARENT / "fast64_gart"
@@ -644,6 +645,7 @@ def main():
         raise RuntimeError("Fast64 is missing exported actor files: " + ", ".join(missing))
 
     geo_sanitization = sanitize_unsupported_geo_commands(actor_dir)
+    dynos_skeleton = patch_steve_dynos_skeleton(actor_dir / "geo.inc.c")
     primitive_materials = apply_steve_primitive_colors(actor_dir)
     steve_root_scale = set_steve_root_scale(actor_dir, 65536)
     first_person_hand = write_first_person_hand_actor(actor_root)
@@ -682,6 +684,7 @@ def main():
         "static_eye_switches": static_eye_switches,
         "unsupported_custom_commands_removed": geo_sanitization["unsupported_custom_commands_removed"],
         "shared_mario_alpha_callbacks_removed": geo_sanitization["shared_mario_alpha_callbacks_removed"],
+        "dynos_skeleton": dynos_skeleton,
         "steve_root_scale": steve_root_scale,
         "metal_variant_primitive_materials": primitive_materials,
         "first_person_hand": first_person_hand,
