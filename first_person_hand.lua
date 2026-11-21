@@ -110,10 +110,22 @@ local function hand_viewmodel_loop(o)
 
     local camera = gLakituState
     local fp = gFirstPersonCamera
-    if camera == nil or camera.curPos == nil or fp == nil then return end
+    if fp == nil then return end
 
     local mario = gMarioStates ~= nil and gMarioStates[0] or nil
     if mario == nil then return end
+
+    -- The hand runs in OBJ_LIST_GENACTOR, before the independent camera object
+    -- in OBJ_LIST_UNIMPORTANT. Use the same Minecraft eye origin that the
+    -- camera controller will write later this frame, not first_person_update's
+    -- temporary 120-unit Mario head position.
+    local cameraPosition = camera ~= nil and camera.curPos or nil
+    local cameraController = SteveCraft.cameraController
+    if cameraController ~= nil and type(cameraController.get_view_origin) == "function" then
+        local ok, origin = pcall(cameraController.get_view_origin, mario)
+        if ok and origin ~= nil then cameraPosition = origin end
+    end
+    if cameraPosition == nil then return end
 
     local motion = nil
     local physics = SteveCraft.physics
@@ -135,7 +147,7 @@ local function hand_viewmodel_loop(o)
     end
 
     local pose = compute_viewmodel_pose(
-        camera.curPos, fp.yaw, fp.pitch, o.oTimer or 0, motion, swing
+        cameraPosition, fp.yaw, fp.pitch, o.oTimer or 0, motion, swing
     )
     o.oPosX, o.oPosY, o.oPosZ = pose.x, pose.y, pose.z
     o.oFaceAnglePitch = pose.pitch
