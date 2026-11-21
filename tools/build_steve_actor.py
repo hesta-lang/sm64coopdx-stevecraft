@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from steve_geo_sanitizer import sanitize_steve_geo_source
 from steve_geo_skeleton import patch_steve_dynos_skeleton
+from import_bedrock_geometry import load_imported_spec
 
 ADDON_PARENT = Path(os.environ["FAST64_ADDON"]).resolve()
 ADDON_ROOT = ADDON_PARENT / "fast64_gart"
@@ -528,14 +529,37 @@ def set_steve_root_scale(actor_dir, scale_value=65536):
 
 
 def main():
+    global MINECRAFT_PLAYER_CUBOIDS
+
     scene = bpy.context.scene
+    model_source = "Minecraft Java 1.21.11 PlayerModel"
+    bedrock_import = None
+    bedrock_spec_path = os.environ.get("STEVE_BEDROCK_GEOMETRY_SPEC")
+    entity_scale_fixed = 65536
+
+    if bedrock_spec_path:
+        spec_path = Path(bedrock_spec_path).resolve()
+        if not spec_path.is_file():
+            raise RuntimeError("Bedrock geometry import spec is missing: " + str(spec_path))
+        bedrock_import = load_imported_spec(spec_path)
+        MINECRAFT_PLAYER_CUBOIDS = bedrock_import["cuboids"]
+        model_source = (
+            "Mojang Bedrock geometry.humanoid.custom "
+            "(revision " + str(bedrock_import.get("source_revision") or "unspecified") + ")"
+        )
+        entity_scale_fixed = int(round(bedrock_import["entity_scale"] * 65536))
+        print("[SteveCraft] Imported Bedrock geometry: "
+              + str(bedrock_import["bone_count"]) + " bones, "
+              + str(bedrock_import["cube_count"]) + " cuboids, scale "
+              + str(bedrock_import["entity_scale"]))
+
     mario = obj("Mario", "ARMATURE")
     mario_mesh = obj("Mario Mesh", "MESH")
     if mario_mesh.parent != mario:
         raise RuntimeError("Mario Mesh must remain parented to the Mario armature")
 
-    # Retain the template's separate metal-cap model. The normal player uses
-    # the Minecraft Java PlayerModel cubes, overlays, and classic Steve skin.
+    # Retain the template's separate metal-cap model. The visible cuboids come
+    # from the selected Java fallback or the imported Bedrock geometry spec.
     colors = {
         "skin": (0.72, 0.49, 0.32, 1.0),
         "hair": (0.22, 0.11, 0.055, 1.0),
@@ -647,14 +671,14 @@ def main():
     geo_sanitization = sanitize_unsupported_geo_commands(actor_dir)
     dynos_skeleton = patch_steve_dynos_skeleton(actor_dir / "geo.inc.c")
     primitive_materials = apply_steve_primitive_colors(actor_dir)
-    steve_root_scale = set_steve_root_scale(actor_dir, 65536)
+    steve_root_scale = set_steve_root_scale(actor_dir, entity_scale_fixed)
     first_person_hand = write_first_person_hand_actor(actor_root)
 
     (actor_dir / "README.md").write_text(
         "# SteveCraft 64 DynOS actor\\n\\n"
-        "Minecraft Java 1.21.11 PlayerModel geometry and classic 64x64 Steve skin, "
+        + model_source + " geometry and classic 64x64 Steve skin, "
         "rigged to the SM64CoopDX player armature.\\n\\n"
-        "The export retains the PlayerModel base cubes and all four outer-layer groups: "
+        "The export retains the base cubes and all four outer-layer groups: "
         "hat, jacket, sleeves and pants. The original skin UVs are split into small "
         "per-cuboid textures to fit the N64 texture memory limits.\\n\\n"
         "The generated GeoLayout is aligned to the 20-node Minecraft animation rig, "
@@ -676,7 +700,8 @@ def main():
             if bpy.data.objects.get(name) is not None
         },
         "minecraft_player_model": {
-            "source": "Minecraft Java 1.21.11 PlayerModel.createMesh / HumanoidModel.createMesh",
+            "source": model_source,
+            "bedrock_import": bedrock_import,
             "base_cuboids": sum(1 for cube in MINECRAFT_PLAYER_CUBOIDS if not cube["outer"]),
             "outer_layer_cuboids": sum(1 for cube in MINECRAFT_PLAYER_CUBOIDS if cube["outer"]),
             "skin_uv_manifest": skin_manifest["cubes"],
