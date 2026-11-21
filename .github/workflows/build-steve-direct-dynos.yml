@@ -1,0 +1,174 @@
+name: Build Steve direct Bedrock DynOS (alpha)
+
+on:
+  push:
+    branches:
+      - stevecraft-direct-bedrock-dynos-alpha
+    paths:
+      - "tools/build_steve_dynos.py"
+      - "tools/test_steve_dynos_generator.py"
+      - ".github/workflows/build-steve-direct-dynos.yml"
+      - "actors/steve/geo.inc.c"
+      - "assets/steve/steve_skin.png"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  direct-dynos:
+    name: Generate and validate native DynOS model
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout SteveCraft
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install image dependency
+        run: python -m pip install --disable-pip-version-check Pillow==11.3.0
+
+      - name: Download pinned official Bedrock player geometry
+        env:
+          BEDROCK_REVISION: 15701fa9c13923f12662984c32c124327e40e3d3
+        run: |
+          set -euo pipefail
+          mkdir -p build/bedrock-source
+          curl -fL --retry 3 \
+            "https://raw.githubusercontent.com/Mojang/bedrock-samples/${BEDROCK_REVISION}/resource_pack/models/entity/humanoid.custom.geo.json" \
+            -o build/bedrock-source/humanoid.custom.geo.json
+          curl -fL --retry 3 \
+            "https://raw.githubusercontent.com/Mojang/bedrock-samples/${BEDROCK_REVISION}/resource_pack/entity/player.entity.json" \
+            -o build/bedrock-source/player.entity.json
+          python -m json.tool build/bedrock-source/humanoid.custom.geo.json >/dev/null
+          python -m json.tool build/bedrock-source/player.entity.json >/dev/null
+          test -s assets/steve/steve_skin.png
+          test -s actors/steve/geo.inc.c
+
+      - name: Compile Python generator
+        run: python -m py_compile tools/build_steve_dynos.py tools/test_steve_dynos_generator.py
+
+      - name: Run generator unit tests
+        run: python -m unittest tools/test_steve_dynos_generator.py -v
+
+      - name: Generate Steve model directly from Bedrock geometry
+        run: |
+          set -euo pipefail
+          python tools/build_steve_dynos.py \
+            --geometry build/bedrock-source/humanoid.custom.geo.json \
+            --skin assets/steve/steve_skin.png \
+            --geo-template actors/steve/geo.inc.c \
+            --entity-config build/bedrock-source/player.entity.json \
+            --output build/actor/actors \
+            --report build/steve-dynos-report.json
+          test -s build/actor/actors/steve/model.inc.c
+          test -s build/actor/actors/steve/geo.inc.c
+          test -s build/actor/actors/steve/geo_header.h
+
+      - name: Validate geometry and texture report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("build/steve-dynos-report.json").read_text())
+          assert report["geometry_identifier"] == "geometry.humanoid.custom"
+          assert report["bone_count"] == 17, report["bone_count"]
+          assert report["cube_count"] == 12, report["cube_count"]
+          assert report["face_count"] == report["cube_count"] * 6
+          assert report["vertex_count"] == report["cube_count"] * 24
+          assert report["triangle_count"] == report["cube_count"] * 12
+          assert report["entity_scale_from_entity_config"] == 0.9375
+          assert report["entity_scale_applied"] is False
+          for group in ("torso", "head", "left_arm", "right_arm", "left_leg", "right_leg"):
+              total = sum(report["group_cube_counts"][f"{group}:{layer}"] for layer in ("base", "outer"))
+              assert total > 0, f"missing geometry for {group}"
+          actor = Path("build/actor/actors/steve")
+          for texture in report["textures"]:
+              image = actor / texture["file"]
+              assert image.is_file() and image.stat().st_size > 0, texture["file"]
+          print("Official Bedrock model validated:", report["cube_count"], "cuboids")
+          print("Generated:", report["vertex_count"], "vertices,", report["triangle_count"], "triangles")
+          print("Textures:", report["face_count"], "face tiles")
+          PY
+
+      - name: C syntax check for generated DynOS source
+        run: |
+          cat > build/dynos_stub.h <<'EOF'
+          typedef const char *Texture;
+          typedef struct {
+              struct { short x, y, z; } ob;
+              short flag;
+              struct { short s, t; } tc;
+              struct { unsigned char r, g, b, a; } cn;
+          } Vtx;
+          typedef unsigned long Gfx;
+          #define G_LIGHTING 1
+          #define G_TF_POINT 0
+          #define G_CC_DECALRGBA 0
+          #define G_TX_RENDERTILE 0
+          #define G_ON 1
+          #define G_OFF 0
+          #define G_IM_FMT_RGBA 0
+          #define G_IM_SIZ_16b 0
+          #define G_TX_CLAMP 0
+          #define G_TX_NOMASK 0
+          #define G_TX_NOLOD 0
+          #define gsDPPipeSync(...) 0
+          #define gsDPSetTextureFilter(...) 0
+          #define gsSPClearGeometryMode(...) 0
+          #define gsDPSetCombineMode(...) 0
+          #define gsSPTexture(...) 0
+          #define gsSPVertex(...) 0
+          #define gsDPLoadTextureBlock(...) 0
+          #define gsSP2Triangles(...) 0
+          #define gsSPDisplayList(...) 0
+          #define gsSPEndDisplayList(...) 0
+          EOF
+          cc -std=c11 -Werror -fsyntax-only \
+            -include build/dynos_stub.h \
+            build/actor/actors/steve/model.inc.c
+
+      - name: Generate independent first-person hand model
+        run: |
+          python tools/build_steve_hand.py \
+            --skin assets/steve/steve_skin.png \
+            --output build/actor/actors/steve_hand
+          test -s build/actor/actors/steve_hand/model.inc.c
+          test -s build/actor/actors/steve_hand/geo.inc.c
+          test -s build/actor/actors/steve_hand/arm_front.png
+
+      - name: Assemble actor and upload test artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stevecraft-direct-bedrock-dynos-alpha
+          path: |
+            build/actor/actors/steve/
+            build/actor/actors/steve_hand/
+            build/steve-dynos-report.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit generated DynOS actor sources
+        run: |
+          set -euo pipefail
+          rm -rf actors/steve actors/steve_hand
+          cp -a build/actor/actors/steve actors/steve
+          cp -a build/actor/actors/steve_hand actors/steve_hand
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add actors/steve actors/steve_hand
+          if git diff --cached --quiet; then
+            echo "Generated actor is unchanged."
+          else
+            git commit -m "Generate Steve directly from Bedrock geometry"
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
