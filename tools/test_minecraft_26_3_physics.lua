@@ -42,7 +42,7 @@ assert(air_a > 0)
 -- Ground movement uses the friction-influenced speed returned by horizontal_parameters.
 local ground_move_x, ground_move_z, ground_next_x, ground_next_z =
     P.horizontal_step(0, 0, 0, 0.98, true, 0.6, false)
-local ground_expected_speed = P.horizontal_parameters(true, 0.6, P.DEFAULT_MOVEMENT_SPEED, false)
+local _, _, ground_expected_speed = P.horizontal_parameters(true, 0.6, P.DEFAULT_MOVEMENT_SPEED, false)
 local ground_expected_move = ground_expected_speed * P.WORLD_UNITS_PER_BLOCK * P.TICK_TO_FRAME * 0.98
 assert(math.abs(ground_move_x) < 1e-9)
 assert(math.abs(ground_move_z - ground_expected_move) < 1e-8)
