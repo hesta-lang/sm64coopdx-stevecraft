@@ -44,10 +44,11 @@ class SteveGeoSkeletonTests(unittest.TestCase):
                 EXPECTED_ANIMATED_NODES,
                 name,
             )
+            layer = "LAYER_TRANSPARENT" if "opt" in name else "LAYER_OPAQUE"
             self.assertIn(
-                "GEO_ANIMATED_PART(LAYER_OPAQUE, 31, 0, 0, NULL),\n"
+                f"GEO_ANIMATED_PART({layer}, 31, 0, 0, NULL),\n"
                 "        GEO_OPEN_NODE(),\n"
-                "            GEO_ANIMATED_PART(LAYER_OPAQUE, 0, 0, 0, NULL),\n"
+                f"            GEO_ANIMATED_PART({layer}, 0, 0, 0, NULL),\n"
                 "        GEO_CLOSE_NODE(),",
                 layout,
             )
