@@ -138,7 +138,7 @@ def patch_steve_dynos_skeleton_source(source: str) -> tuple[str, dict]:
         source = source[:start] + patched + source[end:]
         delta = len(patched) - len(original)
         layouts = {
-            key: (a, b + delta if a > start else b)
+            key: (a + delta, b + delta) if a > start else (a, b)
             for key, (a, b) in layouts.items()
         }
         report["layouts_validated"].append(name)
