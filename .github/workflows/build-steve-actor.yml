@@ -45,6 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           urls=(
+            "https://download.blender.org/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
             "https://mirror.blender.org/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
             "https://mirror.freedif.org/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
             "https://mirror.nju.edu.cn/blender/release/Blender3.6/blender-3.6.23-linux-x64.tar.xz"
@@ -53,7 +54,7 @@ jobs:
           for url in "${urls[@]}"; do
             echo "Trying $url"
             rm -f blender.tar.xz
-            if curl -fL --retry 2 --connect-timeout 20 "$url" -o blender.tar.xz && tar -tJf blender.tar.xz >/dev/null 2>&1; then
+            if curl -fL --retry 1 --connect-timeout 20 --max-time 600 "$url" -o blender.tar.xz && tar -tJf blender.tar.xz >/dev/null 2>&1; then
               downloaded=1
               break
             fi
