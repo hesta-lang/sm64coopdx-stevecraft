@@ -127,8 +127,16 @@ assert(math.abs(nativeCamera.pos.y - eyeHeight) < 1e-5,
     "first-person camera is not at Minecraft standing eye height")
 assert(math.abs(nativeCamera.pos.x - 10) < 1e-5 and math.abs(nativeCamera.pos.z - 30) < 1e-5,
     "first-person camera origin is not aligned with the player eye")
-assert(nativeCamera.focus.z < nativeCamera.pos.z,
-    "first-person focus does not follow the camera's forward vector")
+local focusDx = nativeCamera.focus.x - nativeCamera.pos.x
+local focusDy = nativeCamera.focus.y - nativeCamera.pos.y
+local focusDz = nativeCamera.focus.z - nativeCamera.pos.z
+local focusDistance = math.sqrt(focusDx * focusDx + focusDy * focusDy + focusDz * focusDz)
+assert(math.abs(focusDistance - 100) < 1e-5,
+    "first-person focus must remain 100 units along the camera direction")
+assert(math.abs(nativeCamera.focus.x - pose.focus.x) < 1e-5
+    and math.abs(nativeCamera.focus.y - pose.focus.y) < 1e-5
+    and math.abs(nativeCamera.focus.z - pose.focus.z) < 1e-5,
+    "Camera focus diverged from Steve's computed camera direction")
 
 -- Crouching changes the camera to Minecraft's 1.27-block eye height.
 mario.motion = { crouching = true }
@@ -148,7 +156,11 @@ pose = SteveCraft.cameraController.get_last_pose()
 local wanted = 4 * (160 / 1.8)
 assert(pose.mode == SteveCraft.PERSPECTIVE_THIRD_PERSON)
 assert(math.abs(pose.distance - wanted) < 1e-5, "third-person distance is not four Minecraft blocks")
-assert(pose.position.z > pose.focus.z, "rear camera is not behind the player")
+local rearDx = pose.position.x - pose.focus.x
+local rearDy = pose.position.y - pose.focus.y
+local rearDz = pose.position.z - pose.focus.z
+assert(math.abs(math.sqrt(rearDx * rearDx + rearDy * rearDy + rearDz * rearDz) - wanted) < 1e-5,
+    "rear camera is not four blocks from Steve's eye anchor")
 assert(math.abs(nativeCamera.pos.x - gLakituState.pos.x) < 1e-5
     and math.abs(nativeCamera.pos.z - gLakituState.pos.z) < 1e-5,
     "Camera and Lakitu transforms diverged")
@@ -174,7 +186,14 @@ mario.controller.buttonPressed = 0
 cameraBehavior.loop(cameraObject)
 pose = SteveCraft.cameraController.get_last_pose()
 assert(pose.front == true, "Y did not select Minecraft front third-person")
-assert(pose.position.z < pose.focus.z, "front camera was not placed in front of Steve")
+assert(math.abs((pose.yaw - 0) % 65536 - 0x8000) < 1e-5
+    or math.abs((pose.yaw - 0x8000) % 65536) < 1e-5,
+    "front perspective did not reverse the camera yaw")
+local frontDx = pose.position.x - pose.focus.x
+local frontDy = pose.position.y - pose.focus.y
+local frontDz = pose.position.z - pose.focus.z
+assert(math.abs(math.sqrt(frontDx * frontDx + frontDy * frontDy + frontDz * frontDz) - wanted) < 1e-5,
+    "front camera distance is not four blocks")
 
 -- Public controls clamp and retain the Minecraft distance setting.
 assert(SteveCraft.cameraController.set_distance_blocks(5.5))
