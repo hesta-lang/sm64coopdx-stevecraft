@@ -205,7 +205,9 @@ assert(math.abs(math.sqrt(frontDx * frontDx + frontDy * frontDy + frontDz * fron
 -- Public controls clamp and retain the Minecraft distance setting.
 assert(SteveCraft.cameraController.set_distance_blocks(5.5))
 assert(SteveCraft.cameraController.get_distance_blocks() == 5.5)
-assert(not SteveCraft.cameraController.set_distance_blocks(0))
+assert(SteveCraft.cameraController.set_distance_blocks(0))
+assert(SteveCraft.cameraController.get_distance_blocks() == 1,
+    "camera distance lower bound must be clamped to one block")
 
 -- Leaving the mod restores the camera freeze and the user's original
 -- first-person enabled state.
