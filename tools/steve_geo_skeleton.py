@@ -41,7 +41,7 @@ _ZERO_HAND_NODE = re.compile(
     r"^[ \t]*GEO_OPEN_NODE\(\),[ \t]*\r?\n"
     r"[ \t]*GEO_ANIMATED_PART\(\s*LAYER_(?:OPAQUE|TRANSPARENT),\s*"
     r"0,\s*0,\s*0,\s*NULL\s*\),[ \t]*\r?\n"
-    r"[ \t]*GEO_CLOSE_NODE\(\),[ \t]*$"
+    r"[ \t]*GEO_CLOSE_NODE\(\),[ \t]*"
 )
 
 
