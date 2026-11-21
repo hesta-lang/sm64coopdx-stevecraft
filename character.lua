@@ -1,6 +1,6 @@
--- SteveCraft 64 - independent Steve player representation.
--- Mario remains the engine-owned physical/collision proxy. Steve is rendered
--- by the separate object managed in proxy.lua.
+-- SteveCraft 64 - Steve model replacement on the native player object.
+-- MarioState remains the engine-owned physical authority; proxy.lua changes
+-- marioObj's model directly so a second body is never spawned.
 
 SteveCraft = SteveCraft or {}
 
@@ -35,7 +35,7 @@ local function resolve_steve_model()
     character.modelId = modelId
     character.registered = true
     character.ready = true
-    print("[SteveCraft 64] Registered independent Steve render model.")
+    print("[SteveCraft 64] Registered Steve model for the native player object.")
     return true
 end
 
