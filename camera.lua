@@ -446,6 +446,11 @@ function controller.get_distance_blocks()
     return controller.distanceBlocks
 end
 
+function controller.get_view_origin(m)
+    if m == nil or m.pos == nil then return nil end
+    return eye_position(m)
+end
+
 function controller.get_last_pose()
     local pose = lastCameraPose
     if pose == nil then return nil end
@@ -478,7 +483,8 @@ local function on_mario_update(m)
 end
 
 local function on_level_init()
-    cameraObject = nil
+    -- Keep the live controller object if the engine carries it across an area
+    -- transition; HOOK_ON_OBJECT_UNLOAD clears the reference when it is removed.
     cameraInputInitialized = false
 end
 
