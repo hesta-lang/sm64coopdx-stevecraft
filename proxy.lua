@@ -22,8 +22,10 @@ local function is_stevecraft_first_person()
     if camera ~= nil and type(camera.is_first_person) == "function" then
         return camera.is_first_person()
     end
-    return SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON
-        or (type(get_first_person_enabled) == "function" and get_first_person_enabled())
+    if SteveCraft.PERSPECTIVE_FIRST_PERSON ~= nil then
+        return SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON
+    end
+    return type(get_first_person_enabled) == "function" and get_first_person_enabled()
 end
 local warnedSpawn = false
 
