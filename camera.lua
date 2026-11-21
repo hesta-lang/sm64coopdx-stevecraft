@@ -4,11 +4,10 @@
 -- OBJ_LIST_UNIMPORTANT runs after the Mario/player list and after
 -- first_person_update(), then writes the final Camera/Lakitu transforms.
 --
--- We deliberately keep the engine's first-person input sampler enabled in all
--- perspectives: it converts Android touchscreen mouse deltas into yaw/pitch.
--- Its generated camera position is overwritten later in the same frame by
--- this controller. This preserves the existing Android touch-look input while
--- removing the normal Mario/NEWCAM position and focus logic.
+-- We keep first-person mode enabled as an optional mouse/gamepad angle source,
+-- but the Lua camera owns the final position/focus. The touchscreen backend in
+-- this fork does not expose its raw touch_x/touch_y deltas to Lua, so this
+-- controller also maps the on-screen D-pad (and C-buttons) to camera look.
 
 SteveCraft = SteveCraft or {}
 local MinecraftCamera = require("minecraft_26_3_camera")
@@ -21,9 +20,10 @@ SteveCraft.perspectiveMode = SteveCraft.perspectiveMode or SteveCraft.PERSPECTIV
 local controller = SteveCraft.cameraController or {}
 SteveCraft.cameraController = controller
 controller.version = "1.0.0-alpha"
-controller.source = "Lua camera pose + SM64CoopDX touch-look input + camera_freeze"
+controller.source = "Lua camera pose + camera_freeze + D-pad/C-button look fallback"
 controller.distanceBlocks = controller.distanceBlocks or 4.0
 controller.unitsPerBlock = 160.0 / 1.8
+controller.digitalLookSpeedDegrees = controller.digitalLookSpeedDegrees or 2.0
 
 local PI = math.pi
 local TAU = 2.0 * PI
@@ -226,6 +226,50 @@ end
 
 controller.clip_camera_distance = clip_camera_distance
 
+local function apply_digital_look_input(m)
+    local fp = gFirstPersonCamera
+    local pad = m ~= nil and m.controller or nil
+    if fp == nil or pad == nil then return end
+
+    local buttons = pad.buttonDown or 0
+    local step = math.floor(
+        clamp(controller.digitalLookSpeedDegrees or 2.0, 0.25, 8.0)
+            * 65536.0 / 360.0 + 0.5
+    )
+
+    local left = (L_JPAD ~= nil and (buttons & L_JPAD) ~= 0)
+        or (L_CBUTTONS ~= nil and (buttons & L_CBUTTONS) ~= 0)
+    local right = (R_JPAD ~= nil and (buttons & R_JPAD) ~= 0)
+        or (R_CBUTTONS ~= nil and (buttons & R_CBUTTONS) ~= 0)
+    local up = (U_JPAD ~= nil and (buttons & U_JPAD) ~= 0)
+        or (U_CBUTTONS ~= nil and (buttons & U_CBUTTONS) ~= 0)
+    local down = (D_JPAD ~= nil and (buttons & D_JPAD) ~= 0)
+        or (D_CBUTTONS ~= nil and (buttons & D_CBUTTONS) ~= 0)
+
+    -- The default Android touchscreen layout exposes D-pad controls; C-buttons
+    -- remain an alternative when the user enables them in the touch editor.
+    -- Left/right yaw follows the native first-person sign convention. Up looks
+    -- upward (negative pitch), down looks downward (positive pitch).
+    if left ~= right then
+        fp.yaw = wrap_angle((fp.yaw or 0) + (right and step or -step))
+    end
+    if up ~= down then
+        fp.pitch = clamp((fp.pitch or 0) + (up and -step or step), -0x3F00, 0x3F00)
+    end
+end
+
+function controller.set_digital_look_speed(degrees_per_frame)
+    if type(degrees_per_frame) ~= "number" or degrees_per_frame ~= degrees_per_frame then
+        return false
+    end
+    controller.digitalLookSpeedDegrees = clamp(degrees_per_frame, 0.25, 8.0)
+    return true
+end
+
+function controller.get_digital_look_speed()
+    return controller.digitalLookSpeedDegrees
+end
+
 local function perspective_pose(m, mode)
     local eye = eye_position(m)
     local fp = gFirstPersonCamera
@@ -388,6 +432,8 @@ local function camera_controller_loop(o)
     -- touchscreen deltas, and update_camera() has not yet run this frame.
     if type(camera_freeze) == "function" then camera_freeze() end
     set_first_person_enabled(true)
+
+    apply_digital_look_input(m)
 
     local pose = perspective_pose(m, SteveCraft.perspectiveMode)
     if write_camera_pose(m, pose) then
