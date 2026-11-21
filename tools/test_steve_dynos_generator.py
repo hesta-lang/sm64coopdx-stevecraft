@@ -131,7 +131,7 @@ class DirectDynOSGeneratorTests(unittest.TestCase):
         self.assertIn("steve_Head_DL_mesh_layer_1", model)
         self.assertIn("steve_Capless_Head_Switch_Option_Capless_Head_mesh_layer_1", model)
         self.assertIn("steve_Metal_Mario_Switch_Option_Torso_mesh_layer_1", model)
-        self.assertIn("Texture steve_head_0_0_north_texture[]", model)
+        self.assertIn("Texture steve_head_0_1_north_texture[]", model)
 
     def test_preserves_geo_layout_references_in_header(self):
         build_model(self.geometry, self.skin, self.geo, self.output)
