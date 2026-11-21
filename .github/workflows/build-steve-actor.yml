@@ -82,7 +82,7 @@ jobs:
           python-version: "3.11"
 
       - name: Download and import Bedrock Steve geometry
-        if: ${{ inputs.model_source == 'bedrock' }}
+        if: ${{ github.event_name == 'push' || inputs.model_source == 'bedrock' }}
         env:
           BEDROCK_SAMPLES_REVISION: 15701fa9c13923f12662984c32c124327e40e3d3
         run: |
@@ -119,7 +119,7 @@ jobs:
           STEVE_ACTOR_OUTPUT: ${{ github.workspace }}/build/actor/actors
           STEVE_SKIN_TEXTURE_ROOT: ${{ github.workspace }}/build/steve-skin-textures
           STEVE_BUILD_REPORT: ${{ github.workspace }}/build/steve-build-report.json
-          STEVE_MODEL_SOURCE: ${{ inputs.model_source || 'java' }}
+          STEVE_MODEL_SOURCE: ${{ github.event_name == 'push' && 'bedrock' || inputs.model_source || 'java' }}
         run: |
           set -euo pipefail
           if [[ "$STEVE_MODEL_SOURCE" == "bedrock" ]]; then
