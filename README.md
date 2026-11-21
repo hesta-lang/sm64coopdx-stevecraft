@@ -70,6 +70,14 @@ El generador utiliza las dimensiones, cubos, capas exteriores y UV del modelo Pl
 
 El modelo se mantiene dentro de este repositorio independiente. No se modifica el APK ni el código de SM64CoopDX.
 
+### Importador experimental de Minecraft Bedrock
+
+La rama stevecraft-bedrock-model-importer-alpha incorpora tools/import_bedrock_geometry.py. Lee la geometría oficial geometry.humanoid.custom.geo.json y player.entity.json de Mojang/bedrock-samples, conserva los 17 huesos, pivotes y localizadores como metadatos y convierte los 12 cubos clásicos para el generador DynOS.
+
+El exportador Blender puede consumir esa conversión mediante STEVE_BEDROCK_GEOMETRY_SPEC. En esta primera etapa, los cubos se siguen asignando a los seis grupos del esqueleto de SM64CoopDX; todavía no se genera un rig DynOS nativo de 17 huesos ni se importan las animaciones completas de Bedrock. El flujo de Actions en esta rama ejecuta la compilación con geometría Bedrock; la opción manual del workflow permite elegir Java o Bedrock.
+
+Los archivos oficiales de muestra están sujetos a la Minecraft EULA. El workflow los descarga durante la compilación y no guarda el JSON original en el repositorio. Consulta BEDROCK_MODEL_IMPORT.md para las limitaciones y la conversión.
+
 ## Límites actuales
 
 - La equivalencia entre bloques Minecraft y unidades SM64 sigue siendo provisional.
