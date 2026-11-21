@@ -1,0 +1,79 @@
+name: Validate Bedrock Steve geometry importer
+
+on:
+  push:
+    paths:
+      - "tools/import_bedrock_geometry.py"
+      - "tools/test_bedrock_geometry_importer.py"
+      - "tools/build_steve_actor.py"
+      - ".github/workflows/test-bedrock-model-importer.yml"
+  pull_request:
+    paths:
+      - "tools/import_bedrock_geometry.py"
+      - "tools/test_bedrock_geometry_importer.py"
+      - "tools/build_steve_actor.py"
+      - ".github/workflows/test-bedrock-model-importer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  import-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout SteveCraft
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download pinned official Bedrock geometry and player configuration
+        env:
+          BEDROCK_SAMPLES_REVISION: 15701fa9c13923f12662984c32c124327e40e3d3
+        run: |
+          set -euo pipefail
+          mkdir -p build/bedrock-source build/bedrock-import
+          curl -fL --retry 3 \
+            "https://raw.githubusercontent.com/Mojang/bedrock-samples/\${BEDROCK_SAMPLES_REVISION}/resource_pack/models/entity/humanoid.custom.geo.json" \
+            -o build/bedrock-source/humanoid.custom.geo.json
+          curl -fL --retry 3 \
+            "https://raw.githubusercontent.com/Mojang/bedrock-samples/\${BEDROCK_SAMPLES_REVISION}/resource_pack/entity/player.entity.json" \
+            -o build/bedrock-source/player.entity.json
+          test -s build/bedrock-source/humanoid.custom.geo.json
+          test -s build/bedrock-source/player.entity.json
+
+      - name: Import Bedrock geometry to the SM64-compatible model schema
+        run: |
+          python tools/import_bedrock_geometry.py \
+            --input build/bedrock-source/humanoid.custom.geo.json \
+            --entity-config build/bedrock-source/player.entity.json \
+            --source-revision 15701fa9c13923f12662984c32c124327e40e3d3 \
+            --output build/bedrock-import/steve_geometry.json
+          test -s build/bedrock-import/steve_geometry.json
+
+      - name: Run importer unit and official-source integration tests
+        env:
+          BEDROCK_GEOMETRY_SOURCE: build/bedrock-source/humanoid.custom.geo.json
+          BEDROCK_ENTITY_SOURCE: build/bedrock-source/player.entity.json
+          BEDROCK_SOURCE_REVISION: 15701fa9c13923f12662984c32c124327e40e3d3
+        run: |
+          python -m unittest tools/test_bedrock_geometry_importer.py -v
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          spec = json.loads(Path("build/bedrock-import/steve_geometry.json").read_text())
+          assert spec["bone_count"] == 17
+          assert spec["cube_count"] == 12
+          assert spec["entity_scale"] == 0.9375
+          print("Bedrock importer output validated:", spec["geometry_identifier"])
+          print("Mapped cubes:", ", ".join(item["key"] for item in spec["cuboids"]))
+          PY
+
+      - name: Confirm source downloads stay in the CI workspace
+        run: |
+          git status --short
+          test ! -e assets/bedrock
+          test ! -e actors/steve/bedrock-source.json
