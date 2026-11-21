@@ -17,6 +17,14 @@ local ANGLE_TO_RAD = TAU / 65536.0
 local RAD_TO_ANGLE = 65536.0 / TAU
 local HAND_SWING_FRAMES = 10
 
+local function is_stevecraft_first_person()
+    local camera = SteveCraft.cameraController
+    if camera ~= nil and type(camera.is_first_person) == "function" then
+        return camera.is_first_person()
+    end
+    return SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON
+end
+
 local function clamp(value, low, high)
     return math.max(low, math.min(high, value))
 end
@@ -91,7 +99,7 @@ local function hand_viewmodel_init(o)
 end
 
 local function hand_viewmodel_loop(o)
-    if not get_first_person_enabled() then
+    if not is_stevecraft_first_person() then
         obj_mark_for_deletion(o)
         if handObject == o then handObject = nil end
         return
@@ -146,7 +154,7 @@ handBehavior = hook_behavior(
 )
 
 local function spawn_steve_hand(m)
-    if m.playerIndex ~= 0 or not get_first_person_enabled() or handObject ~= nil then return end
+    if m.playerIndex ~= 0 or not is_stevecraft_first_person() or handObject ~= nil then return end
 
     if handModelId == nil then
         handModelId = smlua_model_util_get_id(HAND_GEO_NAME)
