@@ -47,3 +47,10 @@ La geometría actual del repositorio sigue siendo el actor independiente \`actor
 Se corrigió `horizontal_step()`: ahora recibe el `movement_speed` efectivo como tercer valor devuelto por `horizontal_parameters()`. Antes se leía una variable global inexistente, generando `attempt to perform arithmetic on a nil value (global 'movement_speed')` y deteniendo `HOOK_BEFORE_PHYS_STEP`.
 
 La prueba de física ahora ejercita `horizontal_step()` en suelo, aire y sprint. Las pruebas automáticas no determinan por sí solas por qué una captura de pantalla presenta a Steve tumbado; para eso debe observarse el ID de animación seleccionado y verificarse la orientación dentro del juego. No se debe confundir el error de física con la orientación del esqueleto.
+
+
+## Protección de poses de raíz (0.19.1-alpha)
+
+La natación solo activa el giro raíz cuando la acción de Mario contiene simultáneamente `ACT_FLAG_SWIMMING_OR_FLYING` y `ACT_FLAG_WATER_OR_TEXT`; esto evita confundir vuelo con natación. Gateo y sueño necesitan `SteveCraft.crawling = true` y `SteveCraft.sleeping = true`, respectivamente, porque SM64 no tiene estados Bedrock equivalentes. En cada cambio de clip se registra el ID y el nombre elegido para permitir diagnóstico desde el log de Android.
+
+El objetivo es impedir que un ID coincidente de SM64 tumbe accidentalmente el modelo en tierra. La postura de natación/gateo/dormir debe validarse visualmente por separado.

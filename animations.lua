@@ -300,6 +300,7 @@ bind("steve_bedrock_swim_idle", 0xB2)
 bind("steve_bedrock_idle", 0xC5)
 
 animations.mappedAnimationCount = 27
+animations.rootPoseGuards = { swimming = true, crawling = true, sleeping = true }
 local active_clip_by_player, previous_base_by_player = {}, {}
 
 local function is_steve_player(m)
@@ -316,6 +317,29 @@ local function apply_bedrock_animation(m)
     if info == nil then return end
     local base_id = info.animID
     local clip = by_mario_id[base_id]
+
+    -- Root-rotating Bedrock poses must only run in their real player state.
+    -- SM64's water actions expose both flags; flying sets only the first.
+    -- Crawl/sleep are opt-in states because SM64 has no matching native
+    -- Minecraft crawl/sleep controller.
+    if clip ~= nil then
+        local is_water_action = false
+        if type(m.action) == "number"
+            and ACT_FLAG_SWIMMING_OR_FLYING ~= nil
+            and ACT_FLAG_WATER_OR_TEXT ~= nil then
+            is_water_action =
+                (m.action & ACT_FLAG_SWIMMING_OR_FLYING) ~= 0
+                and (m.action & ACT_FLAG_WATER_OR_TEXT) ~= 0
+        end
+        if clip:find("swim", 1, true) and not is_water_action then
+            clip = nil
+        elseif clip:find("crawl", 1, true) and SteveCraft.crawling ~= true then
+            clip = nil
+        elseif clip:find("sleep", 1, true) and SteveCraft.sleeping ~= true then
+            clip = nil
+        end
+    end
+
     if clip == nil then
         active_clip_by_player[player_index] = nil
         previous_base_by_player[player_index] = base_id
@@ -324,6 +348,10 @@ local function apply_bedrock_animation(m)
     if active_clip_by_player[player_index] ~= clip
         or previous_base_by_player[player_index] ~= base_id then
         SET_ANIMATION(m.marioObj, clip)
+        if type(print) == "function" then
+            print(string.format("[SteveCraft] Player %d animation 0x%02X -> %s",
+                player_index, base_id, clip))
+        end
         info.animFrame = -1
         info.prevAnimFrame = -1
         info.animFrameAccelAssist = -0x10000

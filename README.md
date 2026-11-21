@@ -4,7 +4,7 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 
 ## Versión
 
-**0.19.0-alpha** — corrige una referencia global nula en el desplazamiento horizontal de la física y añade pruebas de regresión de suelo, aire y sprint. — añade 19 clips muestreados de Minecraft Bedrock v1.26.60.5 al proxy visual independiente y los asocia a 27 estados de animación SM64. — corrige la visibilidad del actor DynOS independiente y reconcilia las velocidades de Steve con el desplazamiento real aceptado por el motor; añade movimiento sumergido experimental.
+**0.19.1-alpha** — protege las poses Bedrock que tumban el cuerpo y corrige las referencias de estado de animación. — corrige una referencia global nula en el desplazamiento horizontal de la física y añade pruebas de regresión de suelo, aire y sprint. — añade 19 clips muestreados de Minecraft Bedrock v1.26.60.5 al proxy visual independiente y los asocia a 27 estados de animación SM64. — corrige la visibilidad del actor DynOS independiente y reconcilia las velocidades de Steve con el desplazamiento real aceptado por el motor; añade movimiento sumergido experimental.
 
 ## Proxy físico/visual
 
@@ -91,6 +91,7 @@ Las curvas se basan en los archivos Bedrock fijados en el commit `15701fa9c13923
 - El pre-resolutor triangular queda desactivado por defecto para no duplicar el resolvedor nativo. Es una opción experimental, no un reemplazo de las colisiones AABB/voxel de Minecraft.
 - La ruta de agua es experimental: conserva la colisión de agua y las corrientes que gestiona SM64, pero no reproduce las corrientes Minecraft persistentes, burbujas, fluidos personalizados ni todos los estados de nado. Lava y modificadores individuales de bloque siguen incompletos.
 - Steve utiliza 19 clips muestreados de Minecraft Bedrock v1.26.60.5, asociados a 27 IDs SM64. No ejecuta los controladores Bedrock en tiempo real; las consultas de distancia/velocidad, objetos, capas y mezclas siguen siendo límites del port.
+- Los giros de raíz de natación, gateo y sueño ahora se validan por estado: natación exige los dos flags de agua; gateo y sueño son estados explícitos de SteveCraft.
 - La API Lua no permite escribir directamente la posición/foco de Lakitu para una cámara Minecraft totalmente separada.
 - La eliminación de `geo_mirror_mario_set_alpha` corrige el acoplamiento conocido entre la alfa de Mario y el cuerpo de Steve; sigue pendiente confirmar el renderizado real en SM64CoopDX Android.
 - Un build correcto y un análisis sintáctico Lua no sustituyen la prueba real del mod en SM64CoopDX Android.
