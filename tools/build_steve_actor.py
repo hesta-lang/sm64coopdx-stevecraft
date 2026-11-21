@@ -582,6 +582,20 @@ def main():
         raise RuntimeError("Minecraft skin crop manifest is missing: " + str(manifest_path))
     skin_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
+    if bedrock_import is not None:
+        manifest_cubes = skin_manifest.get("cubes", {})
+        for cube in MINECRAFT_PLAYER_CUBOIDS:
+            key = cube["key"]
+            crop = manifest_cubes.get(key)
+            if crop is None:
+                raise RuntimeError("Skin UV manifest has no imported Bedrock cube: " + key)
+            if crop.get("uv") != [int(value) for value in cube["uv"]]:
+                raise RuntimeError("Bedrock UV origin does not match the skin crop for " + key)
+            if crop.get("dimensions") != [int(value) for value in cube["size"]]:
+                raise RuntimeError("Bedrock cube dimensions do not match the skin crop for " + key)
+            if crop.get("outer_layer") != bool(cube["outer"]):
+                raise RuntimeError("Bedrock outer-layer mapping does not match the skin crop for " + key)
+
     skin_materials = {}
     for cube in MINECRAFT_PLAYER_CUBOIDS:
         key = cube["key"]
@@ -684,7 +698,10 @@ def main():
         "The generated GeoLayout is aligned to the 20-node Minecraft animation rig, "
         "including the zero-offset left and right wrist joints.\\n\\n"
         "The independent first-person viewmodel is generated under actors/steve_hand/.\\n"
-        "SM64CoopDX generates runtime DynOS resources when the mod pack loads.\\n",
+        + ("Bedrock source bone hierarchy is stored in the build report; visible cubes are "
+           "mapped to the six SM64 player mesh groups, not exported as a native 17-bone rig.\\n"
+           if bedrock_import is not None else "")
+        + "SM64CoopDX generates runtime DynOS resources when the mod pack loads.\\n",
         encoding="utf-8",
     )
 
