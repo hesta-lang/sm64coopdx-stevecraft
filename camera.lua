@@ -1,6 +1,9 @@
--- SteveCraft 64 - first/third-person camera bridge.
--- NEWCAM supplies Android touch orbit and SM64 surface collision. The native
--- camera keeps following the Mario physical proxy; Steve is only its visual.
+-- SteveCraft 64 - Minecraft-style perspective controller.
+--
+-- Lua exposes the native first-person camera and Camera.yaw, while
+-- LakituState position/focus remain engine-owned. This uses the native
+-- first-person camera + Steve arm viewmodel and NEWCAM for third person.
+-- It does not pretend to replace Lakitu's XYZ camera solver.
 
 SteveCraft = SteveCraft or {}
 local MinecraftCamera = require("minecraft_26_3_camera")
@@ -88,22 +91,24 @@ local function is_local_steve(m)
 end
 
 local function enter_first_person(m)
-    set_first_person_enabled(false)
     restore_camera_settings(m)
     set_first_person_enabled(true)
+    if gFirstPersonCamera ~= nil then
+        -- Keep native touch/look input authoritative; do not lock angles to Mario.
+        gFirstPersonCamera.forceYaw = false
+        gFirstPersonCamera.forcePitch = false
+    end
 end
 
-local function apply_minecraft_front_yaw(m)
+local function set_minecraft_orbit_yaw(m, front)
     if m == nil or m.area == nil or m.area.camera == nil
         or m.faceAngle == nil then return end
-
     local camera = m.area.camera
     if camera.yaw == nil then return end
 
-    -- SM64 Camera.yaw points from the focus toward the camera position.
-    -- For Minecraft front third-person, the camera is on the player's forward
-    -- side; therefore this orbit yaw is the player's own facing yaw, not +180.
-    local orbit_yaw = (m.faceAngle.y or 0) % 65536
+    -- Camera.yaw points from focus toward the camera. Rear view is behind Steve;
+    -- front view is on Steve's forward side. NEWCAM then owns live touch orbit.
+    local orbit_yaw = ((m.faceAngle.y or 0) + (front and 0 or 0x8000)) % 65536
     camera.yaw = orbit_yaw
     if camera.nextYaw ~= nil then camera.nextYaw = orbit_yaw end
 end
@@ -112,9 +117,7 @@ local function enter_third_person(m, front)
     if m == nil or m.area == nil or m.area.camera == nil then return false end
     set_first_person_enabled(false)
     configure_touch_free_camera(m)
-    if front then
-        apply_minecraft_front_yaw(m)
-    end
+    set_minecraft_orbit_yaw(m, front)
     return true
 end
 
@@ -129,17 +132,36 @@ local function apply_perspective(m)
     end
 end
 
+function SteveCraft.set_perspective(mode)
+    if mode ~= SteveCraft.PERSPECTIVE_FIRST_PERSON
+        and mode ~= SteveCraft.PERSPECTIVE_THIRD_PERSON
+        and mode ~= SteveCraft.PERSPECTIVE_THIRD_PERSON_FRONT then
+        return false
+    end
+    SteveCraft.perspectiveMode = mode
+    applyPerspectiveWhenReady = true
+    return true
+end
+
+function SteveCraft.cycle_perspective()
+    local next_mode = (SteveCraft.perspectiveMode + 1) % 3
+    return SteveCraft.set_perspective(next_mode)
+end
+
 local function on_mario_update(m)
     if not is_local_steve(m) then return end
+    if m.controller ~= nil and Y_BUTTON ~= nil
+        and (m.controller.buttonPressed & Y_BUTTON) ~= 0 then
+        SteveCraft.cycle_perspective()
+    end
 
-    if m.controller ~= nil and (m.controller.buttonPressed & Y_BUTTON) ~= 0 then
-        SteveCraft.perspectiveMode = (SteveCraft.perspectiveMode + 1) % 3
+    -- Recover if another script or a cutscene toggles the camera behind our back.
+    local actual_first_person = get_first_person_enabled() == true
+    local expected_first_person = SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON
+    if actual_first_person ~= expected_first_person then
         applyPerspectiveWhenReady = true
     end
-
-    if applyPerspectiveWhenReady then
-        apply_perspective(m)
-    end
+    if applyPerspectiveWhenReady then apply_perspective(m) end
 end
 
 local function on_level_init()
