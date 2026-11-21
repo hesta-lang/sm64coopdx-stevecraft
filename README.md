@@ -1,24 +1,20 @@
 # SteveCraft 64
 
-Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como Steve y mantiene el código de SteveCraft separado del motor. Usa un proxy físico basado en la entidad nativa del motor y un modelo Steve renderizado por separado.
+Mod Lua independiente para **SM64CoopDX Android** que sustituye directamente el modelo del jugador por Steve en el objeto nativo de Mario. No crea un segundo cuerpo ni modifica el APK o el motor.
 
 ## Versión
 
-**0.17.0-alpha** — corrige la visibilidad del actor DynOS independiente y reconcilia las velocidades de Steve con el desplazamiento real aceptado por el motor; añade movimiento sumergido experimental.
+**0.18.0-alpha** — sustituye el proxy visual duplicado por el modelo Steve en el marioObj nativo, corrige el error nil de horizontal_step, amplía las pruebas de regresión y conecta los modos de cámara.
 
-## Proxy físico/visual
+## Representación del jugador
 
-- **MarioState y marioObj siguen siendo la autoridad física única:** el motor conserva el movimiento, gravedad, paredes, superficies, colisiones, daño e interacciones.
-- **Steve es un objeto visual independiente:** cada cliente crea una representación local de Steve para cada jugador y la sincroniza con el objeto físico correspondiente.
-- El objeto visual no tiene hitbox, interacciones ni gravedad. No procesa movimiento ni colisiones.
-- El GeoLayout independiente ya no llama a `geo_mirror_mario_set_alpha`: esa rutina lee `MarioBodyState.modelState`, que el proxy pone a alfa cero para ocultar a Mario. Mantenerla también ocultaba a Steve y dejaba visible solo su sombra.
-- Copia la posición, orientación y descriptor/frame de animación del jugador físico.
-- El modelo de Steve conserva la jerarquía animada compatible con el esqueleto de jugador de SM64CoopDX.
-- Se asigna `globalPlayerIndex` al objeto visual para que las rutinas GeoLayout de cabeza y torso resuelvan el estado corporal del jugador correcto.
-- En primera persona se oculta el cuerpo visual independiente y se conserva el brazo viewmodel de Steve.
-- La cámara nativa continúa siguiendo al proxy físico. La API Lua no expone un destino Lakitu editable para implementar una cámara Minecraft completamente independiente.
+- MarioState y marioObj siguen siendo la única autoridad física: el motor conserva movimiento, gravedad, superficies, colisiones, daño e interacciones.
+- proxy.lua usa obj_set_model_extended(m.marioObj, steveModelId) para sustituir el modelo del mismo objeto nativo. No genera un segundo Steve completo, no copia transformaciones ni oculta el cuerpo de Mario mediante alfa.
+- El motor continúa aplicando posición, orientación y animaciones al mismo objeto.
+- En primera persona, el cuerpo del jugador queda oculto por la cámara nativa y first_person_hand.lua dibuja el antebrazo Steve.
+- En multijugador, cada cliente cambia el modelo del MarioState local que simula; la sincronización de jugador sigue siendo la de SM64CoopDX.
 
-Este Proxy separa la representación del cuerpo que colisiona. **MarioState sigue siendo la única autoridad física** y el motor resuelve los contactos finales.
+Este diseño evita que un segundo objeto quede tumbado, desincronizado o visible junto al cuerpo principal. MarioState sigue siendo la única autoridad física.
 
 ## Colisiones triangulares de SkyCraft/MarioCraft
 
@@ -47,7 +43,7 @@ El movimiento se separó en minecraft_26_3_physics.lua, una traducción de compo
 - Movimiento sumergido: se conecta al hook real `STEP_TYPE_WATER`, usa velocidad de agua, eficiencia configurable, arrastre y los controles verticales A/Z. El paso de agua nativo conserva la resolución de suelo/techo y sus corrientes.
 - Colisión/velocidad: guarda la velocidad solicitada antes del paso SM64 y la reconcilia con el desplazamiento observado. En aire no vuelve a leer la velocidad vertical después de que `perform_air_step()` ya haya ejecutado `apply_gravity()`; esto evita sumar una segunda gravedad de Mario a la gravedad de Minecraft.
 
-Las recurrencias de 20 TPS se convierten matemáticamente a los 30 FPS del juego. La conversión de escala entre bloques y unidades SM64 sigue siendo provisional (160 unidades por 1.8 m). Los atributos, modificadores de objetos y estado de hambre que el motor Lua no expone requieren datos externos; SteveCraft.usingItem, SteveCraft.canSprint y el proveedor de fricción son entradas opcionales.
+Las recurrencias de 20 TPS se convierten matemáticamente a los 30 FPS del juego. horizontal_step utiliza la velocidad efectiva retornada por horizontal_parameters: velocidad con fricción/sprint en suelo y 0.02 en aire. La conversión de escala entre bloques y unidades SM64 sigue siendo provisional (160 unidades por 1.8 m). Los atributos, modificadores de objetos y estado de hambre que el motor Lua no expone requieren datos externos; SteveCraft.usingItem, SteveCraft.canSprint y el proveedor de fricción son entradas opcionales.
 
 **Límite esencial:** esto no sustituye el movimiento/colisión voxel-AABB de Minecraft. MarioState y el motor SM64 siguen resolviendo la colisión final. El paso de agua reproduce solo el movimiento sumergido normal; las corrientes de SM64 se añaden después del hook y no se integran aún como velocidad persistente. Lava, escaleras, vuelo, monturas, efectos, sprint por atributos y fricción por bloque aún no tienen paridad completa.
 
@@ -56,23 +52,18 @@ Las recurrencias de 20 TPS se convierten matemáticamente a los 30 FPS del juego
 - Primera persona: modificador de sprint 1.15× con interpolación.
 - Tercera persona: preset nativo de 60° durante sprint. Es una aproximación; las bindings Lua no ofrecen un FOV arbitrario editable para LakituState.
 
-## Cámara — Minecraft Java 26.3
+## Cámara — controlador de perspectivas
 
-Pulsa **Y** para alternar entre primera persona, tercera persona trasera y tercera persona frontal. En tercera persona, arrastra en la zona táctil derecha para orbitar.
+Pulsa **Y** para alternar entre primera persona, tercera persona trasera y tercera persona frontal. En tercera persona, arrastra en la zona táctil derecha para orbitar. También están disponibles SteveCraft.set_perspective(0|1|2) y SteveCraft.cycle_perspective().
 
-minecraft_26_3_camera.lua implementa como matemáticas independientes:
-- interpolación de posición y altura de ojos;
-- interpolación de yaw/pitch;
-- inversión de yaw y pitch en la perspectiva frontal;
-- distancia por defecto de 4 bloques con modificadores de escala/distancia;
-- algoritmo de recorte de cámara mediante ocho rayos desplazados 0.1 unidades y forma de colisión VISUAL sin fluidos.
+- Primera persona: usa gFirstPersonCamera, conserva el control táctil nativo y muestra el antebrazo Steve.
+- Tercera persona: usa NEWCAM para orbitado táctil y colisión con la geometría del nivel; la cámara se inicializa detrás o delante según el modo.
+- minecraft_26_3_camera.lua conserva las fórmulas matemáticas independientes de Minecraft para interpolación, eye height, distancia y rayos de recorte.
 
-El raycaster del módulo es una interfaz; no se conecta directamente a los triángulos SM64 porque estos no equivalen a los bloques VISUAL del mundo Minecraft. En el juego real, NEWCAM sigue colocando la cámara y resolviendo paredes. La perspectiva frontal fija el yaw inicial mediante el campo de cámara que la API expone como editable.
+**Límite:** la API Lua no permite escribir directamente el XYZ/foco de Lakitu ni incluye un raycaster de bloques VISUAL de Minecraft. Por tanto, esta versión conecta los modos de perspectiva, pero no es una cámara Minecraft completamente independiente ni tiene paridad total de posición/colisión.
 
-Por eso, esta versión porta las transformaciones y el algoritmo de cámara, pero **no puede afirmar paridad total de cámara** con Minecraft mientras no exista un raycaster de bloques y una API Lua que permita escribir la posición/foco de cámara.
-
-CAMERA_REFERENCE.md y tools/minecraft_26_3_physics_camera.json detallan los métodos, fuentes y límites.
-
+CAMERA_REFERENCE.md detalla qué está conectado y qué requiere una API del motor.
+ 
 ## Modelo y skin
 
 El generador utiliza las dimensiones, cubos, capas exteriores y UV del modelo PlayerModel de Minecraft Java 1.21.11: cabeza 8×8×8, torso 8×12×4, brazos y piernas 4×12×4. La skin 64×64 se divide en texturas por cubo para ajustarse a los límites del renderizador F3D/DynOS.
@@ -84,9 +75,9 @@ El modelo se mantiene dentro de este repositorio independiente. No se modifica e
 - La equivalencia entre bloques Minecraft y unidades SM64 sigue siendo provisional.
 - El pre-resolutor triangular queda desactivado por defecto para no duplicar el resolvedor nativo. Es una opción experimental, no un reemplazo de las colisiones AABB/voxel de Minecraft.
 - La ruta de agua es experimental: conserva la colisión de agua y las corrientes que gestiona SM64, pero no reproduce las corrientes Minecraft persistentes, burbujas, fluidos personalizados ni todos los estados de nado. Lava y modificadores individuales de bloque siguen incompletos.
-- El Proxy aún depende de las animaciones del esqueleto SM64; no reemplaza los clips por los controladores Java de Minecraft.
+- El modelo usa el esqueleto y las animaciones registradas para SM64CoopDX; la paridad con todos los controladores Java de Minecraft sigue incompleta.
 - La API Lua no permite escribir directamente la posición/foco de Lakitu para una cámara Minecraft totalmente separada.
-- La eliminación de `geo_mirror_mario_set_alpha` corrige el acoplamiento conocido entre la alfa de Mario y el cuerpo de Steve; sigue pendiente confirmar el renderizado real en SM64CoopDX Android.
+- El reemplazo del modelo nativo evita el cuerpo duplicado anterior; todavía falta validar el renderizado y las proporciones en SM64CoopDX Android.
 - Un build correcto y un análisis sintáctico Lua no sustituyen la prueba real del mod en SM64CoopDX Android.
 
 ## Referencias de ingeniería inversa
