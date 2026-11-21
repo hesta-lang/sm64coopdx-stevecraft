@@ -16,6 +16,15 @@ proxy.reference = "SteveCraft locomotion + MarioState engine bridge + detached S
 local records = {}
 local behaviorId = nil
 local warnedBehavior = false
+
+local function is_stevecraft_first_person()
+    local camera = SteveCraft.cameraController
+    if camera ~= nil and type(camera.is_first_person) == "function" then
+        return camera.is_first_person()
+    end
+    return SteveCraft.perspectiveMode == SteveCraft.PERSPECTIVE_FIRST_PERSON
+        or (type(get_first_person_enabled) == "function" and get_first_person_enabled())
+end
 local warnedSpawn = false
 
 local NATIVE_BODY_HIDDEN_ALPHA = 0x100
@@ -219,9 +228,7 @@ local function visual_loop(o)
 
     -- First person uses Steve's separate hand viewmodel. The full body stays
     -- available in third person and for remote players.
-    if playerIndex == 0
-        and type(get_first_person_enabled) == "function"
-        and get_first_person_enabled() then
+    if playerIndex == 0 and is_stevecraft_first_person() then
         cur_obj_hide()
     else
         cur_obj_unhide()
