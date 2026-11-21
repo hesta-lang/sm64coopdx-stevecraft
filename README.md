@@ -4,7 +4,7 @@ Mod Lua independiente para **SM64CoopDX Android** que representa al jugador como
 
 ## Versión
 
-**0.17.0-alpha** — corrige la visibilidad del actor DynOS independiente y reconcilia las velocidades de Steve con el desplazamiento real aceptado por el motor; añade movimiento sumergido experimental.
+**0.18.0-alpha** — añade 19 clips muestreados de Minecraft Bedrock v1.26.60.5 al proxy visual independiente y los asocia a 27 estados de animación SM64. — corrige la visibilidad del actor DynOS independiente y reconcilia las velocidades de Steve con el desplazamiento real aceptado por el motor; añade movimiento sumergido experimental.
 
 ## Proxy físico/visual
 
@@ -79,12 +79,18 @@ El generador utiliza las dimensiones, cubos, capas exteriores y UV del modelo Pl
 
 El modelo se mantiene dentro de este repositorio independiente. No se modifica el APK ni el código de SM64CoopDX.
 
+## Animaciones — Minecraft Bedrock v1.26.60.5
+
+El proxy visual de Steve registra 19 clips muestreados para reposo, caminar, correr, agacharse, gatear, nadar, montar, atacar y dormir, asociados a 27 IDs de animación SM64. Se usa la API Lua existente para que el descriptor se copie al objeto visual independiente; Mario conserva la física y las colisiones.
+
+Las curvas se basan en los archivos Bedrock fijados en el commit `15701fa9c13923f12662984c32c124327e40e3d3`. La marcha usa una fase fija y no ejecuta las consultas dinámicas `query.modified_distance_moved` ni `query.modified_move_speed`; tampoco incluye todos los controladores de objetos, overlays ni animaciones de primera persona. No es paridad 100 % con Bedrock. Detalles: [docs/STEVE_BEDROCK_ANIMATIONS.md](docs/STEVE_BEDROCK_ANIMATIONS.md).
+
 ## Límites actuales
 
 - La equivalencia entre bloques Minecraft y unidades SM64 sigue siendo provisional.
 - El pre-resolutor triangular queda desactivado por defecto para no duplicar el resolvedor nativo. Es una opción experimental, no un reemplazo de las colisiones AABB/voxel de Minecraft.
 - La ruta de agua es experimental: conserva la colisión de agua y las corrientes que gestiona SM64, pero no reproduce las corrientes Minecraft persistentes, burbujas, fluidos personalizados ni todos los estados de nado. Lava y modificadores individuales de bloque siguen incompletos.
-- El Proxy aún depende de las animaciones del esqueleto SM64; no reemplaza los clips por los controladores Java de Minecraft.
+- Steve utiliza 19 clips muestreados de Minecraft Bedrock v1.26.60.5, asociados a 27 IDs SM64. No ejecuta los controladores Bedrock en tiempo real; las consultas de distancia/velocidad, objetos, capas y mezclas siguen siendo límites del port.
 - La API Lua no permite escribir directamente la posición/foco de Lakitu para una cámara Minecraft totalmente separada.
 - La eliminación de `geo_mirror_mario_set_alpha` corrige el acoplamiento conocido entre la alfa de Mario y el cuerpo de Steve; sigue pendiente confirmar el renderizado real en SM64CoopDX Android.
 - Un build correcto y un análisis sintáctico Lua no sustituyen la prueba real del mod en SM64CoopDX Android.

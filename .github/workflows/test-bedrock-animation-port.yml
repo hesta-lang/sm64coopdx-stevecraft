@@ -1,0 +1,34 @@
+name: Test SteveCraft Bedrock animation port
+
+on:
+  push:
+    paths:
+      - "animations.lua"
+      - "character.lua"
+      - "proxy.lua"
+      - "tools/test_bedrock_animations.lua"
+      - ".github/workflows/test-bedrock-animation-port.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.4
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4
+
+      - name: Validate Lua syntax
+        run: |
+          luac5.4 -p animations.lua
+          luac5.4 -p tools/test_bedrock_animations.lua
+
+      - name: Test Bedrock animation registration and mappings
+        run: lua5.4 tools/test_bedrock_animations.lua
