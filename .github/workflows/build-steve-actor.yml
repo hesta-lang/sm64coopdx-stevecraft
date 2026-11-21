@@ -6,6 +6,8 @@ on:
       - "tools/build_steve_actor.py"
       - "tools/steve_geo_sanitizer.py"
       - "tools/test_steve_geo_sanitizer.py"
+      - "tools/steve_geo_skeleton.py"
+      - "tools/test_steve_geo_skeleton.py"
       - "tools/build_steve_hand.py"
       - "tools/build_steve_skin_textures.py"
       - ".github/workflows/build-steve-actor.yml"
@@ -25,6 +27,9 @@ jobs:
 
       - name: Test detached Steve GeoLayout alpha sanitization
         run: python tools/test_steve_geo_sanitizer.py
+
+      - name: Test Minecraft DynOS skeleton channel alignment
+        run: python tools/test_steve_geo_skeleton.py
 
       - name: Download Blender 3.6 LTS
         run: |
