@@ -42,15 +42,15 @@ Because the original SM64 player skeleton is preserved, the actor can use the en
 
 ## Animation
 
-Because the original SM64 player skeleton is preserved, the actor can use the engine's standard player animation set. SteveCraft also registers Minecraft-style clips through \`animations.lua\` for idle, walk, run, crouch, crouch-walk and swim. Only players using Steve's model receive those clips.
+Because the original SM64 player skeleton is preserved, the actor can use the engine's standard player animation set. SteveCraft also registers Minecraft-style clips through `animations.lua` for idle, walk, run, crouch, crouch-walk and swim. Only players using Steve's model receive those clips.
 
 ## DynOS skeleton alignment (model-fix alpha)
 
-Minecraft-style clips are baked against 20 animated GeoLayout nodes: the root rotation node plus the 19 named body parts in \`animations.lua\`. The original Fast64 export contained only 18 animated parts because it omitted the zero-offset \`leftHand\` and \`rightHand\` wrist nodes after the arm forearms. That shifted later animation channels onto the wrong body parts.
+Minecraft-style clips are baked against 20 animated GeoLayout nodes: the root rotation node plus the 19 named body parts in `animations.lua`. The original Fast64 export contained only 18 animated parts because it omitted the zero-offset `leftHand` and `rightHand` wrist nodes after the arm forearms. That shifted later animation channels onto the wrong body parts.
 
-\`tools/steve_geo_skeleton.py\` now inserts those two empty wrist joints into all four full-body layouts (opaque, transparent and metal variants) immediately after export. The model remains a set of six rigid Minecraft cuboid body groups; the extra nodes carry animation transforms only and do not add geometry. The build report records the number of validated layouts and inserted wrist nodes.
+`tools/steve_geo_skeleton.py` now inserts those two empty wrist joints into all four full-body layouts (opaque, transparent and metal variants) immediately after export. The model remains a set of six rigid Minecraft cuboid body groups; the extra nodes carry animation transforms only and do not add geometry. The build report records the number of validated layouts and inserted wrist nodes.
 
-\`tools/test_steve_geo_skeleton.py\` checks all four layouts for exactly 20 animated nodes, verifies insertion order, and tests repeatability. This validates the generated source structure; Android rendering and movement still require an in-game test.
+`tools/test_steve_geo_skeleton.py` checks all four layouts for exactly 20 animated nodes, verifies insertion order, and tests repeatability. This validates the generated source structure; Android rendering and movement still require an in-game test.
 
 ## Runtime checks still required
 
