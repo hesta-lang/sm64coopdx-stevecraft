@@ -1,13 +1,12 @@
--- SteveCraft 64
--- Version: 0.8.0-alpha
--- Entry point required by SM64CoopDX.
+-- CJ for SM64CoopDX
+-- Version: 0.1.0-alpha
 --
--- SM64CoopDX loads the additional Lua scripts in this mod folder too.
--- Keep this file small; individual systems live in their own files.
+-- MarioState remains the only physical player entity. character.lua replaces
+-- only the model rendered by marioObj when the CJ DynOS actor is available.
 
-SteveCraft = SteveCraft or {}
+CJMod = CJMod or {}
+CJMod.name = "CJ for SM64CoopDX"
+CJMod.version = "0.1.0-alpha"
 
-SteveCraft.name = "SteveCraft 64"
-SteveCraft.version = "0.8.0-alpha"
-
-print("[SteveCraft 64] " .. SteveCraft.version .. " loaded")
+print("[CJ Mod] " .. CJMod.name .. " " .. CJMod.version .. " loaded.")
+print("[CJ Mod] Native Mario physics/collision retained; waiting for cj_geo.")
