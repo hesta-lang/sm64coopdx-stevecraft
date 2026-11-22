@@ -25,20 +25,25 @@ local function hand_viewmodel_loop(o)
         return
     end
 
-    local camera = gLakituState
+    local lakitu = gLakituState
     local fp = gFirstPersonCamera
-    if camera == nil or camera.curPos == nil or fp == nil then return end
+    if lakitu == nil or lakitu.curPos == nil or fp == nil then return end
 
     local yaw = fp.yaw
     local pitch = fp.pitch
 
-    -- Gun Mod camera-relative transform, with a lower Minecraft-style arm position.
-    o.oPosX = camera.curPos.x - 30 * coss(pitch) * sins(yaw)
-    o.oPosY = camera.curPos.y - 30 * sins(pitch) - 32
-    o.oPosZ = camera.curPos.z - 30 * coss(pitch) * coss(yaw)
+    -- Keep the arm inside the camera frustum: move it forward and slightly
+    -- right/down instead of placing it far outside the screen edge.
+    local forwardDistance = 70
+    local sideOffset = 18
+    local downOffset = 30
 
-    o.oPosX = o.oPosX + sins(yaw + 0x4000) * 46
-    o.oPosZ = o.oPosZ + coss(yaw + 0x4000) * 46
+    o.oPosX = lakitu.curPos.x - forwardDistance * coss(pitch) * sins(yaw)
+    o.oPosY = lakitu.curPos.y - forwardDistance * sins(pitch) - downOffset
+    o.oPosZ = lakitu.curPos.z - forwardDistance * coss(pitch) * coss(yaw)
+
+    o.oPosX = o.oPosX + sins(yaw + 0x4000) * sideOffset
+    o.oPosZ = o.oPosZ + coss(yaw + 0x4000) * sideOffset
 
     o.oFaceAnglePitch = 0
     o.oFaceAngleYaw = yaw + 0x4000
