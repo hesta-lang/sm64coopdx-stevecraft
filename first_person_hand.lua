@@ -32,11 +32,11 @@ local function hand_viewmodel_loop(o)
     local yaw = fp.yaw
     local pitch = fp.pitch
 
-    -- Keep the arm inside the camera frustum: move it forward and slightly
-    -- right/down instead of placing it far outside the screen edge.
-    local forwardDistance = 70
+    -- Retain the original, tested 30-unit viewmodel depth. The previous
+    -- lateral offset pushed the arm too far right; keep it nearer the center.
+    local forwardDistance = 30
     local sideOffset = 18
-    local downOffset = 30
+    local downOffset = 32
 
     o.oPosX = lakitu.curPos.x - forwardDistance * coss(pitch) * sins(yaw)
     o.oPosY = lakitu.curPos.y - forwardDistance * sins(pitch) - downOffset
