@@ -1,5 +1,6 @@
--- SteveCraft 64 - Steve player model
--- Requires the generated actors/steve DynOS source in this mod folder.
+-- SteveCraft 64 - Steve model replacement on the native player object.
+-- MarioState remains the engine-owned physical authority; proxy.lua changes
+-- marioObj's model directly so a second body is never spawned.
 
 SteveCraft = SteveCraft or {}
 
@@ -13,6 +14,7 @@ SteveCraft.character = SteveCraft.character or {
 local character = SteveCraft.character
 local missingModelLogged = false
 local lookupCooldown = 0
+local proxyUnavailableLogged = false
 
 local function resolve_steve_model()
     if lookupCooldown > 0 then
@@ -33,29 +35,31 @@ local function resolve_steve_model()
     character.modelId = modelId
     character.registered = true
     character.ready = true
-    print("[SteveCraft 64] Registered Steve player model.")
+    print("[SteveCraft 64] Registered Steve model for the native player object.")
     return true
 end
 
 local function apply_steve_model(m)
+    if m == nil then return end
+
     -- DynOS actor resources may be built during game startup. Retry the lookup
-    -- until the GeoLayout is available instead of applying an invalid model ID.
+    -- until the GeoLayout is available instead of spawning an invalid model ID.
     if not character.registered and not resolve_steve_model() then
         return
     end
 
-    -- Register the local player's model choice in the sync table. Other
-    -- clients with SteveCraft installed can then display the same model.
-    if m.playerIndex == 0 then
-        if gPlayerSyncTable[0].modelId ~= character.modelId then
-            gPlayerSyncTable[0].modelId = character.modelId
+    local proxy = SteveCraft.proxy
+    if proxy == nil or type(proxy.update) ~= "function" then
+        if not proxyUnavailableLogged then
+            print("[SteveCraft 64] Proxy module is not available; retaining native player model.")
+            proxyUnavailableLogged = true
         end
+        return
     end
 
-    local sync = gPlayerSyncTable[m.playerIndex]
-    if sync ~= nil and sync.modelId == character.modelId then
-        obj_set_model_extended(m.marioObj, character.modelId)
-    end
+    -- Each client creates a local visual for every MarioState it simulates.
+    -- The Mario model is hidden only after the detached Steve visual exists.
+    proxy.update(m, character.modelId)
 end
 
 hook_event(HOOK_MARIO_UPDATE, apply_steve_model)
