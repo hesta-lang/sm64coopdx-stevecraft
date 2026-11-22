@@ -1,4 +1,4 @@
-name: Lua syntax check
+name: CJ mod Lua validation
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  syntax:
-    name: Validate Lua scripts
+  validate:
+    name: Lua syntax and native model swap tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -26,3 +26,6 @@ jobs:
             echo "Checking $file"
             luac5.4 -p "$file"
           done < <(find . -type f -name '*.lua' -print0)
+
+      - name: Test native CJ model replacement
+        run: lua5.4 tools/test_model_swap.lua
