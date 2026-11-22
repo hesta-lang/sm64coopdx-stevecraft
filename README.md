@@ -1,45 +1,46 @@
 # SteveCraft 64
 
-Mod para **SM64CoopDX**, adaptado al fork Android de ManIsCat2. Reemplaza al jugador por Steve con geometría cúbica y una cámara en tercera persona controlada por el tacto.
+Mod Lua independiente para **SM64CoopDX Android**. No es un APK.
 
-## Versión
+## 0.20.0-alpha
 
-**0.8.0-alpha** — cámara NEWCAM con giro táctil y materiales de Steve corregidos.
+### Movimiento
+- Recupera el port de movimiento Minecraft Java 26.3: aceleración, fricción, salto, gravedad, sprint, movimiento aéreo y agua.
+- SM64CoopDX sigue ejecutando la resolución final de colisiones. La simulación no sustituye completamente el solver voxel/AABB de Minecraft y necesita calibración dentro del juego.
 
-## Cámara
+### Modelo
+- Steve conserva el objeto de jugador nativo como autoridad física; no se crea un segundo cuerpo.
+- Se incorporan clips muestreados de animaciones Bedrock vinculados a estados de animación de SM64.
+- La jerarquía de huesos sigue siendo la compatible con SM64CoopDX. Los estados sin clip asignado conservan la animación nativa.
 
-- Y alterna entre primera y tercera persona.
-- En tercera persona se utiliza `CAMERA_MODE_NEWCAM`, el sistema de cámara libre incluido en el fork.
-- Arrastra el dedo por la zona táctil derecha (`TOUCH_MOUSE`) para girar la cámara horizontal y verticalmente.
-- La cámara conserva colisiones de nivel para no atravesar paredes.
-- Las perspectivas trasera y frontal se recorren libremente girando alrededor de Steve; ya no requieren C-buttons ni cruceta.
-- Las opciones de cámara que estaban activas antes de entrar a SteveCraft se guardan y se restauran al volver a primera persona.
+### HUD
+- Usa \`RESOLUTION_DJUI\` en vez de la resolución N64 fija.
+- Hotbar de nueve espacios, selección, icono pixelado, contadores, corazones y mira central.
+- Panel visual de inventario de cuatro filas.
+- \`L\` cambia el espacio seleccionado; \`/steveinv\` y \`/stevehud\` controlan los paneles.
+- Los botones táctiles A/B/X/Y/L/R siguen siendo controles nativos del motor. El HUD de SteveCraft es una aproximación gráfica con primitivas DJUI, no las texturas originales de Minecraft.
 
-## Modelo
+### Bloques
+- \`R\` coloca un bloque de piedra donde apunta la mira; también existe \`/steveplace\`.
+- El raycast usa \`collision_find_surface_on_ray\`.
+- La colisión se crea con superficies persistentes \`smlua_collision_add_surface\`.
+- Las caras internas entre bloques adyacentes se eliminan para evitar paredes invisibles.
+- Los objetos se crean con \`spawn_sync_object\` para su replicación en sesiones compatibles.
+- El tamaño inicial es 90 unidades SM64. El modelo visible usa temporalmente \`E_MODEL_TTC_PUSH_BLOCK\`, no una textura cúbica original de Minecraft.
 
-El actor usa las proporciones clásicas del modelo de Minecraft:
-- Cabeza: 8×8×8
-- Torso: 8×12×4
-- Brazos: 4×12×4
-- Piernas: 4×12×4
+**No se incluye romper bloques ni destruir el escenario.**
 
-Se mantiene la jerarquía de huesos de jugador de SM64CoopDX. La escala raíz es 1.0. El exportador establece colores primitivos independientes para piel, pelo, ojos, camiseta, pantalón, zapatos y variante metálica; esto evita que las superficies salgan blancas por depender de vértices `SHADE` que se exportan en blanco.
+## Controles
 
-La mano independiente de primera persona usa la skin clásica de Steve 64×64, recortada a seis texturas pequeñas con filtrado por punto.
-
-## Animaciones
-
-Steve conserva el conjunto de animaciones de jugador compatible del motor. `animations.lua` reimplementa las fórmulas de marcha y agachado de `HumanoidModel.setupAnim` de Minecraft Java 1.21.11.
-
-Las curvas personalizadas aún no están horneadas en clips SM64. El API Lua expone las rotaciones de huesos del jugador como solo lectura; para aplicarlas es necesario generar arrays con el orden correcto de los 21 segmentos del esqueleto.
-
-## Instalación
-
-1. Descarga el repositorio como ZIP.
-2. Extrae la carpeta completa.
-3. Copia la carpeta del mod en el directorio `mods` de SM64CoopDX.
-4. Inicia un nivel. Pulsa Y para cambiar a tercera persona y arrastra sobre la zona derecha de la pantalla para girar la cámara.
+| Control | Acción |
+| --- | --- |
+| Y | Alternar primera/tercera persona |
+| L | Siguiente espacio de la hotbar |
+| R | Colocar bloque |
+| \`/steveplace\` | Colocar bloque |
+| \`/steveinv\` | Abrir/cerrar inventario |
+| \`/stevehud\` | Activar/desactivar HUD |
 
 ## Validación
 
-GitHub Actions valida la sintaxis Lua y genera los recursos DynOS. Eso no sustituye la comprobación dentro del juego Android. Siguen pendientes la confirmación visual del nuevo render, el tacto en el dispositivo y la ausencia de oclusión en todos los niveles.
+GitHub Actions revisa sintaxis Lua y ejecuta pruebas de física, cámara, proxy, colisión y colocación. No ejecuta SM64CoopDX Android; la apariencia, el control táctil, la escala de bloque y la replicación deben probarse en el juego. Esta es una **alpha de reparación**, no una versión final.
